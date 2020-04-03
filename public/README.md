@@ -10,5 +10,7 @@ curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 wasm-pack build --target web
 
 # Static serve (for just debug)
-cd static && python3 -m http.server 8080
+python3 -m http.server 8080
 ``` 
+
+and navigate to [http://localhost:8080/static/index.html](http://localhost:8080/static/index.html)

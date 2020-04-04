@@ -13,3 +13,7 @@ script:
   - cargo test
   - wasm-pack test --firefox --headless
   - wasm-pack test --chrome  --headless
+  - cd ../core
+  - cargo test
+  - cd ../server
+  - cargo test

@@ -6,4 +6,4 @@
 # 2. Build files
 # 3. Minify files
 # 4. Start database
-# 4. Start server
+# 5. Start server

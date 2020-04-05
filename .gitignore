@@ -7,6 +7,8 @@ public/pkg
 wasm-pack.log
 
 **/*.min.js
+**/*.min.css
+**/*.min.html
 
 .idea
 .vscode

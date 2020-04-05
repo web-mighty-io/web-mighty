@@ -31,7 +31,7 @@ impl IngameUser {
         IngameUser {
             uid: user.uid,
             name: user.name.clone(),
-            inHand: Vec::new(),
+            in_hand: Vec::new(),
             gained: Vec::new(),
             score: 0,
         }
@@ -40,8 +40,8 @@ impl IngameUser {
 
 pub struct Game {
     users: Vec<IngameUser>,
-    state: GameState,
-    friend : Friend,
+    pub state: GameState,
+    pub friend : Friend,
 }
 
 impl Game {

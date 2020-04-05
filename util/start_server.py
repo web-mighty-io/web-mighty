@@ -11,7 +11,7 @@ from pyfiglet import Figlet
 
 
 def check_command(command: str) -> (bool, str):
-    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE)
+    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE, shell=True)
     stdout, _ = child.communicate()
     return child.returncode == 0, stdout.decode("utf-8")
 

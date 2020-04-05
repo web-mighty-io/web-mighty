@@ -3,7 +3,7 @@ use crate::user::Card;
 
 pub enum GameState {
     Election,
-    Ingame(i32, i32), // Ingame(round starter, current player)
+    InGame(i32, i32), // Ingame(round starter, current player)
     Finished(i32), // Finished(winner uid)
 }
 
@@ -18,7 +18,7 @@ pub enum Friend {
     None,
 }
 
-pub struct IngameUser {
+pub struct InGameUser {
     pub uid: u64,
     pub name: String,
     in_hand: Vec<Card>,
@@ -26,9 +26,9 @@ pub struct IngameUser {
     pub score: i32,
 }
 
-impl IngameUser {
-    fn from(user: &User) -> IngameUser {
-        IngameUser {
+impl InGameUser {
+    fn from(user: &User) -> InGameUser {
+        InGameUser {
             uid: user.uid,
             name: user.name.clone(),
             in_hand: Vec::new(),
@@ -39,7 +39,7 @@ impl IngameUser {
 }
 
 pub struct Game {
-    users: Vec<IngameUser>,
+    users: Vec<InGameUser>,
     pub state: GameState,
     pub friend : Friend,
 }
@@ -54,7 +54,7 @@ impl Game {
     }
 
     pub fn add_user(&mut self, user: &User) {
-        self.users.push(IngameUser::from(user));
+        self.users.push(InGameUser::from(user));
     }
 
     pub fn delete_user(&mut self, user: &User) {

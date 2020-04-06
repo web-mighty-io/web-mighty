@@ -45,18 +45,24 @@ def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
     return subfolders, files
 
 
-def minify_file(path: str, url: str):
+def minify_file(path: str, url: str) -> bool:
     data = {'input': open(path, 'rb').read()}
     response = requests.post(url, data=data)
+    if response.status_code >= 400:
+        print_error('minify {} failed due to bad response to {}'.format(path, url))
+        return False
+
     path = path.split('.')
     extension = path[-1]
     path = path[:-1]
     path.extend(['min', extension])
     path = '.'.join(path)
+
     f = open(path, 'w')
     f.write(response.text)
 
     print_info('minified to {}'.format(path))
+    return True
 
 
 def main():
@@ -134,17 +140,32 @@ def main():
         os.system('cd server && {} install --root build --path .'.format(cargo_path))
 
         _, files = run_fast_scandir('public/static', ['.html'])
+        success = True
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://html-minifier.com/raw')
+                success = success and minify_file(i, 'https://html-minifier.com/raw')
         _, files = run_fast_scandir('public/static', ['.css'])
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://cssminifier.com/raw')
+                success = success and minify_file(i, 'https://cssminifier.com/raw')
         _, files = run_fast_scandir('public/static', ['.js'])
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://javascript-minifier.com/raw')
+                success = success and minify_file(i, 'https://javascript-minifier.com/raw')
+
+        if not success:
+            print_error('minify failed')
+            go = prompt([{
+                'name': 'go',
+                'type': 'confirm',
+                'message': 'Start server?',
+                'default': False,
+            }])['go']
+
+            if not go:
+                exit(1)
+
+        # TODO: start server
 
 
 if __name__ == '__main__':

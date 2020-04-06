@@ -12,3 +12,6 @@ wasm-pack.log
 
 .idea
 .vscode
+
+venv
+server/build

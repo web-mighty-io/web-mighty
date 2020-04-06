@@ -10,10 +10,10 @@ from clint.textui import colored
 from pyfiglet import Figlet
 
 
-def check_command(command: str) -> (bool, str):
-    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE, shell=True)
-    stdout, _ = child.communicate()
-    return child.returncode == 0, stdout.decode("utf-8")
+def check_command(command: str) -> bool:
+    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    child.communicate()
+    return child.returncode == 0
 
 
 def print_error(msg: str):
@@ -45,18 +45,24 @@ def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
     return subfolders, files
 
 
-def minify_file(path: str, url: str):
+def minify_file(path: str, url: str) -> bool:
     data = {'input': open(path, 'rb').read()}
     response = requests.post(url, data=data)
+    if response.status_code >= 400:
+        print_error('minify {} failed due to bad response to {}'.format(path, url))
+        return False
+
     path = path.split('.')
     extension = path[-1]
     path = path[:-1]
     path.extend(['min', extension])
     path = '.'.join(path)
+
     f = open(path, 'w')
     f.write(response.text)
 
     print_info('minified to {}'.format(path))
+    return True
 
 
 def main():
@@ -100,8 +106,7 @@ def main():
                 exit(1)
         else:
             print_info('cargo is installed')
-            _, cargo_path = check_command('cargo')
-        cargo_path = cargo_path.strip()
+            cargo_path = 'cargo'
 
         wasm_path = ''
         print_info('checking if wasm-pack is installed')
@@ -123,28 +128,44 @@ def main():
                 exit(1)
         else:
             print_info('wasm-pack is installed')
-            _, wasm_path = check_command('wasm-pack')
-        wasm_path = wasm_path.strip()
+            wasm_path = 'wasm-pack'
 
-        if not os.path.isfile('public/Cargo.toml'):
+        if not os.path.isfile('public/Cargo.toml') or not os.path.isfile('server/Cargo.toml'):
             print_error('Wrong directory; please run this in root of project')
             exit(1)
 
         print_info('building wasm')
         os.system('cd public && {} build --target web'.format(wasm_path))
+        print_info('building server')
+        os.system('cd server && {} install --root build --path .'.format(cargo_path))
 
         _, files = run_fast_scandir('public/static', ['.html'])
+        success = True
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://html-minifier.com/raw')
+                success = success and minify_file(i, 'https://html-minifier.com/raw')
         _, files = run_fast_scandir('public/static', ['.css'])
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://cssminifier.com/raw')
+                success = success and minify_file(i, 'https://cssminifier.com/raw')
         _, files = run_fast_scandir('public/static', ['.js'])
         for i in files:
             if 'min' not in i.split('.'):
-                minify_file(i, 'https://javascript-minifier.com/raw')
+                success = success and minify_file(i, 'https://javascript-minifier.com/raw')
+
+        if not success:
+            print_error('minify failed')
+            go = prompt([{
+                'name': 'go',
+                'type': 'confirm',
+                'message': 'Start server?',
+                'default': False,
+            }])['go']
+
+            if not go:
+                exit(1)
+
+        # TODO: start server
 
 
 if __name__ == '__main__':

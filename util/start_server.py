@@ -124,9 +124,6 @@ def main():
             print_info('wasm-pack is installed')
             wasm_path = 'wasm-pack'
 
-        print(cargo_path)
-        print(wasm_path)
-
         if not os.path.isfile('public/Cargo.toml') or not os.path.isfile('server/Cargo.toml'):
             print_error('Wrong directory; please run this in root of project')
             exit(1)

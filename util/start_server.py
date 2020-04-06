@@ -10,10 +10,10 @@ from clint.textui import colored
 from pyfiglet import Figlet
 
 
-def check_command(command: str) -> (bool, str):
-    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE, shell=True)
-    stdout, _ = child.communicate()
-    return child.returncode == 0, stdout.decode("utf-8")
+def check_command(command: str) -> bool:
+    child = subprocess.Popen(['command', '-v', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    child.communicate()
+    return child.returncode == 0
 
 
 def print_error(msg: str):
@@ -100,8 +100,7 @@ def main():
                 exit(1)
         else:
             print_info('cargo is installed')
-            _, cargo_path = check_command('cargo')
-        cargo_path = cargo_path.strip()
+            cargo_path = 'cargo'
 
         wasm_path = ''
         print_info('checking if wasm-pack is installed')
@@ -123,15 +122,19 @@ def main():
                 exit(1)
         else:
             print_info('wasm-pack is installed')
-            _, wasm_path = check_command('wasm-pack')
-        wasm_path = wasm_path.strip()
+            wasm_path = 'wasm-pack'
 
-        if not os.path.isfile('public/Cargo.toml'):
+        print(cargo_path)
+        print(wasm_path)
+
+        if not os.path.isfile('public/Cargo.toml') or not os.path.isfile('server/Cargo.toml'):
             print_error('Wrong directory; please run this in root of project')
             exit(1)
 
         print_info('building wasm')
         os.system('cd public && {} build --target web'.format(wasm_path))
+        print_info('building server')
+        os.system('cd server && {} install --root build --path .'.format(cargo_path))
 
         _, files = run_fast_scandir('public/static', ['.html'])
         for i in files:

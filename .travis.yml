@@ -39,11 +39,11 @@ after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
     cd $TRAVIS_BUILD_DIR/core
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F core -y ../.codecov.yml
+    bash <(curl -s https://codecov.io/bash) -F core
     cd ../public
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F public -y ../.codecov.yml
+    bash <(curl -s https://codecov.io/bash) -F public
     cd ../server
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F server -y ../.codecov.yml
+    bash <(curl -s https://codecov.io/bash) -F server
   fi

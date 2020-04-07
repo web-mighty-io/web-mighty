@@ -9,7 +9,7 @@ addons:
   chrome: stable
 
 install: |
-  if [ -f "${TRAVIS_HOME}/.cargo/bin/wasm-pack ]; then
+  if [ -f "${TRAVIS_HOME}/.cargo/bin/wasm-pack" ]; then
     cargo uninstall wasm-pack
   fi
   curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh

@@ -11,3 +11,4 @@ edition = "2018"
 "client" = []
 
 [dependencies]
+rand = "0.7"

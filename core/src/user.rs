@@ -21,7 +21,7 @@ impl<'a> User<'a> {
     }
 }
 
-impl PartialEq for User {
+impl<'a> PartialEq for User<'a> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }

@@ -1,19 +1,46 @@
 language: rust
-rust: nightly
+rust:
+  - stable
+  - nightly
+cache: cargo
 
 addons:
   firefox: latest
   chrome: stable
 
 install:
-  - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+  - cargo install wasm-pack
+
+before_cache: |
+  if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
+    cargo install cargo-tarpaulin
+  fi
 
 script:
-  - cd public
+  - cd core
+  - cargo clean
+  - cargo build
+  - cargo test
+  - cd ../public
+  - cargo clean
+  - cargo build
   - cargo test
   - wasm-pack test --firefox --headless
   - wasm-pack test --chrome  --headless
-  - cd ../core
-  - cargo test
   - cd ../server
+  - cargo clean
+  - cargo build
   - cargo test
+
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
+    cd core
+    cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
+    bash <(curl -s https://codecov.io/bash) -F core
+    cd ../public
+    cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
+    bash <(curl -s https://codecov.io/bash) -F public
+    cd ../server
+    cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
+    bash <(curl -s https://codecov.io/bash) -F server
+  fi

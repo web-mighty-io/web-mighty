@@ -10,7 +10,7 @@ addons:
 
 install: |
   if [ -f "${TRAVIS_HOME}/.cargo/bin/wasm-pack" ]; then
-    cargo uninstall wasm-pack
+    rm ${TRAVIS_HOME}/.cargo/bin/wasm-pack
   fi
   curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 

@@ -9,7 +9,8 @@ addons:
   chrome: stable
 
 install:
-  - cargo install wasm-pack
+  - cargo uninstall wasm-pack
+  - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 before_cache: |
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
@@ -34,13 +35,13 @@ script:
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
-    cd core
+    cd $TRAVIS_BUILD_DIR/core
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F core
+    bash <(curl -s https://codecov.io/bash) -F core -y ../.codecov.yml
     cd ../public
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F public
+    bash <(curl -s https://codecov.io/bash) -F public -y ../.codecov.yml
     cd ../server
     cargo tarpaulin --out Xml --run-types Tests --run-types Doctests
-    bash <(curl -s https://codecov.io/bash) -F server
+    bash <(curl -s https://codecov.io/bash) -F server -y ../.codecov.yml
   fi

@@ -8,9 +8,11 @@ addons:
   firefox: latest
   chrome: stable
 
-install:
-  - cargo uninstall wasm-pack
-  - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+install: |
+  if [ -f "${TRAVIS_HOME}/.cargo/bin/wasm-pack ]; then
+    cargo uninstall wasm-pack
+  fi
+  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 before_cache: |
   if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then

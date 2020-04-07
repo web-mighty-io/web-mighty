@@ -10,3 +10,6 @@ wasm-pack.log
 
 .idea
 .vscode
+
+public/static/bulma-0.8.0
+public/static/css

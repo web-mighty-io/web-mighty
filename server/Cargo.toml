@@ -1,6 +1,6 @@
 [package]
 name = "server"
-version = "0.1.0"
+version = "1.0.0-dev"
 authors = ["buttercrab <jaeyong0201@gmail.com>"]
 edition = "2018"
 
@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 core = { path = "../core", default-features = false, features = ["server"] }
+actix-web = "2"
+actix-rt = "1"
+clap = { git = "https://github.com/clap-rs/clap/" }

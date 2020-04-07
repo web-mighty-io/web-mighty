@@ -4,58 +4,83 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Web Mighty</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
     <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <section class="hero is-link is-fullheight is-bold">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <div class="navbar-item">
-                            <h1 class="title" style="font-family: 'Raleway'">Web Mighty</h1>
-                        </div>
+<section class="hero is-fullheight is-bold">
+    <div class="hero-head">
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-brand">
+                    <div class="navbar-item">
+                        <h1 class="title">Web Mighty</h1>
                     </div>
-                    <div class="navbar-menu">
-                        <div class="navbar-end">
-                            <div class="navbar-item">
-                                <a class="button is-link is-inverted" href="https://github.com/buttercrab/web-mighty">
+                </div>
+                <div class="navbar-menu">
+                    <div class="navbar-end">
+                        <div class="navbar-item">
+                            <a class="button is-dark" href="https://github.com/buttercrab/web-mighty">
                                 <span class="icon">
                                     <i class="fab fa-github"></i>
                                 </span>
-                                    <span>GitHub</span>
-                                </a>
+                                <span>GitHub</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div class="hero-body">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <div class="box">
+                        first column
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box">
+                        <div class="field">
+                            <label class="label">Username</label>
+                            <div class="control">
+                                <input type="text" class="input">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Password</label>
+                            <div class="control">
+                                <input type="password" class="input">
+                            </div>
+                        </div>
+                        <div class="level">
+                            <div class="control level-left">
+                                <div class="level-item">
+                                    <button class="button is-link">Log in</button>
+                                </div>
+                            </div>
+                            <div class="control level-right">
+                                <div class="level-item">
+                                    <p>
+                                        or <a href="" class="is-link">Sign Up</a>?
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <figure class="image is-128x128">
-                    <img src="assets/spade_A.png">
-                </figure>
-                <h1 class="title" style="font-family: 'Raleway'">ICON here</h1>
-                <div class="level">
-                    <div class="level-item">
-                        <button class="button is-large is-primary" style="font-family: 'Raleway'">Log in</button>
-                    </div>
-                    <div class="level-item">
-                        <button class="button is-large is-info" style="font-family: 'Raleway'">Sign Up</button>
-                    </div>
-                </div>
             </div>
         </div>
-        <div class="hero-foot">
-            <div class="container">
-                <p class="subtitle">
-                    Licensed to Jaeyong Sung, Seongmin Cheo, Hyeonbin Lee.
-                </p>
-            </div>
-        </div>
-    </section>
+    </div>
+</section>
+<footer class="footer">
+    <div class="content has-text-centered">
+        <p>
+            <strong>Web Mighty</strong> by Jaeyong Sung, Seongmin Cheo, Hyeonbin Lee. The source code is licensed
+            <a href="http://opensource.org/licenses/mit-license.php">MIT</a>.
+        </p>
+    </div>
+</footer>
 </body>
 </html>

@@ -1,8 +1,12 @@
-use crate::base::{Card, CardType, DeckTrait, GameTrait, StateTrait, UserTrait};
+use crate::base::{Card, CardType, DeckTrait, GameState, GameTrait, UserTrait};
 use crate::user::UserId;
+use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct BasicDeck {
     cards: Vec<Card>,
+    index: usize,
 }
 
 impl DeckTrait for BasicDeck {
@@ -21,70 +25,91 @@ impl DeckTrait for BasicDeck {
             cards.push(Card::Normal(CardType::Clover, i));
         }
         cards.push(Card::Joker(CardType::Red));
-        BasicDeck { cards }
+        BasicDeck { cards, index: 0 }
     }
 
     fn get_list(&self) -> &Vec<Card> {
         &self.cards
     }
 
-    fn get_mut_list(&mut self) -> &mut Vec<Card> {
+    fn get_list_mut(&mut self) -> &mut Vec<Card> {
         &mut self.cards
     }
 }
 
 pub struct BasicUser {
     id: UserId,
+    deck: Vec<Card>,
+    front: Card,
+    score: Vec<Card>,
 }
 
 impl UserTrait for BasicUser {
     fn get_user_id(&self) -> u64 {
         self.id
     }
-}
 
-pub struct BasicState {}
+    fn get_deck(&self) -> &Vec<Card> {
+        &self.deck
+    }
 
-impl StateTrait for BasicState {
-    fn current_player(&self) -> Option<UserId> {
+    fn get_deck_mut(&mut self) -> &mut Vec<Card> {
+        &mut self.deck
+    }
+
+    fn get_front_card(&self) -> &Card {
         unimplemented!()
     }
 
-    fn next(&mut self) {
+    fn get_front_card_mut(&mut self) -> &mut Card {
         unimplemented!()
     }
 }
 
-pub struct BasicGame<D, U, S>
+pub struct BasicGame<D, U>
 where
     D: DeckTrait,
     U: UserTrait,
-    S: StateTrait,
 {
     deck: D,
     users: Vec<U>,
-    state: S,
+    state: GameState,
+    giruda: Option<CardType>,
 }
 
-impl<D, U, S> GameTrait for BasicGame<D, U, S>
+impl<D, U> GameTrait for BasicGame<D, U>
 where
     D: DeckTrait,
     U: UserTrait,
-    S: StateTrait,
 {
     type Deck = D;
     type User = U;
-    type State = S;
 
     fn is_joker_called(&self) -> bool {
         unimplemented!()
     }
 
-    fn get_current_pattern(&self) -> CardType {
+    fn get_leading_type(&self) -> Option<&CardType> {
         unimplemented!()
     }
 
     fn get_giruda(&self) -> Option<CardType> {
+        self.giruda.clone()
+    }
+
+    fn get_state(&self) -> &GameState {
+        &self.state
+    }
+
+    fn get_state_mut(&mut self) -> &mut GameState {
+        &mut self.state
+    }
+
+    fn get_user_id(&self) -> &Vec<u64> {
+        unimplemented!()
+    }
+
+    fn get_users(&self) -> &HashMap<u64, Self::User, RandomState> {
         unimplemented!()
     }
 }

@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        build: [ stable, beta, nightly, macos, windows, msrv ]
+        build: [ stable, beta, nightly, macos ]
         include:
           - build: stable
             os: ubuntu-latest

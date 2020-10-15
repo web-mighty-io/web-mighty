@@ -52,4 +52,4 @@ jobs:
             rm ${HOME}/.cargo/bin/wasm-pack
           fi
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          wasm-pack test --node --firefox --chrome --safari --headless
+          cd public && wasm-pack test --node --firefox --chrome --safari --headless

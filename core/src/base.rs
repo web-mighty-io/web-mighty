@@ -1,6 +1,4 @@
-use crate::user::UserId;
-use rand::seq::SliceRandom;
-use std::collections::HashMap;
+use std::str::FromStr;
 
 #[derive(PartialEq, Clone)]
 pub enum CardType {
@@ -8,162 +6,224 @@ pub enum CardType {
     Diamond,
     Heart,
     Clover,
+}
+
+pub struct ParseCardTypeError;
+
+impl FromStr for CardType {
+    type Err = ParseCardTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "s" | "spade" => Ok(Self::Spade),
+            "d" | "diamond" => Ok(Self::Diamond),
+            "h" | "heart" => Ok(Self::Heart),
+            "c" | "clover" => Ok(Self::Clover),
+            _ => Err(ParseCardTypeError),
+        }
+    }
+}
+
+#[derive(PartialEq, Clone)]
+pub enum ColorType {
     Black,
     Red,
 }
 
-impl CardType {
-    pub fn contains(lhs: &CardType, rhs: &CardType) -> bool {
-        if *lhs == *rhs {
-            true
-        } else {
-            (*lhs == CardType::Red && (*rhs == CardType::Diamond || *rhs == CardType::Heart))
-                || (*lhs == CardType::Black
-                    && (*rhs == CardType::Spade || *rhs == CardType::Clover))
+pub struct ParseColorTypeError;
+
+impl FromStr for ColorType {
+    type Err = ParseColorTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "b" | "black" => Ok(Self::Black),
+            "r" | "red" => Ok(Self::Red),
+            _ => Err(ParseColorTypeError),
         }
+    }
+}
+
+impl From<CardType> for ColorType {
+    fn from(c: CardType) -> Self {
+        match c {
+            CardType::Spade => Self::Black,
+            CardType::Diamond => Self::Red,
+            CardType::Heart => Self::Red,
+            CardType::Clover => Self::Black,
+        }
+    }
+}
+
+impl From<RushType> for ColorType {
+    fn from(c: RushType) -> Self {
+        match c {
+            RushType::Spade => Self::Black,
+            RushType::Diamond => Self::Red,
+            RushType::Heart => Self::Red,
+            RushType::Clover => Self::Black,
+            RushType::Red => Self::Red,
+            RushType::Black => Self::Black,
+        }
+    }
+}
+
+impl ColorType {
+    pub fn contains(lhs: ColorType, rhs: CardType) -> bool {
+        if lhs == ColorType::Black {
+            rhs == CardType::Spade || rhs == CardType::Clover
+        } else {
+            rhs == CardType::Diamond || rhs == CardType::Heart
+        }
+    }
+}
+
+#[derive(PartialEq, Clone)]
+pub enum RushType {
+    Spade,
+    Diamond,
+    Heart,
+    Clover,
+    Red,
+    Black,
+}
+
+pub struct ParseRushTypeError;
+
+impl FromStr for RushType {
+    type Err = ParseRushTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "s" | "spade" => Ok(Self::Spade),
+            "d" | "diamond" => Ok(Self::Diamond),
+            "h" | "heart" => Ok(Self::Heart),
+            "c" | "clover" => Ok(Self::Clover),
+            "r" | "red" => Ok(Self::Red),
+            "b" | "black" => Ok(Self::Black),
+            _ => Err(ParseRushTypeError),
+        }
+    }
+}
+
+impl From<CardType> for RushType {
+    fn from(c: CardType) -> Self {
+        match c {
+            CardType::Spade => Self::Spade,
+            CardType::Diamond => Self::Diamond,
+            CardType::Heart => Self::Heart,
+            CardType::Clover => Self::Clover,
+        }
+    }
+}
+
+impl From<ColorType> for RushType {
+    fn from(c: ColorType) -> Self {
+        match c {
+            ColorType::Black => Self::Black,
+            ColorType::Red => Self::Red,
+        }
+    }
+}
+
+impl From<Card> for RushType {
+    fn from(c: Card) -> Self {
+        match c {
+            Card::Normal(t, _) => Self::from(t),
+            Card::Joker(t) => Self::from(t),
+        }
+    }
+}
+
+impl RushType {
+    pub fn contains(&self, c: &CardType) -> bool {
+        Self::from(c.clone()).eq(self) || Self::from(ColorType::from(c.clone())).eq(self)
     }
 }
 
 #[derive(PartialEq, Clone)]
 pub enum Card {
     Normal(CardType, u8),
-    Joker(CardType),
+    Joker(ColorType),
+}
+
+pub struct ParseCardError;
+
+impl From<ParseCardTypeError> for ParseCardError {
+    fn from(_: ParseCardTypeError) -> Self {
+        Self
+    }
+}
+
+impl From<ParseColorTypeError> for ParseCardError {
+    fn from(_: ParseColorTypeError) -> Self {
+        Self
+    }
+}
+
+impl FromStr for Card {
+    type Err = ParseCardError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.get(0..1).ok_or(ParseCardError)? {
+            "n" => {
+                let num = s.get(2..3).ok_or(ParseCardError)?;
+                let num = u8::from_str_radix(num, 16).map_err(|_| ParseCardError)?;
+                Ok(Self::Normal(
+                    s.get(1..2).ok_or(ParseCardError)?.parse::<CardType>()?,
+                    num,
+                ))
+            }
+            "j" => Ok(Self::Joker(
+                s.get(1..).ok_or(ParseCardError)?.parse::<ColorType>()?,
+            )),
+            _ => Err(ParseCardError),
+        }
+    }
 }
 
 impl Card {
-    fn is_score_card(&self) -> bool {
-        match self {
-            Card::Normal(_, t) => *t >= 10,
-            Card::Joker(_) => false,
+    /// New card deck (not shuffled)
+    pub fn new_deck() -> Vec<Card> {
+        let mut v = Vec::with_capacity(54);
+
+        for i in 1..=13 {
+            v.push(Card::Normal(CardType::Clover, i));
         }
-    }
-
-    fn get_type(&self) -> &CardType {
-        match self {
-            Card::Normal(t, _) => t,
-            Card::Joker(t) => t,
+        for i in 1..=13 {
+            v.push(Card::Normal(CardType::Diamond, i));
         }
+        for i in 1..=13 {
+            v.push(Card::Normal(CardType::Heart, i));
+        }
+        for i in 1..=13 {
+            v.push(Card::Normal(CardType::Clover, i));
+        }
+
+        v.push(Card::Joker(ColorType::Black));
+        v.push(Card::Joker(ColorType::Red));
+
+        v
     }
 }
 
-pub trait DeckTrait {
-    fn new() -> Self;
-
-    fn get_list(&self) -> &Vec<Card>;
-
-    fn get_list_mut(&mut self) -> &mut Vec<Card>;
-
-    fn len(&self) -> usize {
-        self.get_list().len()
-    }
-
-    fn shuffle(&mut self) {
-        let v = self.get_list_mut();
-        v.shuffle(&mut rand::thread_rng());
-    }
-
-    fn next(&mut self) -> Option<Card> {
-        self.get_list_mut().pop()
-    }
+/// type of friend making
+#[derive(Clone)]
+pub enum FriendFunc {
+    None,
+    ByCard(Card),
+    ByUser(usize),
+    ByWinning(u8),
 }
 
-pub trait UserTrait {
-    fn get_user_id(&self) -> UserId;
-
-    fn get_deck(&self) -> &Vec<Card>;
-
-    fn get_deck_mut(&mut self) -> &mut Vec<Card>;
-
-    fn get_front_card(&self) -> &Card;
-
-    fn get_front_card_mut(&mut self) -> &mut Card;
-
-    fn put_card(&mut self, card: &Card) {
-        let pos = self.get_deck().iter().position(|x| *x == *card).unwrap();
-        self.get_deck_mut().remove(pos);
-        *self.get_front_card_mut() = card.clone();
-    }
-}
-
-pub enum GameState {
-    Election,
-    Game {
-        step: u8,
-        start: UserId,
-        current: UserId,
-    },
-    Finish,
+pub enum GameError {
+    CommandError(String),
+    InternalError(String),
 }
 
 pub trait GameTrait {
-    type Deck: DeckTrait;
-    type User: UserTrait;
+    type State;
 
-    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
-        let mighty = self.get_mighty();
-        if *lhs == mighty {
-            return false;
-        }
-        if *rhs == mighty {
-            return true;
-        }
-
-        if let Card::Joker(_) = lhs {
-            return self.is_joker_called();
-        }
-        if let Card::Joker(_) = rhs {
-            return !self.is_joker_called();
-        }
-
-        if let Card::Normal(left_pat, left_num) = lhs {
-            if let Card::Normal(right_pat, right_num) = rhs {
-                let a = CardType::contains(left_pat, self.get_leading_type().unwrap());
-                let b = CardType::contains(right_pat, self.get_leading_type().unwrap());
-
-                if (a && !b) || (!a && b) {
-                    return a;
-                }
-
-                return *left_num < *right_num;
-            }
-        }
-
-        unreachable!()
-    }
-
-    fn is_joker_called(&self) -> bool;
-
-    fn get_leading_type(&self) -> Option<&CardType> {
-        match self.get_state() {
-            GameState::Game {
-                step: _,
-                start,
-                current: _,
-            } => Some(
-                self.get_users()
-                    .get(start)
-                    .unwrap()
-                    .get_front_card()
-                    .get_type(),
-            ),
-            _ => None,
-        }
-    }
-
-    fn get_giruda(&self) -> Option<CardType>;
-
-    fn get_mighty(&self) -> Card {
-        match self.get_giruda() {
-            Some(CardType::Spade) => Card::Normal(CardType::Heart, 1),
-            _ => Card::Normal(CardType::Spade, 1),
-        }
-    }
-
-    fn get_state(&self) -> &GameState;
-
-    fn get_state_mut(&mut self) -> &mut GameState;
-
-    fn get_user_id(&self) -> &Vec<UserId>;
-
-    fn get_users(&self) -> &HashMap<UserId, Self::User>;
+    // first argument in instruction is user id (always in bound)
+    fn process(&self, args: Vec<String>) -> Result<Self::State, GameError>;
 }

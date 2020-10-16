@@ -10,7 +10,7 @@ use std::str::FromStr;
 /// - `Election`: After passing out cards,
 /// - `SelectFriend`: After election, president will select friend (or not)
 /// - `InGame`: After selecting friend, they will play 10 turns
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum BasicState {
     NotStarted,
     Election {
@@ -355,22 +355,7 @@ impl GameTrait for BasicGame {
             }
 
             // command is 'g'
-            BasicState::InGame {
-                president,
-                friend_func,
-                friend,
-                giruda,
-                pledge,
-                score,
-                deck,
-                score_deck,
-                turn_count,
-                placed_cards,
-                start_user,
-                current_user,
-                current_pattern,
-                is_joker_called,
-            } => {
+            BasicState::InGame { .. } => {
                 // todo
                 Ok(self.state.clone())
             }
@@ -434,7 +419,7 @@ impl BasicGame {
     // true if lhs < rhs
     // undefined when lhs == rhs
     /// todo: make tests
-    fn compare_cards(&self, lhs: Card, rhs: Card) -> bool {
+    pub fn compare_cards(&self, lhs: Card, rhs: Card) -> bool {
         if let Some(mighty) = self.get_mighty() {
             if lhs == mighty {
                 return false;
@@ -474,16 +459,16 @@ impl BasicGame {
                     Card::Joker(c2) => {
                         if c2 != cur_color {
                             false
-                        } else {
-                            if let Some(giruda) = giruda {
-                                if c1 == giruda {
-                                    c2 == giruda_color.unwrap()
-                                } else {
-                                    true
-                                }
+                        } else if self.is_joker_called() {
+                            false
+                        } else if let Some(giruda) = giruda {
+                            if c1 == giruda {
+                                c2 == giruda_color.unwrap()
                             } else {
                                 true
                             }
+                        } else {
+                            true
                         }
                     }
                 }
@@ -493,19 +478,20 @@ impl BasicGame {
                 Card::Normal(c2, _) => {
                     if c1 != cur_color {
                         true
-                    } else {
-                        if let Some(giruda) = giruda {
-                            if c2 == giruda {
-                                c1 == giruda_color.unwrap()
-                            } else {
-                                false
-                            }
+                    } else if self.is_joker_called() {
+                        true
+                    } else if let Some(giruda) = giruda {
+                        if c2 == giruda {
+                            c1 == giruda_color.unwrap()
                         } else {
                             false
                         }
+                    } else {
+                        false
                     }
                 }
 
+                // no need to check if joker is called
                 Card::Joker(c2) => c2 == cur_color,
             },
         }

@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use crate::user::UserId;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum CardType {
@@ -146,12 +147,6 @@ pub enum Card {
 #[derive(PartialEq, Clone, Debug)]
 pub struct ParseCardError;
 
-impl From<ParseCardTypeError> for ParseCardError {
-    fn from(_: ParseCardTypeError) -> Self {
-        Self
-    }
-}
-
 impl From<ParseColorTypeError> for ParseCardError {
     fn from(_: ParseColorTypeError) -> Self {
         Self
@@ -163,11 +158,11 @@ impl FromStr for Card {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.get(0..1).ok_or(ParseCardError)? {
-            "n" => {
-                let num = s.get(2..3).ok_or(ParseCardError)?;
+            "s" | "d" | "h" | "c" => {
+                let num = s.get(1..2).ok_or(ParseCardError)?;
                 let num = u8::from_str_radix(num, 13).map_err(|_| ParseCardError)?;
                 Ok(Self::Normal(
-                    s.get(1..2).ok_or(ParseCardError)?.parse::<CardType>()?,
+                    s.get(0..1).ok_or(ParseCardError)?.parse::<CardType>().unwrap(),
                     num,
                 ))
             }
@@ -221,6 +216,55 @@ pub enum GameError {
 
 pub trait GameTrait {
     type State;
+
+    fn get_users(&self) -> &Vec<UserId>;
+
+    fn get_users_mut(&mut self) -> &mut Vec<UserId>;
+
+    // todo: make thread-safe
+    fn add_user(&mut self, user: UserId) -> bool {
+        let v = self.get_users_mut();
+
+        for i in 0..5 {
+            if v[i] == 0 {
+                v[i] = user;
+                return true;
+            }
+        }
+
+        false
+    }
+
+    // todo: make thread-safe
+    fn remove_user(&mut self, user: UserId) -> bool {
+        let v = self.get_users_mut();
+
+        for i in 0..5 {
+            if v[i] == user {
+                v[i] = 0;
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn len(&self) -> usize {
+        self.get_users().iter().fold(0, |cnt, user| if *user == 0 { cnt } else { cnt + 1 })
+    }
+
+    // todo: make thread-safe
+    fn get_index(&self, user: UserId) -> Option<usize> {
+        let v = self.get_users();
+
+        for i in 0..5 {
+            if v[i] == user {
+                return Some(i);
+            }
+        }
+
+        None
+    }
 
     // first argument in instruction is user id (always in bound)
     fn process(&self, args: Vec<String>) -> Result<Self::State, GameError>;
@@ -346,22 +390,22 @@ mod base_tests {
 
     #[test]
     fn card_from_str_test() {
-        assert_eq!(Card::from_str("ns0"), Ok(Card::Normal(CardType::Spade, 0)));
+        assert_eq!(Card::from_str("s0"), Ok(Card::Normal(CardType::Spade, 0)));
         assert_eq!(
-            Card::from_str("nd4"),
+            Card::from_str("d4"),
             Ok(Card::Normal(CardType::Diamond, 4))
         );
-        assert_eq!(Card::from_str("nh9"), Ok(Card::Normal(CardType::Heart, 9)));
+        assert_eq!(Card::from_str("h9"), Ok(Card::Normal(CardType::Heart, 9)));
         assert_eq!(
-            Card::from_str("ncc"),
+            Card::from_str("cc"),
             Ok(Card::Normal(CardType::Clover, 12))
         );
 
         assert_eq!(Card::from_str("jr"), Ok(Card::Joker(ColorType::Red)));
         assert_eq!(Card::from_str("jb"), Ok(Card::Joker(ColorType::Black)));
 
-        assert_eq!(Card::from_str("nt0"), Err(ParseCardError));
-        assert_eq!(Card::from_str("nsd"), Err(ParseCardError));
+        assert_eq!(Card::from_str("t0"), Err(ParseCardError));
+        assert_eq!(Card::from_str("sd"), Err(ParseCardError));
         assert_eq!(Card::from_str("p"), Err(ParseCardError));
         assert_eq!(Card::from_str(""), Err(ParseCardError));
         assert_eq!(Card::from_str("hello"), Err(ParseCardError));

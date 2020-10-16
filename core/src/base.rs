@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use crate::user::UserId;
+use std::str::FromStr;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum CardType {
@@ -162,7 +162,10 @@ impl FromStr for Card {
                 let num = s.get(1..2).ok_or(ParseCardError)?;
                 let num = u8::from_str_radix(num, 13).map_err(|_| ParseCardError)?;
                 Ok(Self::Normal(
-                    s.get(0..1).ok_or(ParseCardError)?.parse::<CardType>().unwrap(),
+                    s.get(0..1)
+                        .ok_or(ParseCardError)?
+                        .parse::<CardType>()
+                        .unwrap(),
                     num,
                 ))
             }
@@ -250,7 +253,9 @@ pub trait GameTrait {
     }
 
     fn len(&self) -> usize {
-        self.get_users().iter().fold(0, |cnt, user| if *user == 0 { cnt } else { cnt + 1 })
+        self.get_users()
+            .iter()
+            .fold(0, |cnt, user| if *user == 0 { cnt } else { cnt + 1 })
     }
 
     // todo: make thread-safe
@@ -391,15 +396,9 @@ mod base_tests {
     #[test]
     fn card_from_str_test() {
         assert_eq!(Card::from_str("s0"), Ok(Card::Normal(CardType::Spade, 0)));
-        assert_eq!(
-            Card::from_str("d4"),
-            Ok(Card::Normal(CardType::Diamond, 4))
-        );
+        assert_eq!(Card::from_str("d4"), Ok(Card::Normal(CardType::Diamond, 4)));
         assert_eq!(Card::from_str("h9"), Ok(Card::Normal(CardType::Heart, 9)));
-        assert_eq!(
-            Card::from_str("cc"),
-            Ok(Card::Normal(CardType::Clover, 12))
-        );
+        assert_eq!(Card::from_str("cc"), Ok(Card::Normal(CardType::Clover, 12)));
 
         assert_eq!(Card::from_str("jr"), Ok(Card::Joker(ColorType::Red)));
         assert_eq!(Card::from_str("jb"), Ok(Card::Joker(ColorType::Black)));

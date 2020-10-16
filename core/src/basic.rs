@@ -84,7 +84,6 @@ pub struct BasicGame {
     state: BasicState,
 }
 
-
 impl BasicGame {
     pub fn new() -> BasicGame {
         BasicGame {

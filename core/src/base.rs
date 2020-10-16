@@ -68,7 +68,7 @@ impl ColorType {
     pub fn contains(&self, rhs: &CardType) -> bool {
         match self {
             ColorType::Black => matches!(rhs, CardType::Spade | CardType::Clover),
-            ColorType::Red => matches!(rhs, CardType::Diamond | CardType::Heart)
+            ColorType::Red => matches!(rhs, CardType::Diamond | CardType::Heart),
         }
     }
 }
@@ -308,12 +308,26 @@ mod base_tests {
         assert_eq!(RushType::from(ColorType::Black), RushType::Black);
         assert_eq!(RushType::from(ColorType::Red), RushType::Red);
 
-
-        assert_eq!(RushType::from(Card::Normal(CardType::Spade, 0)), RushType::Spade);
-        assert_eq!(RushType::from(Card::Normal(CardType::Diamond, 0)), RushType::Diamond);
-        assert_eq!(RushType::from(Card::Normal(CardType::Heart, 0)), RushType::Heart);
-        assert_eq!(RushType::from(Card::Normal(CardType::Clover, 0)), RushType::Clover);
-        assert_eq!(RushType::from(Card::Joker(ColorType::Black)), RushType::Black);
+        assert_eq!(
+            RushType::from(Card::Normal(CardType::Spade, 0)),
+            RushType::Spade
+        );
+        assert_eq!(
+            RushType::from(Card::Normal(CardType::Diamond, 0)),
+            RushType::Diamond
+        );
+        assert_eq!(
+            RushType::from(Card::Normal(CardType::Heart, 0)),
+            RushType::Heart
+        );
+        assert_eq!(
+            RushType::from(Card::Normal(CardType::Clover, 0)),
+            RushType::Clover
+        );
+        assert_eq!(
+            RushType::from(Card::Joker(ColorType::Black)),
+            RushType::Black
+        );
         assert_eq!(RushType::from(Card::Joker(ColorType::Red)), RushType::Red);
     }
 
@@ -333,9 +347,15 @@ mod base_tests {
     #[test]
     fn card_from_str_test() {
         assert_eq!(Card::from_str("ns0"), Ok(Card::Normal(CardType::Spade, 0)));
-        assert_eq!(Card::from_str("nd4"), Ok(Card::Normal(CardType::Diamond, 4)));
+        assert_eq!(
+            Card::from_str("nd4"),
+            Ok(Card::Normal(CardType::Diamond, 4))
+        );
         assert_eq!(Card::from_str("nh9"), Ok(Card::Normal(CardType::Heart, 9)));
-        assert_eq!(Card::from_str("ncc"), Ok(Card::Normal(CardType::Clover, 12)));
+        assert_eq!(
+            Card::from_str("ncc"),
+            Ok(Card::Normal(CardType::Clover, 12))
+        );
 
         assert_eq!(Card::from_str("jr"), Ok(Card::Joker(ColorType::Red)));
         assert_eq!(Card::from_str("jb"), Ok(Card::Joker(ColorType::Black)));

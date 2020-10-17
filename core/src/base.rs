@@ -361,12 +361,8 @@ pub trait GameTrait {
 impl fmt::Debug for GameError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            GameError::CommandError(s) => {
-                write!(f, "{}", s)
-            }
-            GameError::InternalError(s) => {
-                write!(f, "{}", s)
-            }
+            GameError::CommandError(s) => write!(f, "{}", s),
+            GameError::InternalError(s) => write!(f, "{}", s),
         }
     }
 }
@@ -374,12 +370,8 @@ impl fmt::Debug for GameError {
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            GameError::CommandError(s) => {
-                write!(f, "{}", s)
-            }
-            GameError::InternalError(s) => {
-                write!(f, "{}", s)
-            }
+            GameError::CommandError(s) => write!(f, "{}", s),
+            GameError::InternalError(s) => write!(f, "{}", s),
         }
     }
 }

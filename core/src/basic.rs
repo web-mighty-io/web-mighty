@@ -275,18 +275,14 @@ impl GameTrait for BasicGame {
                 })?;
 
                 Ok(BasicState::Start {
-                    done : vec![false; 5],
+                    done: vec![false; 5],
                     deck,
                     left,
                 })
             }
 
             // command is 's'
-            BasicState::Start {
-                done,
-                deck,
-                left,
-            } => {
+            BasicState::Start { done, deck, left } => {
                 if args.len() != 3 {
                     return Err(GameError::CommandError(format!(
                         "command length should be 3, actual: {}",
@@ -314,7 +310,7 @@ impl GameTrait for BasicGame {
 
                 if args[2] == "x" {
                     done[i] = true;
-                    
+
                     if done.iter().fold(true, |a, &b| a && b) {
                         return Ok(BasicState::Election {
                             pledge: vec![(None, 0); 5],
@@ -335,32 +331,22 @@ impl GameTrait for BasicGame {
                 let giruda = self.get_giruda();
                 for card in deck[i].iter() {
                     let score = match Some(card) {
-                        Some(mighty) => {
-                            0
-                        }
-                        Some(Card::Normal(card_type, num)) => {
-                            match &giruda {
-                                Some(card_type) => {
-                                    if *num >= 10 || *num == 0 {
-                                        1
-                                    } else {
-                                        0
-                                    }
-                                }
-                                _ => {
+                        Some(mighty) => 0,
+                        Some(Card::Normal(card_type, num)) => match &giruda {
+                            Some(card_type) => {
+                                if *num >= 10 || *num == 0 {
+                                    1
+                                } else {
                                     0
                                 }
                             }
-                        }
-                        Some(Card::Joker(color_type)) => {
-                            -1
-                        }
-                        _ => {
-                            0
-                        }
+                            _ => 0,
+                        },
+                        Some(Card::Joker(color_type)) => -1,
+                        _ => 0,
                     };
                     total_score += score;
-                } 
+                }
                 if total_score <= 0 {
                     Ok(BasicState::NotStarted)
                 } else {
@@ -372,7 +358,6 @@ impl GameTrait for BasicGame {
                         left: left.clone(),
                     })
                 }
-
             }
 
             // command is 'e'

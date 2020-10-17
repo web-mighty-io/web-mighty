@@ -4,7 +4,6 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use std::cmp::Ordering;
 use std::str::FromStr;
-use std::{error, fmt};
 
 /// State of basic mighty game.
 ///

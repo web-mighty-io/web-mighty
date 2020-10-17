@@ -1,7 +1,7 @@
 use crate::user::UserId;
+use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use std::{error, fmt};
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum CardType {

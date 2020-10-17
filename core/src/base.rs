@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::{error, fmt};
 
 #[derive(PartialEq, Clone)]
 pub enum CardType {
@@ -226,4 +227,30 @@ pub trait GameTrait {
 
     // first argument in instruction is user id (always in bound)
     fn process(&self, args: Vec<String>) -> Result<Self::State, GameError>;
+}
+
+impl fmt::Debug for GameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            GameError::CommandError(s) => {
+                write!(f, "{}", s)
+            }
+            GameError::InternalError(s) => {
+                write!(f, "{}", s)
+            }
+        }
+    }
+}
+
+impl fmt::Display for GameError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            GameError::CommandError(s) => {
+                write!(f, "{}", s)
+            }
+            GameError::InternalError(s) => {
+                write!(f, "{}", s)
+            }
+        }
+    }
 }

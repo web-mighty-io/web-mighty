@@ -3,16 +3,25 @@ use crate::user::UserId;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use std::str::FromStr;
+use std::{error, fmt};
 
 /// State of basic mighty game.
 ///
-/// - `NotStarted`: When game is not started
-/// - `Election`: After passing out cards,
+/// - `NotStarted`: When game is not started,
+/// - `Start`: After passing out cards,
+/// - `Election`: If there are no dealmiss,
 /// - `SelectFriend`: After election, president will select friend (or not)
 /// - `InGame`: After selecting friend, they will play 10 turns
 #[derive(Clone)]
 pub enum BasicState {
     NotStarted,
+    Start {
+        // if each player is done
+        done: Vec<bool>,
+        // deck for each user (len of 5)
+        deck: Vec<Vec<Card>>,
+        left: Vec<Card>,
+    },
     Election {
         // Option for no giruda
         // giruda and count of pledge
@@ -79,8 +88,8 @@ pub enum BasicState {
 /// - `users`: User List
 /// - `state`: Game state
 pub struct BasicGame {
-    users: Vec<UserId>,
-    state: BasicState,
+    pub users: Vec<UserId>,
+    pub state: BasicState,
 }
 
 impl GameTrait for BasicGame {
@@ -119,12 +128,105 @@ impl GameTrait for BasicGame {
                     "deck is not successfully created"
                 )))?;
 
-                Ok(BasicState::Election {
-                    pledge: vec![(None, 0); 5],
-                    done: vec![false; 5],
+                Ok(BasicState::Start {
+                    done : vec![false; 5],
                     deck,
                     left,
                 })
+            }
+
+            // command is 's'
+            BasicState::Start {
+                done,
+                deck,
+                left,
+            } => {
+                if args.len() != 3 {
+                    return Err(GameError::CommandError(format!(
+                        "command length should be 2, actual: {}",
+                        args.len()
+                    )));
+                }
+
+                if args[1] != "s" {
+                    return Err(GameError::CommandError(format!(
+                        "game state is not same. expected: 'n', actual: {}",
+                        args[1]
+                    )));
+                }
+
+                if "dx".contains(&args[2]) {
+                    return Err(GameError::CommandError(format!(
+                        "thrid agrument should be one of 'd', 'x', actual: {}",
+                        args[2]
+                    )));
+                }
+
+                let i = args[0].parse::<usize>().unwrap();
+                let mut done = done.clone();
+                let mut total_score = 0;
+
+                if args[2] == "x" {
+                    done[i] = true;
+                    
+                    if done.iter().fold(true, |a, &b| a && b) {
+                        return Ok(BasicState::Election {
+                            pledge: vec![(None, 0); 5],
+                            done,
+                            deck: deck.clone(),
+                            left: left.clone(),
+                        });
+                    } else {
+                        return Ok(BasicState::Start {
+                            done,
+                            deck: deck.clone(),
+                            left: left.clone(),
+                        });
+                    }
+                }
+
+                let mighty = self.get_mighty();
+                let giruda = self.get_giruda();
+                for card in deck[i].iter() {
+                    let score = match Some(card) {
+                        Some(mighty) => {
+                            0
+                        }
+                        Some(Card::Normal(card_type, num)) => {
+                            match &giruda {
+                                Some(card_type) => {
+                                    if *num >= 10 || *num == 0 {
+                                        1
+                                    } else {
+                                        0
+                                    }
+                                }
+                                _ => {
+                                    0
+                                }
+                            }
+                        }
+                        Some(Card::Joker(color_type)) => {
+                            -1
+                        }
+                        _ => {
+                            0
+                        }
+                    };
+                    total_score += score;
+                } 
+                if total_score <= 0 {
+                    Ok(BasicState::NotStarted)
+                } else {
+                    done[i] = true;
+
+                    Ok(BasicState::Start {
+                        done,
+                        deck: deck.clone(),
+                        left: left.clone(),
+                    })
+                }
+
             }
 
             // command is 'e'
@@ -141,7 +243,7 @@ impl GameTrait for BasicGame {
                     )));
                 }
 
-                if args[1] != "e" {
+                if args[1] != "e" && args[1] != "r" {
                     return Err(GameError::CommandError(format!(
                         "game state is not same. expected: 'e', actual: {}",
                         args[1]
@@ -154,16 +256,15 @@ impl GameTrait for BasicGame {
                         args[2].len()
                     )));
                 }
-
                 // 's': spade
                 // 'd': diamond
                 // 'h': heart
                 // 'c': clover
                 // 'n': none (no giruda)
                 // 'x': done selecting
-                if "sdbcnx".contains(&args[2]) {
+                if "sdhcnx".contains(&args[2]) {
                     return Err(GameError::CommandError(format!(
-                        "thrid agrument should be one of 's', 'd', 'b', 'c', 'n', 'x', actual: {}",
+                        "thrid agrument should be one of 's', 'd', 'h', 'c', 'n', 'x', actual: {}",
                         args[2]
                     )));
                 }
@@ -189,8 +290,15 @@ impl GameTrait for BasicGame {
                         }
 
                         if last_max == 0 {
-                            // todo: when nobody came out
-                            Ok(self.state.clone())
+                            let president = rand::thread_rng().gen_range(0, 5);
+                            let mut deck = deck.clone();
+
+                            deck[president].append(&mut left.clone());
+                            Ok(BasicState::SelectFriend {
+                                president,
+                                pledge: pledge[president].clone(),
+                                deck,
+                            })
                         } else {
                             let president = *candidate
                                 .choose(&mut rand::thread_rng())
@@ -236,7 +344,7 @@ impl GameTrait for BasicGame {
                     } else {
                         if c < 13 {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than 12 in no giruda mode, actual: {}",
+                                "pledge should be greater or equal than 13 in giruda mode, actual: {}",
                                 c
                             )));
                         }
@@ -509,5 +617,39 @@ impl BasicGame {
                 Card::Joker(c2) => c2 == cur_color,
             },
         }
+    }
+}
+
+impl fmt::Debug for BasicState {
+    /// Printing feature of `BigNum`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hyeong::big_number::BigNum;
+    ///
+    /// let a = BigNum::new(1234);
+    ///
+    /// assert_eq!("1234", format!("{:?}", a));
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl fmt::Display for BasicState {
+    /// Printing feature of `BigNum`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hyeong::big_number::BigNum;
+    ///
+    /// let a = BigNum::new(1234);
+    ///
+    /// assert_eq!("1234", format!("{}", a));
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }

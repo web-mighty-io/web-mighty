@@ -326,21 +326,24 @@ impl GameTrait for BasicGame {
                     }
                 }
 
-                let mighty = self.get_mighty();
+                let mighty = Some(self.get_mighty());
                 let giruda = self.get_giruda();
                 for card in deck[i].iter() {
                     let score = match Some(card) {
-                        Some(mighty) => 0,
-                        Some(Card::Normal(card_type, num)) => match &giruda {
-                            Some(card_type) => {
-                                if *num >= 10 || *num == 0 {
-                                    1
-                                } else {
-                                    0
+                        mighty => 0,
+                        Some(Card::Normal(card_type, num)) => {
+                            let ct = Some(card_type);
+                            match &giruda {
+                                ct => {
+                                    if *num >= 10 || *num == 0 {
+                                        1
+                                    } else {
+                                        0
+                                    }
                                 }
-                            }
-                            _ => 0,
-                        },
+                                _ => 0,
+                            }   
+                        }
                         Some(Card::Joker(color_type)) => -1,
                         _ => 0,
                     };

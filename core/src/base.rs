@@ -279,7 +279,7 @@ pub enum FriendFunc {
     ByWinning(u8),
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone)]
 pub enum GameError {
     CommandError(String),
     InternalError(String),

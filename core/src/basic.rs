@@ -286,19 +286,19 @@ impl GameTrait for BasicGame {
             } => {
                 if args.len() != 3 {
                     return Err(GameError::CommandError(format!(
-                        "command length should be 2, actual: {}",
+                        "command length should be 3, actual: {}",
                         args.len()
                     )));
                 }
 
                 if args[1] != "s" {
                     return Err(GameError::CommandError(format!(
-                        "game state is not same. expected: 'n', actual: {}",
+                        "game state is not same. expected: 's', actual: {}",
                         args[1]
                     )));
                 }
 
-                if "dx".contains(&args[2]) {
+                if !"dx".contains(&args[2]) {
                     return Err(GameError::CommandError(format!(
                         "thrid agrument should be one of 'd', 'x', actual: {}",
                         args[2]
@@ -386,7 +386,7 @@ impl GameTrait for BasicGame {
                     )));
                 }
 
-                if args[1] != "e" && args[1] != "r" {
+                if args[1] != "e" {
                     return Err(GameError::CommandError(format!(
                         "game state is not same. expected: 'e', actual: {}",
                         args[1]
@@ -405,7 +405,7 @@ impl GameTrait for BasicGame {
                 // 'c': clover
                 // 'n': none (no giruda)
                 // 'x': done selecting
-                if "sdhcnx".contains(&args[2]) {
+                if !"sdhcnx".contains(&args[2]) {
                     return Err(GameError::CommandError(format!(
                         "thrid agrument should be one of 's', 'd', 'h', 'c', 'n', 'x', actual: {}",
                         args[2]

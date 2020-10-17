@@ -2,8 +2,8 @@ use crate::base::*;
 use crate::user::UserId;
 use rand::seq::SliceRandom;
 use rand::Rng;
-use std::str::FromStr;
 use std::cmp::Ordering;
+use std::str::FromStr;
 
 /// State of basic mighty game.
 ///
@@ -261,9 +261,9 @@ impl GameTrait for BasicGame {
                     .map(|v| v.to_vec())
                     .collect::<Vec<_>>();
 
-                let left = deck.pop().ok_or_else(|| GameError::InternalError(
-                    "deck is not successfully created".to_owned()
-                ))?;
+                let left = deck.pop().ok_or_else(|| {
+                    GameError::InternalError("deck is not successfully created".to_owned())
+                })?;
 
                 Ok(BasicState::Election {
                     pledge: vec![(None, 0); 5],
@@ -433,7 +433,7 @@ impl GameTrait for BasicGame {
 
                 if i != *president {
                     return Err(GameError::CommandError(
-                        "you are not the president of this game".to_owned()
+                        "you are not the president of this game".to_owned(),
                     ));
                 }
 

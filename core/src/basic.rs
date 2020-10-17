@@ -2,6 +2,7 @@ use crate::base::*;
 use crate::user::UserId;
 use rand::seq::SliceRandom;
 use rand::Rng;
+use std::cmp::Ordering;
 use std::str::FromStr;
 
 /// State of basic mighty game.
@@ -84,6 +85,12 @@ pub struct BasicGame {
     state: BasicState,
 }
 
+impl Default for BasicGame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BasicGame {
     pub fn new() -> BasicGame {
         BasicGame {
@@ -153,7 +160,7 @@ impl BasicGame {
         let cur_pat = self.get_current_pattern();
         let cur_color = ColorType::from(cur_pat.clone());
         let giruda = self.get_giruda();
-        let giruda_color = giruda.clone().map(|c| ColorType::from(c));
+        let giruda_color = giruda.clone().map(ColorType::from);
 
         match lhs {
             Card::Normal(c1, n1) => match rhs {
@@ -177,9 +184,7 @@ impl BasicGame {
                 }
 
                 Card::Joker(c2) => {
-                    if *c2 != cur_color {
-                        false
-                    } else if self.is_joker_called() {
+                    if *c2 != cur_color || self.is_joker_called() {
                         false
                     } else if let Some(giruda) = giruda {
                         if *c1 == giruda {
@@ -195,9 +200,7 @@ impl BasicGame {
 
             Card::Joker(c1) => match rhs {
                 Card::Normal(c2, _) => {
-                    if *c1 != cur_color {
-                        true
-                    } else if self.is_joker_called() {
+                    if *c1 != cur_color || self.is_joker_called() {
                         true
                     } else if let Some(giruda) = giruda {
                         if *c2 == giruda {
@@ -258,9 +261,9 @@ impl GameTrait for BasicGame {
                     .map(|v| v.to_vec())
                     .collect::<Vec<_>>();
 
-                let left = deck.pop().ok_or(GameError::InternalError(format!(
-                    "deck is not successfully created"
-                )))?;
+                let left = deck.pop().ok_or_else(|| {
+                    GameError::InternalError("deck is not successfully created".to_owned())
+                })?;
 
                 Ok(BasicState::Election {
                     pledge: vec![(None, 0); 5],
@@ -317,17 +320,21 @@ impl GameTrait for BasicGame {
                 if args[2] == "x" {
                     done[i] = true;
 
-                    if done.iter().fold(true, |a, &b| a && b) {
+                    if done.iter().all(|x| *x) {
                         let mut candidate = Vec::new();
 
-                        let mut last_max = 0;
-                        for i in 0..5 {
-                            let (_, c) = pledge[i];
-                            if c > last_max {
-                                candidate = vec![i];
-                                last_max = c;
-                            } else if c == last_max {
-                                candidate.push(i);
+                        let mut last_max = 0u8;
+                        for (i, p) in pledge.iter().enumerate() {
+                            let (_, c) = p;
+                            match c.cmp(&last_max) {
+                                Ordering::Greater => {
+                                    candidate = vec![i];
+                                    last_max = *c;
+                                }
+                                Ordering::Equal => {
+                                    candidate.push(i);
+                                }
+                                _ => {}
                             }
                         }
 
@@ -425,9 +432,9 @@ impl GameTrait for BasicGame {
                 let i = args[0].parse::<usize>().unwrap();
 
                 if i != *president {
-                    return Err(GameError::CommandError(format!(
-                        "you are not the president of this game"
-                    )));
+                    return Err(GameError::CommandError(
+                        "you are not the president of this game".to_owned(),
+                    ));
                 }
 
                 let fn_type = args[2].parse::<usize>().map_err(|_| {
@@ -591,10 +598,12 @@ mod basic_tests {
         let mut g = BasicGame::new();
 
         assert_eq!(g.len(), 0);
+        assert_eq!(g.is_empty(), true);
         assert_eq!(g.add_user(1), true);
         assert_eq!(g.add_user(1), false);
 
         assert_eq!(g.len(), 1);
+        assert_eq!(g.is_empty(), false);
         assert_eq!(g.add_user(2), true);
         assert_eq!(g.add_user(3), true);
 

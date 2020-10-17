@@ -157,44 +157,42 @@ impl BasicGame {
         let giruda_color = giruda.clone().map(|c| ColorType::from(c));
 
         match lhs {
-            Card::Normal(c1, n1) => {
-                match rhs {
-                    Card::Normal(c2, n2) => {
-                        if let Some(giruda) = giruda {
-                            if *c1 == giruda && *c2 == giruda {
-                                return n1 > n2;
-                            } else if *c1 == giruda || *c2 == giruda {
-                                return *c2 == giruda;
-                            }
-                        }
-
-                        if cur_pat.contains(c1) && cur_pat.contains(c2) {
-                            n1 > n2
-                        } else if cur_pat.contains(c1) || cur_pat.contains(c2) {
-                            cur_pat.contains(c2)
-                        } else {
-                            // actually this is meaningless
-                            n1 > n2
+            Card::Normal(c1, n1) => match rhs {
+                Card::Normal(c2, n2) => {
+                    if let Some(giruda) = giruda {
+                        if *c1 == giruda && *c2 == giruda {
+                            return n1 > n2;
+                        } else if *c1 == giruda || *c2 == giruda {
+                            return *c2 == giruda;
                         }
                     }
 
-                    Card::Joker(c2) => {
-                        if *c2 != cur_color {
-                            false
-                        } else if self.is_joker_called() {
-                            false
-                        } else if let Some(giruda) = giruda {
-                            if *c1 == giruda {
-                                *c2 == giruda_color.unwrap()
-                            } else {
-                                true
-                            }
+                    if cur_pat.contains(c1) && cur_pat.contains(c2) {
+                        n1 > n2
+                    } else if cur_pat.contains(c1) || cur_pat.contains(c2) {
+                        cur_pat.contains(c2)
+                    } else {
+                        // actually this is meaningless
+                        n1 > n2
+                    }
+                }
+
+                Card::Joker(c2) => {
+                    if *c2 != cur_color {
+                        false
+                    } else if self.is_joker_called() {
+                        false
+                    } else if let Some(giruda) = giruda {
+                        if *c1 == giruda {
+                            *c2 == giruda_color.unwrap()
                         } else {
                             true
                         }
+                    } else {
+                        true
                     }
                 }
-            }
+            },
 
             Card::Joker(c1) => match rhs {
                 Card::Normal(c2, _) => {
@@ -204,7 +202,7 @@ impl BasicGame {
                         true
                     } else if let Some(giruda) = giruda {
                         if *c2 == giruda {
-                            *c1 == giruda_color.unwrap()
+                            *c1 != giruda_color.unwrap()
                         } else {
                             false
                         }
@@ -559,6 +557,33 @@ mod basic_tests {
         assert_eq!(compare_cards(&g, "h1", "d0"), true);
         assert_eq!(compare_cards(&g, "d1", "s0"), true);
         assert_eq!(compare_cards(&g, "d1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "d1"), true);
         assert_eq!(compare_cards(&g, "d1", "jr"), true);
+        assert_eq!(compare_cards(&g, "jr", "d1"), false);
+        assert_eq!(compare_cards(&g, "jr", "s1"), true);
+        assert_eq!(compare_cards(&g, "s1", "jr"), false);
+
+        let g = make_game("d", "c", true);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c3"), true);
+        assert_eq!(compare_cards(&g, "c3", "jb"), false);
+
+        let g = make_game("", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "jr"), false);
+        assert_eq!(compare_cards(&g, "s0", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "s0"), true);
+        assert_eq!(compare_cards(&g, "jb", "c0"), false);
+        assert_eq!(compare_cards(&g, "c0", "jb"), true);
+        assert_eq!(compare_cards(&g, "s1", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "c0"), true);
+
+        let g = make_game("", "c", true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+
+        let g = make_game("s", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "s1"), false);
+        assert_eq!(compare_cards(&g, "s1", "jb"), true);
     }
 }

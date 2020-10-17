@@ -1,4 +1,5 @@
 use crate::user::UserId;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -23,6 +24,21 @@ impl FromStr for CardType {
             "c" | "clover" => Ok(Self::Clover),
             _ => Err(ParseCardTypeError),
         }
+    }
+}
+
+impl Display for CardType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                CardType::Spade => "s",
+                CardType::Diamond => "d",
+                CardType::Heart => "h",
+                CardType::Clover => "c",
+            }
+        )
     }
 }
 
@@ -62,6 +78,19 @@ impl From<RushType> for ColorType {
             RushType::Spade | RushType::Clover | RushType::Black => Self::Black,
             RushType::Diamond | RushType::Heart | RushType::Red => Self::Red,
         }
+    }
+}
+
+impl Display for ColorType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ColorType::Black => "b",
+                ColorType::Red => "r",
+            }
+        )
     }
 }
 
@@ -132,6 +161,23 @@ impl From<Card> for RushType {
     }
 }
 
+impl Display for RushType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                RushType::Spade => "s",
+                RushType::Diamond => "d",
+                RushType::Heart => "h",
+                RushType::Clover => "c",
+                RushType::Red => "r",
+                RushType::Black => "b",
+            }
+        )
+    }
+}
+
 impl RushType {
     pub fn contains(&self, c: &CardType) -> bool {
         Self::from(c.clone()).eq(self) || Self::from(ColorType::from(c.clone())).eq(self)
@@ -177,6 +223,20 @@ impl FromStr for Card {
     }
 }
 
+impl Display for Card {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Card::Normal(c, n) =>
+                    format!("{}{}", c, std::char::from_digit(*n as u32, 13).unwrap()),
+                Card::Joker(c) => format!("j{}", c),
+            }
+        )
+    }
+}
+
 impl Card {
     /// New card deck (not shuffled)
     pub fn new_deck() -> Vec<Card> {
@@ -199,6 +259,13 @@ impl Card {
         v.push(Card::Joker(ColorType::Red));
 
         v
+    }
+
+    pub fn is_score(&self) -> bool {
+        match self {
+            Card::Normal(_, n) => *n >= 9,
+            Card::Joker(_) => false,
+        }
     }
 }
 
@@ -421,5 +488,12 @@ mod base_tests {
         assert_eq!(v[26], Card::Normal(CardType::Heart, 0));
         assert_eq!(v[39], Card::Normal(CardType::Clover, 0));
         assert_eq!(v[53], Card::Joker(ColorType::Red));
+    }
+
+    #[test]
+    fn card_is_score_test() {
+        assert_eq!(Card::Normal(CardType::Spade, 9).is_score(), true);
+        assert_eq!(Card::Normal(CardType::Diamond, 8).is_score(), false);
+        assert_eq!(Card::Joker(ColorType::Red).is_score(), false);
     }
 }

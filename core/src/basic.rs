@@ -723,37 +723,3 @@ mod basic_tests {
         assert_eq!(g.add_user(7), false);
     }
 }
-
-impl fmt::Debug for BasicState {
-    /// Printing feature of `BigNum`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hyeong::big_number::BigNum;
-    ///
-    /// let a = BigNum::new(1234);
-    ///
-    /// assert_eq!("1234", format!("{:?}", a));
-    /// ```
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_string())
-    }
-}
-
-impl fmt::Display for BasicState {
-    /// Printing feature of `BigNum`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hyeong::big_number::BigNum;
-    ///
-    /// let a = BigNum::new(1234);
-    ///
-    /// assert_eq!("1234", format!("{}", a));
-    /// ```
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
-    }
-}

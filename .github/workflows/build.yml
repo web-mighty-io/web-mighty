@@ -34,33 +34,37 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/toolchain@v1
+      - name: Setting up rust
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
 
-      - uses: actions-rs/cargo@v1
+      - name: Checking if it builds without errors
+        uses: actions-rs/cargo@v1
         with:
           command: build
 
-      - uses: actions-rs/cargo@v1
+      - name: Checking if test passes
+        uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - uses: actions-rs/cargo@v1
+      - name: Checking if code is formatted
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
 
-
-      - uses: actions-rs/cargo@v1
+      - name: Checking if it builds without warnings
+        uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
 
-      - name: testing wasm
+      - name: Testing wasm
         run: |
           if [ -f "${HOME}/.cargo/bin/wasm-pack" ]; then
             rm ${HOME}/.cargo/bin/wasm-pack

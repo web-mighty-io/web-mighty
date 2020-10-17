@@ -309,7 +309,7 @@ impl GameTrait for BasicGame {
                     let mut done = done.clone();
                     done[i] = true;
 
-                    if done.iter().fold(true, |a, &b| a && b) {
+                    if done.iter().all(|x| *x) {
                         Ok(BasicState::Election {
                             pledge: vec![(None, 0); 5],
                             done,

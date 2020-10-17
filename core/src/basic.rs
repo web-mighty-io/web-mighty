@@ -145,6 +145,47 @@ impl BasicGame {
         }
     }
 
+    pub fn get_state(&self) -> &str {
+        match self.state {
+            BasicState::NotStarted => "n",
+            BasicState::Election { .. } => "e",
+            BasicState::SelectFriend { .. } => "f",
+            BasicState::InGame { .. } => "g",
+            BasicState::GameEnded { .. } => "d",
+        }
+    }
+
+    fn get_random_deck() -> Vec<Vec<Card>> {
+        loop {
+            let mut deck = Card::new_deck();
+            deck.shuffle(&mut rand::thread_rng());
+            let deck = deck.chunks(10).map(|v| v.to_vec()).collect::<Vec<_>>();
+
+            let is_not_missed_deal = deck
+                .iter()
+                .map(|v| {
+                    v.iter()
+                        .map(|c| {
+                            if Card::Normal(CardType::Spade, 0).eq(c) {
+                                -2
+                            } else if c.is_score() {
+                                2
+                            } else if matches!(c, Card::Joker(..)) {
+                                -1
+                            } else {
+                                0
+                            }
+                        })
+                        .sum::<isize>()
+                })
+                .all(|s| s > 2);
+
+            if is_not_missed_deal {
+                break deck;
+            }
+        }
+    }
+
     // true if lhs < rhs
     // undefined when lhs == rhs
     pub fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
@@ -237,7 +278,9 @@ impl GameTrait for BasicGame {
     /// Second argument has to be the state of the game
     /// for checking command
     /// Third and after is different for each state.
-    fn process(&self, args: Vec<String>) -> Result<BasicState, GameError> {
+    fn process<S: AsRef<str>>(&self, args: Vec<S>) -> Result<BasicState, GameError> {
+        let args = args.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
+
         match &self.state {
             // command is 'n'
             BasicState::NotStarted => {
@@ -250,20 +293,13 @@ impl GameTrait for BasicGame {
 
                 if args[1] != "n" {
                     return Err(GameError::CommandError(format!(
-                        "game state is not same. expected: 'n', actual: {}",
+                        "game state is not same. expected: 'n', actual: '{}'",
                         args[1]
                     )));
                 }
 
-                // todo: handle miss deal
-                let mut deck = Card::new_deck()
-                    .chunks(10)
-                    .map(|v| v.to_vec())
-                    .collect::<Vec<_>>();
-
-                let left = deck.pop().ok_or_else(|| {
-                    GameError::InternalError("deck is not successfully created".to_owned())
-                })?;
+                let mut deck = BasicGame::get_random_deck();
+                let left = deck.pop().unwrap();
 
                 Ok(BasicState::Election {
                     pledge: vec![(None, 0); 5],
@@ -289,7 +325,7 @@ impl GameTrait for BasicGame {
 
                 if args[1] != "e" {
                     return Err(GameError::CommandError(format!(
-                        "game state is not same. expected: 'e', actual: {}",
+                        "game state is not same. expected: 'e', actual: '{}'",
                         args[1]
                     )));
                 }
@@ -307,9 +343,9 @@ impl GameTrait for BasicGame {
                 // 'c': clover
                 // 'n': none (no giruda)
                 // 'x': done selecting
-                if "sdbcnx".contains(&args[2]) {
+                if !"sdhcnx".contains(&args[2]) {
                     return Err(GameError::CommandError(format!(
-                        "third argument should be one of 's', 'd', 'b', 'c', 'n', 'x', actual: {}",
+                        "third argument should be one of 's', 'd', 'h', 'c', 'n', 'x', actual: '{}'",
                         args[2]
                     )));
                 }
@@ -379,7 +415,7 @@ impl GameTrait for BasicGame {
                     if args[2] == "n" {
                         if c < 12 {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than 12 in no giruda mode, actual: {}",
+                                "pledge should be greater or equal than 12 in no giruda game, actual: {}",
                                 c
                             )));
                         }
@@ -387,7 +423,7 @@ impl GameTrait for BasicGame {
                     } else {
                         if c < 13 {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than 12 in no giruda mode, actual: {}",
+                                "pledge should be greater or equal than 13, actual: {}",
                                 c
                             )));
                         }
@@ -424,7 +460,7 @@ impl GameTrait for BasicGame {
 
                 if args[1] != "f" {
                     return Err(GameError::CommandError(format!(
-                        "game state is not same. expected: 'f', actual: {}",
+                        "game state is not same. expected: 'f', actual: '{}'",
                         args[1]
                     )));
                 }
@@ -455,7 +491,7 @@ impl GameTrait for BasicGame {
 
                         let card = args[3].parse::<Card>().map_err(|_| {
                             GameError::CommandError(format!(
-                                "failed to parse card, actual: {}",
+                                "failed to parse card, actual: '{}'",
                                 args[3]
                             ))
                         })?;
@@ -622,5 +658,26 @@ mod basic_tests {
         assert_eq!(g.add_user(5), true);
         assert_eq!(g.add_user(6), true);
         assert_eq!(g.add_user(7), false);
+    }
+
+    #[test]
+    fn process_test() {
+        let mut g: BasicGame = Default::default();
+
+        assert_eq!(g.get_state(), "n");
+        assert_eq!(
+            g.process(vec!["0"]).err().unwrap(),
+            GameError::CommandError(String::from(
+                "command length should be 2, actual: 1"
+            ))
+        );
+        assert_eq!(
+            g.process(vec!["0", "s"]).err().unwrap(),
+            GameError::CommandError(String::from(
+                "game state is not same. expected: 'n', actual: 's'"
+            ))
+        );
+        g.state = g.process(vec!["0", "n"]).unwrap();
+        assert_eq!(g.get_state(), "e");
     }
 }

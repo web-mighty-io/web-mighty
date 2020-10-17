@@ -342,7 +342,7 @@ impl GameTrait for BasicGame {
                                     }
                                 }
                                 _ => 0,
-                            }   
+                            }
                         }
                         Some(Card::Joker(color_type)) => -1,
                         _ => 0,

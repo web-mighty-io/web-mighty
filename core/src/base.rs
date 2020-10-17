@@ -299,9 +299,9 @@ pub trait GameTrait {
             return false;
         }
 
-        for i in 0..5 {
-            if v[i] == 0 {
-                v[i] = user;
+        for i in v.iter_mut() {
+            if *i == 0 {
+                *i = user;
                 return true;
             }
         }
@@ -313,9 +313,9 @@ pub trait GameTrait {
     fn remove_user(&mut self, user: UserId) -> bool {
         let v = self.get_users_mut();
 
-        for i in 0..5 {
-            if v[i] == user {
-                v[i] = 0;
+        for i in v.iter_mut() {
+            if *i == user {
+                *i = 0;
                 return true;
             }
         }
@@ -329,12 +329,16 @@ pub trait GameTrait {
             .fold(0, |cnt, user| if *user == 0 { cnt } else { cnt + 1 })
     }
 
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     // todo: make thread-safe
     fn get_index(&self, user: UserId) -> Option<usize> {
         let v = self.get_users();
 
-        for i in 0..5 {
-            if v[i] == user {
+        for (i, u) in v.iter().enumerate() {
+            if *u == user {
                 return Some(i);
             }
         }

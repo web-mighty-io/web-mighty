@@ -140,7 +140,6 @@ impl BasicGame {
 
     // true if lhs < rhs
     // undefined when lhs == rhs
-    /// todo: make tests
     pub fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
         if let Some(mighty) = self.get_mighty() {
             if *lhs == mighty {
@@ -585,5 +584,34 @@ mod basic_tests {
         let g = make_game("s", "c", false);
         assert_eq!(compare_cards(&g, "jb", "s1"), false);
         assert_eq!(compare_cards(&g, "s1", "jb"), true);
+    }
+
+    #[test]
+    fn user_test() {
+        let mut g = BasicGame::new();
+
+        assert_eq!(g.len(), 0);
+        assert_eq!(g.add_user(1), true);
+        assert_eq!(g.add_user(1), false);
+
+        assert_eq!(g.len(), 1);
+        assert_eq!(g.add_user(2), true);
+        assert_eq!(g.add_user(3), true);
+
+        assert_eq!(g.remove_user(4), false);
+        assert_eq!(g.remove_user(2), true);
+        assert_eq!(g.remove_user(2), false);
+
+        assert_eq!(g.len(), 2);
+        assert_eq!(g.get_index(1), Some(0));
+        assert_eq!(g.get_index(2), None);
+        assert_eq!(g.get_index(3), Some(2));
+
+        assert_eq!(g.get_user_list(), vec![1, 3]);
+
+        assert_eq!(g.add_user(4), true);
+        assert_eq!(g.add_user(5), true);
+        assert_eq!(g.add_user(6), true);
+        assert_eq!(g.add_user(7), false);
     }
 }

@@ -295,6 +295,10 @@ pub trait GameTrait {
     fn add_user(&mut self, user: UserId) -> bool {
         let v = self.get_users_mut();
 
+        if v.contains(&user) {
+            return false;
+        }
+
         for i in 0..5 {
             if v[i] == 0 {
                 v[i] = user;
@@ -338,6 +342,13 @@ pub trait GameTrait {
         None
     }
 
+    fn get_user_list(&self) -> Vec<UserId> {
+        self.get_users()
+            .iter()
+            .filter_map(|user| if *user != 0 { Some(*user) } else { None })
+            .collect()
+    }
+
     // first argument in instruction is user id (always in bound)
     fn process(&self, args: Vec<String>) -> Result<Self::State, GameError>;
 }
@@ -359,6 +370,14 @@ mod base_tests {
         assert_eq!(CardType::from_str("clover"), Ok(CardType::Clover));
 
         assert_eq!(CardType::from_str("hello"), Err(ParseCardTypeError));
+    }
+
+    #[test]
+    fn card_type_display_test() {
+        assert_eq!(CardType::Spade.to_string(), "s");
+        assert_eq!(CardType::Diamond.to_string(), "d");
+        assert_eq!(CardType::Heart.to_string(), "h");
+        assert_eq!(CardType::Clover.to_string(), "c");
     }
 
     #[test]
@@ -393,6 +412,12 @@ mod base_tests {
         assert!(ColorType::Red.contains(&CardType::Diamond));
         assert!(ColorType::Red.contains(&CardType::Heart));
         assert!(ColorType::Black.contains(&CardType::Clover));
+    }
+
+    #[test]
+    fn color_type_display_test() {
+        assert_eq!(ColorType::Red.to_string(), "r");
+        assert_eq!(ColorType::Black.to_string(), "b");
     }
 
     #[test]
@@ -461,6 +486,16 @@ mod base_tests {
     }
 
     #[test]
+    fn rush_type_display_test() {
+        assert_eq!(RushType::Black.to_string(), "b");
+        assert_eq!(RushType::Red.to_string(), "r");
+        assert_eq!(RushType::Spade.to_string(), "s");
+        assert_eq!(RushType::Diamond.to_string(), "d");
+        assert_eq!(RushType::Heart.to_string(), "h");
+        assert_eq!(RushType::Clover.to_string(), "c");
+    }
+
+    #[test]
     fn card_from_str_test() {
         assert_eq!(Card::from_str("s0"), Ok(Card::Normal(CardType::Spade, 0)));
         assert_eq!(Card::from_str("d4"), Ok(Card::Normal(CardType::Diamond, 4)));
@@ -495,5 +530,15 @@ mod base_tests {
         assert_eq!(Card::Normal(CardType::Spade, 9).is_score(), true);
         assert_eq!(Card::Normal(CardType::Diamond, 8).is_score(), false);
         assert_eq!(Card::Joker(ColorType::Red).is_score(), false);
+    }
+
+    #[test]
+    fn card_display_test() {
+        assert_eq!(Card::Normal(CardType::Spade, 0).to_string(), "s0");
+        assert_eq!(Card::Normal(CardType::Diamond, 5).to_string(), "d5");
+        assert_eq!(Card::Normal(CardType::Heart, 8).to_string(), "h8");
+        assert_eq!(Card::Normal(CardType::Clover, 12).to_string(), "cc");
+        assert_eq!(Card::Joker(ColorType::Red).to_string(), "jr");
+        assert_eq!(Card::Joker(ColorType::Black).to_string(), "jb");
     }
 }

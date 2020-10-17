@@ -307,7 +307,7 @@ impl GameTrait for BasicGame {
                 // 'x': done selecting
                 if "sdbcnx".contains(&args[2]) {
                     return Err(GameError::CommandError(format!(
-                        "thrid agrument should be one of 's', 'd', 'b', 'c', 'n', 'x', actual: {}",
+                        "third argument should be one of 's', 'd', 'b', 'c', 'n', 'x', actual: {}",
                         args[2]
                     )));
                 }

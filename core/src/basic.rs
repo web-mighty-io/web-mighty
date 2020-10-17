@@ -12,7 +12,7 @@ use std::{error, fmt};
 /// - `Election`: If there are no dealmiss,
 /// - `SelectFriend`: After election, president will select friend (or not)
 /// - `InGame`: After selecting friend, they will play 10 turns
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum BasicState {
     NotStarted,
     Start {
@@ -87,13 +87,155 @@ pub enum BasicState {
 ///
 /// - `users`: User List
 /// - `state`: Game state
+#[derive(Clone, Debug)]
 pub struct BasicGame {
     pub users: Vec<UserId>,
     pub state: BasicState,
 }
 
+impl BasicGame {
+    pub fn new() -> BasicGame {
+        BasicGame {
+            users: vec![0; 5],
+            state: BasicState::NotStarted,
+        }
+    }
+
+    /// Check if joker called.
+    /// **Valid output only in in-game.**
+    fn is_joker_called(&self) -> bool {
+        match self.state {
+            BasicState::InGame {
+                is_joker_called, ..
+            } => is_joker_called,
+            _ => false,
+        }
+    }
+
+    /// Get the current pattern of this turn.
+    /// **Valid output only in in-game.**
+    fn get_current_pattern(&self) -> RushType {
+        match &self.state {
+            BasicState::InGame {
+                current_pattern, ..
+            } => current_pattern.clone(),
+            // don't need this value
+            _ => RushType::Spade,
+        }
+    }
+
+    /// Get the giruda of this turn.
+    /// **Valid output only in in-game.**
+    fn get_giruda(&self) -> Option<CardType> {
+        match &self.state {
+            BasicState::InGame { giruda, .. } => giruda.clone(),
+            // don't need this value
+            _ => None,
+        }
+    }
+
+    /// Get the mighty card in game
+    /// **Valid output only in in-game.**
+    fn get_mighty(&self) -> Option<Card> {
+        match &self.state {
+            BasicState::InGame { giruda, .. } => match giruda {
+                Some(CardType::Spade) => Some(Card::Normal(CardType::Diamond, 0)),
+                _ => Some(Card::Normal(CardType::Spade, 0)),
+            },
+            // don't need this value
+            _ => None,
+        }
+    }
+
+    // true if lhs < rhs
+    // undefined when lhs == rhs
+    pub fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
+        if let Some(mighty) = self.get_mighty() {
+            if *lhs == mighty {
+                return false;
+            }
+            if *rhs == mighty {
+                return true;
+            }
+        }
+
+        let cur_pat = self.get_current_pattern();
+        let cur_color = ColorType::from(cur_pat.clone());
+        let giruda = self.get_giruda();
+        let giruda_color = giruda.clone().map(|c| ColorType::from(c));
+
+        match lhs {
+            Card::Normal(c1, n1) => match rhs {
+                Card::Normal(c2, n2) => {
+                    if let Some(giruda) = giruda {
+                        if *c1 == giruda && *c2 == giruda {
+                            return n1 > n2;
+                        } else if *c1 == giruda || *c2 == giruda {
+                            return *c2 == giruda;
+                        }
+                    }
+
+                    if cur_pat.contains(c1) && cur_pat.contains(c2) {
+                        n1 > n2
+                    } else if cur_pat.contains(c1) || cur_pat.contains(c2) {
+                        cur_pat.contains(c2)
+                    } else {
+                        // actually this is meaningless
+                        n1 > n2
+                    }
+                }
+
+                Card::Joker(c2) => {
+                    if *c2 != cur_color {
+                        false
+                    } else if self.is_joker_called() {
+                        false
+                    } else if let Some(giruda) = giruda {
+                        if *c1 == giruda {
+                            *c2 == giruda_color.unwrap()
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
+                }
+            },
+
+            Card::Joker(c1) => match rhs {
+                Card::Normal(c2, _) => {
+                    if *c1 != cur_color {
+                        true
+                    } else if self.is_joker_called() {
+                        true
+                    } else if let Some(giruda) = giruda {
+                        if *c2 == giruda {
+                            *c1 != giruda_color.unwrap()
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                }
+
+                // no need to check if joker is called
+                Card::Joker(c2) => *c2 == cur_color,
+            },
+        }
+    }
+}
+
 impl GameTrait for BasicGame {
     type State = BasicState;
+
+    fn get_users(&self) -> &Vec<UserId> {
+        &self.users
+    }
+
+    fn get_users_mut(&mut self) -> &mut Vec<UserId> {
+        &mut self.users
+    }
 
     /// Process the given arguments and change the game state.
     /// First argument has to be the *in-game user id*
@@ -119,6 +261,7 @@ impl GameTrait for BasicGame {
                     )));
                 }
 
+                // todo: handle miss deal
                 let mut deck = Card::new_deck()
                     .chunks(10)
                     .map(|v| v.to_vec())
@@ -333,6 +476,7 @@ impl GameTrait for BasicGame {
                     done[i] = false;
                     let mut pledge = pledge.clone();
 
+                    // todo: handle maximum of before
                     if args[2] == "n" {
                         if c < 12 {
                             return Err(GameError::CommandError(format!(
@@ -463,22 +607,7 @@ impl GameTrait for BasicGame {
             }
 
             // command is 'g'
-            BasicState::InGame {
-                president,
-                friend_func,
-                friend,
-                giruda,
-                pledge,
-                score,
-                deck,
-                score_deck,
-                turn_count,
-                placed_cards,
-                start_user,
-                current_user,
-                current_pattern,
-                is_joker_called,
-            } => {
+            BasicState::InGame { .. } => {
                 // todo
                 Ok(self.state.clone())
             }
@@ -492,131 +621,106 @@ impl GameTrait for BasicGame {
     }
 }
 
-impl BasicGame {
-    /// Check if joker called.
-    /// **Valid output only in in-game.**
-    fn is_joker_called(&self) -> bool {
-        match self.state {
-            BasicState::InGame {
-                is_joker_called, ..
-            } => is_joker_called,
-            _ => false,
-        }
-    }
+#[cfg(test)]
+mod basic_tests {
+    use super::*;
 
-    /// Get the current pattern of this turn.
-    /// **Valid output only in in-game.**
-    fn get_current_pattern(&self) -> RushType {
-        match &self.state {
-            BasicState::InGame {
-                current_pattern, ..
-            } => current_pattern.clone(),
-            // don't need this value
-            _ => RushType::Spade,
-        }
-    }
-
-    /// Get the giruda of this turn.
-    /// **Valid output only in in-game.**
-    fn get_giruda(&self) -> Option<CardType> {
-        match &self.state {
-            BasicState::InGame { giruda, .. } => giruda.clone(),
-            // don't need this value
-            _ => None,
-        }
-    }
-
-    /// Get the mighty card in game
-    /// **Valid output only in in-game.**
-    fn get_mighty(&self) -> Option<Card> {
-        match &self.state {
-            BasicState::InGame { giruda, .. } => match giruda {
-                Some(CardType::Spade) => Some(Card::Normal(CardType::Diamond, 0)),
-                _ => Some(Card::Normal(CardType::Spade, 0)),
-            },
-            // don't need this value
-            _ => None,
-        }
-    }
-
-    // true if lhs < rhs
-    // undefined when lhs == rhs
-    /// todo: make tests
-    fn compare_cards(&self, lhs: Card, rhs: Card) -> bool {
-        if let Some(mighty) = self.get_mighty() {
-            if lhs == mighty {
-                return false;
-            }
-            if rhs == mighty {
-                return true;
+    #[test]
+    fn compare_cards_test() {
+        fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicGame {
+            BasicGame {
+                users: vec![],
+                state: BasicState::InGame {
+                    president: 0,
+                    friend_func: FriendFunc::None,
+                    friend: Option::None,
+                    giruda: CardType::from_str(giruda).ok(),
+                    pledge: 0,
+                    score: 0,
+                    deck: vec![],
+                    score_deck: vec![],
+                    turn_count: 0,
+                    placed_cards: vec![],
+                    start_user: 0,
+                    current_user: 0,
+                    current_pattern: RushType::from_str(current_pattern).unwrap(),
+                    is_joker_called,
+                },
             }
         }
 
-        let cur_pat = self.get_current_pattern();
-        let cur_color = ColorType::from(cur_pat.clone());
-        let giruda = self.get_giruda();
-        let giruda_color = giruda.clone().map(|c| ColorType::from(c));
-
-        match lhs {
-            Card::Normal(c1, n1) => {
-                match rhs {
-                    Card::Normal(c2, n2) => {
-                        if let Some(giruda) = giruda {
-                            if c1 == giruda && c2 == giruda {
-                                return n1 < n2;
-                            } else if c1 == giruda || c2 == giruda {
-                                return c2 == giruda;
-                            }
-                        }
-
-                        if cur_pat.contains(&c1) && cur_pat.contains(&c2) {
-                            n1 < n2
-                        } else if cur_pat.contains(&c1) || cur_pat.contains(&c2) {
-                            cur_pat.contains(&c2)
-                        } else {
-                            // actually this is meaningless
-                            n1 < n2
-                        }
-                    }
-
-                    Card::Joker(c2) => {
-                        if c2 != cur_color {
-                            false
-                        } else {
-                            if let Some(giruda) = giruda {
-                                if c1 == giruda {
-                                    c2 == giruda_color.unwrap()
-                                } else {
-                                    true
-                                }
-                            } else {
-                                true
-                            }
-                        }
-                    }
-                }
-            }
-
-            Card::Joker(c1) => match rhs {
-                Card::Normal(c2, _) => {
-                    if c1 != cur_color {
-                        true
-                    } else {
-                        if let Some(giruda) = giruda {
-                            if c2 == giruda {
-                                c1 == giruda_color.unwrap()
-                            } else {
-                                false
-                            }
-                        } else {
-                            false
-                        }
-                    }
-                }
-
-                Card::Joker(c2) => c2 == cur_color,
-            },
+        fn compare_cards(game: &BasicGame, c1: &str, c2: &str) -> bool {
+            game.compare_cards(&Card::from_str(c1).unwrap(), &Card::from_str(c2).unwrap())
         }
+
+        let g = make_game("s", "s", false);
+        assert_eq!(compare_cards(&g, "s1", "s0"), true);
+        assert_eq!(compare_cards(&g, "s0", "d0"), true);
+        assert_eq!(compare_cards(&g, "d0", "s0"), false);
+        assert_eq!(compare_cards(&g, "d1", "s0"), true);
+
+        let g = make_game("s", "d", false);
+        assert_eq!(compare_cards(&g, "h1", "h0"), true);
+        assert_eq!(compare_cards(&g, "h1", "d0"), true);
+        assert_eq!(compare_cards(&g, "d1", "s0"), true);
+        assert_eq!(compare_cards(&g, "d1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "d1"), true);
+        assert_eq!(compare_cards(&g, "d1", "jr"), true);
+        assert_eq!(compare_cards(&g, "jr", "d1"), false);
+        assert_eq!(compare_cards(&g, "jr", "s1"), true);
+        assert_eq!(compare_cards(&g, "s1", "jr"), false);
+
+        let g = make_game("d", "c", true);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c3"), true);
+        assert_eq!(compare_cards(&g, "c3", "jb"), false);
+
+        let g = make_game("", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "jr"), false);
+        assert_eq!(compare_cards(&g, "s0", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "s0"), true);
+        assert_eq!(compare_cards(&g, "jb", "c0"), false);
+        assert_eq!(compare_cards(&g, "c0", "jb"), true);
+        assert_eq!(compare_cards(&g, "s1", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "c0"), true);
+
+        let g = make_game("", "c", true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+
+        let g = make_game("s", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "s1"), false);
+        assert_eq!(compare_cards(&g, "s1", "jb"), true);
+    }
+
+    #[test]
+    fn user_test() {
+        let mut g = BasicGame::new();
+
+        assert_eq!(g.len(), 0);
+        assert_eq!(g.add_user(1), true);
+        assert_eq!(g.add_user(1), false);
+
+        assert_eq!(g.len(), 1);
+        assert_eq!(g.add_user(2), true);
+        assert_eq!(g.add_user(3), true);
+
+        assert_eq!(g.remove_user(4), false);
+        assert_eq!(g.remove_user(2), true);
+        assert_eq!(g.remove_user(2), false);
+
+        assert_eq!(g.len(), 2);
+        assert_eq!(g.get_index(1), Some(0));
+        assert_eq!(g.get_index(2), None);
+        assert_eq!(g.get_index(3), Some(2));
+
+        assert_eq!(g.get_user_list(), vec![1, 3]);
+
+        assert_eq!(g.add_user(4), true);
+        assert_eq!(g.add_user(5), true);
+        assert_eq!(g.add_user(6), true);
+        assert_eq!(g.add_user(7), false);
     }
 }
 

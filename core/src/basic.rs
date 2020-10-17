@@ -304,61 +304,67 @@ impl GameTrait for BasicGame {
                 }
 
                 let i = args[0].parse::<usize>().unwrap();
-                let mut done = done.clone();
-                let mut total_score = 0;
 
                 if args[2] == "x" {
+                    let mut done = done.clone();
                     done[i] = true;
 
                     if done.iter().fold(true, |a, &b| a && b) {
-                        return Ok(BasicState::Election {
+                        Ok(BasicState::Election {
                             pledge: vec![(None, 0); 5],
                             done,
                             deck: deck.clone(),
                             left: left.clone(),
-                        });
+                        })
                     } else {
-                        return Ok(BasicState::Start {
+                        Ok(BasicState::Start {
                             done,
                             deck: deck.clone(),
                             left: left.clone(),
-                        });
+                        })
                     }
-                }
-
-                let mighty = Some(self.get_mighty());
-                let giruda = self.get_giruda();
-                for card in deck[i].iter() {
-                    let score = match Some(card) {
-                        mighty => 0,
-                        Some(Card::Normal(card_type, num)) => {
-                            let ct = Some(card_type);
-                            match &giruda {
-                                ct => {
+                } else {
+                    let mighty = match self.get_mighty(){
+                        Some(x) => x,
+                        None => Card::Joker(ColorType::Black),
+                    };
+                    let giruda = match self.get_giruda(){
+                        Some(x) => x,
+                        None => CardType::Clover,
+                    };
+                    let mut total_score = 0;
+                    for card in deck[i].iter() {
+                        let score = match card {
+                            Card::Normal(card_type, num) => {
+                                if *card == mighty {
+                                    0
+                                }
+                                else if *card_type == giruda {
                                     if *num >= 10 || *num == 0 {
                                         1
                                     } else {
                                         0
                                     }
+                                } else {
+                                    0
                                 }
-                                _ => 0,
                             }
-                        }
-                        Some(Card::Joker(color_type)) => -1,
-                        _ => 0,
-                    };
-                    total_score += score;
-                }
-                if total_score <= 0 {
-                    Ok(BasicState::NotStarted)
-                } else {
-                    done[i] = true;
-
-                    Ok(BasicState::Start {
-                        done,
-                        deck: deck.clone(),
-                        left: left.clone(),
-                    })
+                            Card::Joker(_) => -1,
+                        };
+                        total_score += score;
+                    }
+                    if total_score <= 0 {
+                        Ok(BasicState::NotStarted)
+                    } else {
+                        let mut done = done.clone();
+                        done[i] = true;
+    
+                        Ok(BasicState::Start {
+                            done,
+                            deck: deck.clone(),
+                            left: left.clone(),
+                        })
+                    }
                 }
             }
 

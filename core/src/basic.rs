@@ -324,11 +324,11 @@ impl GameTrait for BasicGame {
                         })
                     }
                 } else {
-                    let mighty = match self.get_mighty(){
+                    let mighty = match self.get_mighty() {
                         Some(x) => x,
                         None => Card::Joker(ColorType::Black),
                     };
-                    let giruda = match self.get_giruda(){
+                    let giruda = match self.get_giruda() {
                         Some(x) => x,
                         None => CardType::Clover,
                     };
@@ -338,8 +338,7 @@ impl GameTrait for BasicGame {
                             Card::Normal(card_type, num) => {
                                 if *card == mighty {
                                     0
-                                }
-                                else if *card_type == giruda {
+                                } else if *card_type == giruda {
                                     if *num >= 10 || *num == 0 {
                                         1
                                     } else {
@@ -358,7 +357,7 @@ impl GameTrait for BasicGame {
                     } else {
                         let mut done = done.clone();
                         done[i] = true;
-    
+
                         Ok(BasicState::Start {
                             done,
                             deck: deck.clone(),

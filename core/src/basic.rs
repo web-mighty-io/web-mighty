@@ -40,12 +40,12 @@ pub enum BasicState {
         friend_func: FriendFunc,
         // 0 to 4 for in-game user id
         friend: Option<usize>,
+        // if friend is known to other people
+        is_friend_known: bool,
         // giruda of this game
         giruda: Option<CardType>,
         // pledge score of ruling party
         pledge: u8,
-        // score for ruling party
-        score: u8,
         // deck for each user (len of 5)
         deck: Vec<Vec<Card>>,
         // score cards
@@ -53,7 +53,7 @@ pub enum BasicState {
         // turn count 0 to 9
         turn_count: u8,
         // placed cards in front of users
-        placed_cards: Vec<Option<Card>>,
+        placed_cards: Vec<Card>,
         // start user of this turn
         start_user: usize,
         // current user of this turn
@@ -134,14 +134,14 @@ impl BasicGame {
 
     /// Get the mighty card in game
     /// **Valid output only in in-game.**
-    fn get_mighty(&self) -> Option<Card> {
+    fn get_mighty(&self) -> Card {
         match &self.state {
             BasicState::InGame { giruda, .. } => match giruda {
-                Some(CardType::Spade) => Some(Card::Normal(CardType::Diamond, 0)),
-                _ => Some(Card::Normal(CardType::Spade, 0)),
+                Some(CardType::Spade) => Card::Normal(CardType::Diamond, 0),
+                _ => Card::Normal(CardType::Spade, 0),
             },
             // don't need this value
-            _ => None,
+            _ => Card::Normal(CardType::Spade, 0),
         }
     }
 
@@ -189,13 +189,12 @@ impl BasicGame {
     // true if lhs < rhs
     // undefined when lhs == rhs
     pub fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
-        if let Some(mighty) = self.get_mighty() {
-            if *lhs == mighty {
-                return false;
-            }
-            if *rhs == mighty {
-                return true;
-            }
+        let mighty = self.get_mighty();
+        if *lhs == mighty {
+            return false;
+        }
+        if *rhs == mighty {
+            return true;
         }
 
         let cur_pat = self.get_current_pattern();
@@ -411,12 +410,18 @@ impl GameTrait for BasicGame {
                     done[i] = false;
                     let mut pledge = pledge.clone();
 
-                    // todo: handle maximum of before
                     if args[2] == "n" {
                         if c < 12 {
                             return Err(GameError::CommandError(format!(
                                 "pledge should be greater or equal than 12 in no giruda game, actual: {}",
                                 c
+                            )));
+                        }
+                        let (_, before) = pledge[i];
+                        if c < before {
+                            return Err(GameError::CommandError(format!(
+                                "pledge should be greater or equal than before: {}, actual: {}",
+                                before, c
                             )));
                         }
                         pledge[i] = (None, c);
@@ -425,6 +430,13 @@ impl GameTrait for BasicGame {
                             return Err(GameError::CommandError(format!(
                                 "pledge should be greater or equal than 13, actual: {}",
                                 c
+                            )));
+                        }
+                        let (_, before) = pledge[i];
+                        if c < before {
+                            return Err(GameError::CommandError(format!(
+                                "pledge should be greater or equal than before: {}, actual: {}",
+                                before, c
                             )));
                         }
                         pledge[i] = (CardType::from_str(&args[2]).ok(), c);
@@ -521,19 +533,44 @@ impl GameTrait for BasicGame {
                     _ => FriendFunc::None,
                 };
 
+                // todo: cards to drop
+
                 let (_, pledge) = pledge;
+                let friend = match &friend_func {
+                    FriendFunc::None => None,
+                    FriendFunc::ByCard(c) => {
+                        let mut res = None;
+
+                        for (i, d) in deck.iter().enumerate() {
+                            if d.contains(c) {
+                                res = Some(i);
+                            }
+                        }
+
+                        res
+                    }
+                    FriendFunc::ByUser(u) => Some(*u),
+                    FriendFunc::ByWinning(_) => None,
+                };
+
+                let is_friend_known = match &friend_func {
+                    FriendFunc::None => true,
+                    FriendFunc::ByCard(_) => false,
+                    FriendFunc::ByUser(_) => true,
+                    FriendFunc::ByWinning(_) => false,
+                };
 
                 Ok(BasicState::InGame {
                     president: *president,
                     friend_func,
-                    friend: None,
+                    friend,
+                    is_friend_known,
                     giruda: None,
                     pledge: *pledge,
-                    score: 0,
                     deck: deck.clone(),
                     score_deck: Vec::new(),
                     turn_count: 0,
-                    placed_cards: vec![None; 5],
+                    placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
                     start_user: *president,
                     current_user: *president,
                     current_pattern: RushType::Spade,
@@ -542,9 +579,248 @@ impl GameTrait for BasicGame {
             }
 
             // command is 'g'
-            BasicState::InGame { .. } => {
-                // todo
-                Ok(self.state.clone())
+            BasicState::InGame {
+                president,
+                friend_func,
+                friend,
+                is_friend_known,
+                giruda,
+                pledge,
+                deck,
+                score_deck,
+                turn_count,
+                placed_cards,
+                start_user,
+                current_user,
+                current_pattern,
+                is_joker_called,
+            } => {
+                if args.len() < 3 {
+                    return Err(GameError::CommandError(format!(
+                        "command length should be greater or equal to 3, actual: {}",
+                        args.len()
+                    )));
+                }
+
+                if args[1] != "g" {
+                    return Err(GameError::CommandError(format!(
+                        "game state is not same. expected: 'g', actual: '{}'",
+                        args[1]
+                    )));
+                }
+
+                let i = args[0].parse::<usize>().unwrap();
+
+                if i == *current_user {
+                    return Err(GameError::CommandError(
+                        "you are not the current player".to_owned(),
+                    ));
+                }
+
+                let card = args[2].parse::<Card>().map_err(|_| {
+                    GameError::CommandError("error occurred when parsing card".to_owned())
+                })?;
+
+                if !deck[i].contains(&card) {
+                    return Err(GameError::CommandError(
+                        "your card is not in deck".to_owned(),
+                    ));
+                }
+
+                let mut friend = *friend;
+                let mut is_friend_known = *is_friend_known;
+                let mut deck = deck.clone();
+                let mut score_deck = score_deck.clone();
+                let mut turn_count = *turn_count;
+                let mut placed_cards = placed_cards.clone();
+                let mut start_user = start_user.clone();
+                let mut current_pattern = current_pattern.clone();
+                let mut is_joker_called = *is_joker_called;
+
+                for j in 0..deck.len() {
+                    if deck[i][j] == card {
+                        deck[i].remove(j);
+                        break;
+                    }
+                }
+
+                placed_cards[i] = card.clone();
+
+                is_friend_known = match friend_func {
+                    FriendFunc::ByCard(c) => card.eq(c),
+                    _ => is_friend_known,
+                };
+
+                if *current_user == *start_user {
+                    current_pattern = RushType::from(card.clone());
+
+                    match card {
+                        Card::Normal(t, n) => {
+                            let mut joker_calls = Vec::new();
+
+                            if let Some(giruda) = giruda {
+                                joker_calls.push(if CardType::Clover.eq(giruda) {
+                                    CardType::Spade
+                                } else {
+                                    CardType::Clover
+                                });
+
+                                joker_calls.push(if CardType::Heart.eq(giruda) {
+                                    CardType::Diamond
+                                } else {
+                                    CardType::Heart
+                                });
+                            } else {
+                                joker_calls.push(CardType::Clover);
+                                joker_calls.push(CardType::Heart);
+                            }
+
+                            if joker_calls.contains(&t) && n == 2 {
+                                is_joker_called = if args.len() >= 4 {
+                                    match args[3] {
+                                        "t" => true,
+                                        "f" => false,
+                                        _ => {
+                                            return Err(GameError::CommandError(format!(
+                                                "joker call command expected: t or f, actual: {}",
+                                                args[3]
+                                            )))
+                                        }
+                                    }
+                                } else {
+                                    true
+                                }
+                            }
+                        }
+
+                        Card::Joker(t) => {
+                            if args.len() < 4 {
+                                return Err(GameError::CommandError(format!(
+                                    "command length should be greater or equal to 4, actual: {}",
+                                    args.len()
+                                )));
+                            }
+
+                            current_pattern = RushType::from_str(args[3]).map_err(|_| {
+                                GameError::CommandError(
+                                    "error occurred when parsing rush type".to_owned(),
+                                )
+                            })?;
+
+                            let containing = match t {
+                                ColorType::Black => {
+                                    current_pattern == RushType::Black
+                                        || current_pattern == RushType::Spade
+                                        || current_pattern == RushType::Clover
+                                }
+                                ColorType::Red => {
+                                    current_pattern == RushType::Red
+                                        || current_pattern == RushType::Diamond
+                                        || current_pattern == RushType::Heart
+                                }
+                            };
+
+                            if !containing {
+                                return Err(GameError::CommandError(
+                                    "rush type is not in joker type".to_owned(),
+                                ));
+                            }
+                        }
+                    }
+                }
+
+                let mut next_user = (*current_user + 1) % 5;
+
+                if next_user == *start_user {
+                    let mut winner = Option::<usize>::None;
+
+                    for i in 0..5 {
+                        let c = &placed_cards[i];
+
+                        match c {
+                            Card::Normal(t, _) => {
+                                if turn_count == 0
+                                    && (self.get_mighty().eq(c) || current_pattern.contains(t))
+                                {
+                                    continue;
+                                }
+                            }
+                            Card::Joker(_) => {
+                                if turn_count == 0 || turn_count == 9 {
+                                    continue;
+                                }
+                            }
+                        }
+
+                        winner = match winner {
+                            Some(j) => {
+                                if self.compare_cards(&placed_cards[i], &placed_cards[j]) {
+                                    Some(j)
+                                } else {
+                                    Some(i)
+                                }
+                            }
+                            None => Some(i),
+                        };
+                    }
+
+                    let winner = winner.ok_or_else(|| {
+                        GameError::InternalError(
+                            "internal error occurred when calculating score".to_owned(),
+                        )
+                    })?;
+
+                    if friend == None {
+                        friend = match friend_func {
+                            FriendFunc::ByWinning(j) => {
+                                if *j == turn_count {
+                                    Some(winner)
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => None,
+                        };
+
+                        is_friend_known = match friend_func {
+                            FriendFunc::ByWinning(j) => *j == turn_count,
+                            _ => is_friend_known,
+                        };
+                    }
+
+                    if i != *president || (is_friend_known && matches!(friend, Some(j) if j == i)) {
+                        let mut score_cards = placed_cards
+                            .iter()
+                            .filter_map(|c| if c.is_score() { Some(c.clone()) } else { None })
+                            .collect::<Vec<_>>();
+                        score_deck[winner].append(&mut score_cards);
+                    }
+
+                    start_user = winner;
+                    next_user = start_user;
+                    turn_count += 1;
+
+                    if turn_count == 10 {
+                        // todo: when game is finished
+                    }
+                }
+
+                Ok(BasicState::InGame {
+                    president: *president,
+                    friend_func: friend_func.clone(),
+                    friend,
+                    is_friend_known,
+                    giruda: giruda.clone(),
+                    pledge: *pledge,
+                    deck,
+                    score_deck,
+                    turn_count,
+                    placed_cards,
+                    start_user,
+                    current_user: next_user,
+                    current_pattern,
+                    is_joker_called,
+                })
             }
 
             // command is 'd'
@@ -569,9 +845,9 @@ mod basic_tests {
                     president: 0,
                     friend_func: FriendFunc::None,
                     friend: Option::None,
+                    is_friend_known: false,
                     giruda: CardType::from_str(giruda).ok(),
                     pledge: 0,
-                    score: 0,
                     deck: vec![],
                     score_deck: vec![],
                     turn_count: 0,
@@ -667,9 +943,7 @@ mod basic_tests {
         assert_eq!(g.get_state(), "n");
         assert_eq!(
             g.process(vec!["0"]).err().unwrap(),
-            GameError::CommandError(String::from(
-                "command length should be 2, actual: 1"
-            ))
+            GameError::CommandError(String::from("command length should be 2, actual: 1"))
         );
         assert_eq!(
             g.process(vec!["0", "s"]).err().unwrap(),

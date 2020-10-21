@@ -267,6 +267,13 @@ impl Card {
             Card::Joker(_) => false,
         }
     }
+
+    pub fn is_joker(&self) -> bool {
+        match self {
+            Card::Normal(_, _) => false,
+            Card::Joker(_) => true,
+        }
+    }
 }
 
 /// type of friend making

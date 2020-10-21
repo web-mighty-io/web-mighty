@@ -1,0 +1,73 @@
+name: build
+on: [ push, pull_request ]
+
+jobs:
+  ci:
+    name: Test
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        build: [ stable, beta, nightly, macos ]
+
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+            browsers: --node --firefox --chrome
+
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+            browsers: --node --firefox --chrome
+
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+            browsers: --node --firefox --chrome
+
+          - build: macos
+            os: macos-latest
+            rust: stable
+            browsers: --node --firefox --chrome --safari
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setting up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Checking if it builds without errors
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Checking if test passes
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Checking if code is formatted
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Checking if it builds without warnings
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+      - name: Testing wasm
+        run: |
+          if [ -f "${HOME}/.cargo/bin/wasm-pack" ]; then
+            rm ${HOME}/.cargo/bin/wasm-pack
+          fi
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          cd public && wasm-pack test ${{ matrix.browsers }} --headless

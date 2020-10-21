@@ -633,7 +633,7 @@ impl GameTrait for BasicGame {
                 let mut score_deck = score_deck.clone();
                 let mut turn_count = *turn_count;
                 let mut placed_cards = placed_cards.clone();
-                let mut start_user = start_user.clone();
+                let mut start_user = *start_user;
                 let mut current_pattern = current_pattern.clone();
                 let mut is_joker_called = *is_joker_called;
 
@@ -651,7 +651,7 @@ impl GameTrait for BasicGame {
                     _ => is_friend_known,
                 };
 
-                if *current_user == *start_user {
+                if *current_user == start_user {
                     current_pattern = RushType::from(card.clone());
 
                     match card {
@@ -731,7 +731,7 @@ impl GameTrait for BasicGame {
 
                 let mut next_user = (*current_user + 1) % 5;
 
-                if next_user == *start_user {
+                if next_user == start_user {
                     let mut winner = Option::<usize>::None;
 
                     for i in 0..5 {

@@ -263,8 +263,15 @@ impl Card {
 
     pub fn is_score(&self) -> bool {
         match self {
-            Card::Normal(_, n) => *n >= 9,
+            Card::Normal(_, n) => *n >= 9 || *n == 0,
             Card::Joker(_) => false,
+        }
+    }
+
+    pub fn is_joker(&self) -> bool {
+        match self {
+            Card::Normal(_, _) => false,
+            Card::Joker(_) => true,
         }
     }
 }
@@ -354,7 +361,7 @@ pub trait GameTrait {
     }
 
     // first argument in instruction is user id (always in bound)
-    fn process(&self, args: Vec<String>) -> Result<Self::State, GameError>;
+    fn process<S: AsRef<str>>(&self, args: Vec<S>) -> Result<Self::State, GameError>;
 }
 
 #[cfg(test)]

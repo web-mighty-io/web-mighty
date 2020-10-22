@@ -373,31 +373,20 @@ impl GameTrait for BasicGame {
                             }
                         }
 
-                        if last_max == 0 {
-                            let president = rand::thread_rng().gen_range(0, 5);
-                            let mut deck = deck.clone();
-
-                            deck[president].append(&mut left.clone());
-
-                            Ok(BasicState::SelectFriend {
-                                president,
-                                pledge: pledge[president].clone(),
-                                deck,
-                            })
+                        let mut deck = deck.clone();
+                        let president = if last_max == 0 {
+                            rand::thread_rng().gen_range(0, 5)
                         } else {
-                            let president = *candidate
+                            *candidate
                                 .choose(&mut rand::thread_rng())
-                                .unwrap_or(&rand::thread_rng().gen_range(0, 5));
-                            let mut deck = deck.clone();
-
-                            deck[president].append(&mut left.clone());
-
-                            Ok(BasicState::SelectFriend {
-                                president,
-                                pledge: pledge[president].clone(),
-                                deck,
-                            })
-                        }
+                                .unwrap_or(&rand::thread_rng().gen_range(0, 5))
+                        };
+                        deck[president].append(&mut left.clone());
+                        Ok(BasicState::SelectFriend {
+                            president,
+                            pledge: pledge[president].clone(),
+                            deck,
+                        })
                     } else {
                         Ok(BasicState::Election {
                             pledge: pledge.clone(),
@@ -557,13 +546,15 @@ impl GameTrait for BasicGame {
                     let card = item.parse::<Card>().map_err(|_| {
                         GameError::CommandError("error occurred when parsing card".to_owned())
                     })?;
-                    let temp_deck = deck[i].clone();
-                    deck[i].remove(
-                        temp_deck
-                            .iter()
-                            .position(|x| *x == card)
-                            .expect("the drop card is not in your deck"),
-                    );
+                    let idx = match deck[i].iter().position(|x| *x == card) {
+                        Some(x) => x,
+                        _ => {
+                            return Err(GameError::CommandError(format!(
+                                "the drop card is not in your deck"
+                            )));
+                        }
+                    };
+                    deck[i].remove(idx);
                 }
 
                 let (_, pledge) = pledge;

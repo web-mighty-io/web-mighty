@@ -422,7 +422,7 @@ impl GameTrait for BasicGame {
                         let (_, c) = p;
                         match c.cmp(&curr_max) {
                             Ordering::Greater => {
-                                curr_max = *c; 
+                                curr_max = *c;
                             }
                             _ => {}
                         }
@@ -561,8 +561,12 @@ impl GameTrait for BasicGame {
                         GameError::CommandError("error occurred when parsing card".to_owned())
                     })?;
                     let temp_deck = deck[i].clone();
-                    deck[i].remove(temp_deck.iter().position(|x| *x == card)
-                        .expect("the drop card is not in your deck"));
+                    deck[i].remove(
+                        temp_deck
+                            .iter()
+                            .position(|x| *x == card)
+                            .expect("the drop card is not in your deck"),
+                    );
                 }
 
                 let (_, pledge) = pledge;

@@ -601,7 +601,7 @@ impl GameTrait for BasicGame {
                     is_friend_known,
                     giruda: None,
                     pledge: *pledge,
-                    deck: deck,
+                    deck,
                     score_deck: Vec::new(),
                     turn_count: 0,
                     placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],

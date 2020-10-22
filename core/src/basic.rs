@@ -549,9 +549,9 @@ impl GameTrait for BasicGame {
                     let idx = match deck[i].iter().position(|x| *x == card) {
                         Some(x) => x,
                         _ => {
-                            return Err(GameError::CommandError(format!(
-                                "the drop card is not in your deck"
-                            )));
+                            return Err(GameError::CommandError(
+                                "the drop card is not in your deck".to_owned(),
+                            ));
                         }
                     };
                     deck[i].remove(idx);

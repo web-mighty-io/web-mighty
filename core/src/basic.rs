@@ -373,23 +373,20 @@ impl GameTrait for BasicGame {
                             }
                         }
 
-                        if last_max == 0 {
-                            // todo: when nobody came out
-                            Ok(self.state.clone())
+                        let mut deck = deck.clone();
+                        let president = if last_max == 0 {
+                            rand::thread_rng().gen_range(0, 5)
                         } else {
-                            let president = *candidate
+                            *candidate
                                 .choose(&mut rand::thread_rng())
-                                .unwrap_or(&rand::thread_rng().gen_range(0, 5));
-                            let mut deck = deck.clone();
-
-                            deck[president].append(&mut left.clone());
-
-                            Ok(BasicState::SelectFriend {
-                                president,
-                                pledge: pledge[president].clone(),
-                                deck,
-                            })
-                        }
+                                .unwrap_or(&rand::thread_rng().gen_range(0, 5))
+                        };
+                        deck[president].append(&mut left.clone());
+                        Ok(BasicState::SelectFriend {
+                            president,
+                            pledge: pledge[president].clone(),
+                            deck,
+                        })
                     } else {
                         Ok(BasicState::Election {
                             pledge: pledge.clone(),
@@ -409,6 +406,13 @@ impl GameTrait for BasicGame {
 
                     done[i] = false;
                     let mut pledge = pledge.clone();
+                    let mut curr_max = 0u8;
+                    for p in pledge.iter() {
+                        let (_, c) = p;
+                        if curr_max < *c {
+                            curr_max = *c;
+                        }
+                    }
 
                     if args[2] == "n" {
                         if c < 12 {
@@ -417,11 +421,10 @@ impl GameTrait for BasicGame {
                                 c
                             )));
                         }
-                        let (_, before) = pledge[i];
-                        if c < before {
+                        if c < curr_max - 1 {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than before: {}, actual: {}",
-                                before, c
+                                "pledge should be greater or equal than current maximum - 1: {}, actual: {}",
+                                curr_max - 1, c
                             )));
                         }
                         pledge[i] = (None, c);
@@ -432,11 +435,10 @@ impl GameTrait for BasicGame {
                                 c
                             )));
                         }
-                        let (_, before) = pledge[i];
-                        if c < before {
+                        if c < curr_max {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than before: {}, actual: {}",
-                                before, c
+                                "pledge should be greater or equal than current maximum: {}, actual: {}",
+                                curr_max, c
                             )));
                         }
                         pledge[i] = (CardType::from_str(&args[2]).ok(), c);
@@ -494,9 +496,9 @@ impl GameTrait for BasicGame {
 
                 let friend_func = match fn_type {
                     1 => {
-                        if args.len() != 4 {
+                        if args.len() < 4 {
                             return Err(GameError::CommandError(format!(
-                                "command length should be 4, actual: {}",
+                                "command length should be greater or equal than 4, actual: {}",
                                 args.len()
                             )));
                         }
@@ -511,9 +513,9 @@ impl GameTrait for BasicGame {
                         FriendFunc::ByCard(card)
                     }
                     2 => {
-                        if args.len() != 4 {
+                        if args.len() < 4 {
                             return Err(GameError::CommandError(format!(
-                                "command length should be 4, actual: {}",
+                                "command length should be greater or equal than 4, actual: {}",
                                 args.len()
                             )));
                         }
@@ -521,9 +523,9 @@ impl GameTrait for BasicGame {
                         FriendFunc::ByUser(args[3].parse::<usize>().unwrap_or(*president))
                     }
                     3 => {
-                        if args.len() != 4 {
+                        if args.len() < 4 {
                             return Err(GameError::CommandError(format!(
-                                "command length should be 4, actual: {}",
+                                "command length should be greater or equal than 4, actual: {}",
                                 args.len()
                             )));
                         }
@@ -533,7 +535,27 @@ impl GameTrait for BasicGame {
                     _ => FriendFunc::None,
                 };
 
-                // todo: cards to drop
+                if args.len() < 8 {
+                    return Err(GameError::CommandError(format!(
+                        "command length should be greater or equal than 8, actual: {}",
+                        args.len()
+                    )));
+                }
+                let mut deck = deck.clone();
+                for item in args.iter().take(8).skip(4) {
+                    let card = item.parse::<Card>().map_err(|_| {
+                        GameError::CommandError("error occurred when parsing card".to_owned())
+                    })?;
+                    let idx = match deck[i].iter().position(|x| *x == card) {
+                        Some(x) => x,
+                        _ => {
+                            return Err(GameError::CommandError(
+                                "the drop card is not in your deck".to_owned(),
+                            ));
+                        }
+                    };
+                    deck[i].remove(idx);
+                }
 
                 let (_, pledge) = pledge;
                 let friend = match &friend_func {
@@ -567,7 +589,7 @@ impl GameTrait for BasicGame {
                     is_friend_known,
                     giruda: None,
                     pledge: *pledge,
-                    deck: deck.clone(),
+                    deck,
                     score_deck: Vec::new(),
                     turn_count: 0,
                     placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
@@ -611,7 +633,7 @@ impl GameTrait for BasicGame {
 
                 let i = args[0].parse::<usize>().unwrap();
 
-                if i == *current_user {
+                if i != *current_user {
                     return Err(GameError::CommandError(
                         "you are not the current player".to_owned(),
                     ));

@@ -420,11 +420,8 @@ impl GameTrait for BasicGame {
                     let mut curr_max = 0u8;
                     for p in pledge.iter() {
                         let (_, c) = p;
-                        match c.cmp(&curr_max) {
-                            Ordering::Greater => {
-                                curr_max = *c;
-                            }
-                            _ => {}
+                        if curr_max < *c {
+                            curr_max = *c;
                         }
                     }
 
@@ -556,8 +553,8 @@ impl GameTrait for BasicGame {
                     )));
                 }
                 let mut deck = deck.clone();
-                for idx in 4..8 {
-                    let card = args[idx].parse::<Card>().map_err(|_| {
+                for item in args.iter().take(8).skip(4) {
+                    let card = item.parse::<Card>().map_err(|_| {
                         GameError::CommandError("error occurred when parsing card".to_owned())
                     })?;
                     let temp_deck = deck[i].clone();

@@ -836,24 +836,22 @@ impl GameTrait for BasicGame {
                                             *pledge - score_deck[*president].len() as u8,
                                         )
                                     }
+                                } else if score_deck[*president].len() + score_deck[x].len()
+                                    >= (*pledge as usize)
+                                {
+                                    (
+                                        (1 << (*president)) + (1 << x),
+                                        score_deck[*president].len() as u8
+                                            + score_deck[x].len() as u8
+                                            - 10,
+                                    )
                                 } else {
-                                    if score_deck[*president].len() + score_deck[x].len()
-                                        >= (*pledge as usize)
-                                    {
-                                        (
-                                            (1 << (*president)) + (1 << x),
-                                            score_deck[*president].len() as u8
-                                                + score_deck[x].len() as u8
-                                                - 10,
-                                        )
-                                    } else {
-                                        (
-                                            (1 << 5) - (1 << (*president)) - (1 << x),
-                                            *pledge
-                                                - score_deck[*president].len() as u8
-                                                - score_deck[x].len() as u8,
-                                        )
-                                    }
+                                    (
+                                        (1 << 5) - (1 << (*president)) - (1 << x),
+                                        *pledge
+                                            - score_deck[*president].len() as u8
+                                            - score_deck[x].len() as u8,
+                                    )
                                 }
                             }
                             _ => {

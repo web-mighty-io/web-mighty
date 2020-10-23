@@ -69,7 +69,7 @@ pub enum BasicState {
         winner: u8,
         // below are game info
         president: usize,
-        friend: usize,
+        friend: Option<usize>,
         score: u8,
     },
 }
@@ -825,46 +825,52 @@ impl GameTrait for BasicGame {
                     turn_count += 1;
 
                     if turn_count == 10 {
-                        let friend = match friend {
-                            Some(x) => x,
-                            _ => *president,
-                        };
-                        let (winner, score) = if friend == *president {
-                            if score_deck[*president].len() >= (*pledge as usize) {
-                                (
-                                    1 << (*president),
-                                    2 * (score_deck[*president].len() as u8 - 10),
-                                )
-                            } else {
-                                (
-                                    1 << 5 - 1 << (*president),
-                                    *pledge - score_deck[*president].len() as u8,
-                                )
+                        let (winner, score) = match friend {
+                            Some(x) => {
+                                if x == *president {
+                                    if score_deck[*president].len() >= (*pledge as usize) {
+                                        (1 << (*president), score_deck[*president].len() as u8 - 10)
+                                    } else {
+                                        (
+                                            (1 << 5) - (1 << (*president)),
+                                            *pledge - score_deck[*president].len() as u8,
+                                        )
+                                    }
+                                } else {
+                                    if score_deck[*president].len() + score_deck[x].len()
+                                        >= (*pledge as usize)
+                                    {
+                                        (
+                                            (1 << (*president)) + (1 << x),
+                                            score_deck[*president].len() as u8
+                                                + score_deck[x].len() as u8
+                                                - 10,
+                                        )
+                                    } else {
+                                        (
+                                            (1 << 5) - (1 << (*president)) - (1 << x),
+                                            *pledge
+                                                - score_deck[*president].len() as u8
+                                                - score_deck[x].len() as u8,
+                                        )
+                                    }
+                                }
                             }
-                        } else {
-                            if score_deck[*president].len() + score_deck[friend].len()
-                                >= (*pledge as usize)
-                            {
-                                (
-                                    1 << (*president) + 1 << friend,
-                                    score_deck[*president].len() as u8
-                                        + score_deck[friend].len() as u8
-                                        - 10,
-                                )
-                            } else {
-                                (
-                                    1 << 5 - 1 << (*president) - 1 << friend,
-                                    *pledge
-                                        - score_deck[*president].len() as u8
-                                        - score_deck[friend].len() as u8,
-                                )
+                            _ => {
+                                if score_deck[*president].len() >= (*pledge as usize) {
+                                    (1 << (*president), score_deck[*president].len() as u8 - 10)
+                                } else {
+                                    (
+                                        (1 << 5) - (1 << (*president)),
+                                        *pledge - score_deck[*president].len() as u8,
+                                    )
+                                }
                             }
                         };
-
                         return Ok(BasicState::GameEnded {
-                            winner: winner,
+                            winner,
                             president: *president,
-                            friend: friend,
+                            friend,
                             score,
                         });
                     }

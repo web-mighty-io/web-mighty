@@ -823,57 +823,46 @@ impl GameTrait for BasicGame {
                     start_user = winner;
                     next_user = start_user;
                     turn_count += 1;
+                    let mut mul = 1;
 
                     if turn_count == 10 {
-                        let (winner, score) = match friend {
+                        let winner = match friend {
                             Some(x) => {
-                                let mut mul = 1;
                                 if *giruda == None {
                                     mul = 2;
                                 }
                                 if x == *president {
                                     if score_deck[*president].len() >= (*pledge as usize) {
-                                        (
-                                            1 << (*president),
-                                            mul * (score_deck[*president].len() as u8 - 10),
-                                        )
+                                        1 << (*president)
                                     } else {
-                                        (
-                                            (1 << 5) - (1 << (*president)),
-                                            *pledge - score_deck[*president].len() as u8,
-                                        )
+                                        (1 << 5) - (1 << (*president))
                                     }
                                 } else if score_deck[*president].len() + score_deck[x].len()
                                     >= (*pledge as usize)
                                 {
-                                    (
-                                        (1 << (*president)) + (1 << x),
-                                        mul * (score_deck[*president].len() as u8
-                                            + score_deck[x].len() as u8
-                                            - 10),
-                                    )
+                                    (1 << (*president)) + (1 << x)
                                 } else {
-                                    (
-                                        (1 << 5) - (1 << (*president)) - (1 << x),
-                                        *pledge
-                                            - score_deck[*president].len() as u8
-                                            - score_deck[x].len() as u8,
-                                    )
+                                    (1 << 5) - (1 << (*president)) - (1 << x)
                                 }
                             }
                             _ => {
                                 if score_deck[*president].len() >= (*pledge as usize) {
-                                    (
-                                        1 << (*president),
-                                        2 * (score_deck[*president].len() as u8 - 10),
-                                    )
+                                    1 << (*president)
                                 } else {
-                                    (
-                                        (1 << 5) - (1 << (*president)),
-                                        *pledge - score_deck[*president].len() as u8,
-                                    )
+                                    (1 << 5) - (1 << (*president))
                                 }
                             }
+                        };
+                        let mut score = 0;
+                        for i in 0..5 {
+                            if (1 << i) & winner != 0 {
+                                score += score_deck[i as usize].len() as u8;
+                            }
+                        }
+                        score = if score & (1 << (*president)) != 0 {
+                            mul * (score - 10)
+                        } else {
+                            *pledge + score - 20
                         };
                         return Ok(BasicState::GameEnded {
                             winner,

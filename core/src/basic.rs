@@ -827,9 +827,16 @@ impl GameTrait for BasicGame {
                     if turn_count == 10 {
                         let (winner, score) = match friend {
                             Some(x) => {
+                                let mut mul = 1;
+                                if *giruda == None {
+                                    mul = 2;
+                                }
                                 if x == *president {
                                     if score_deck[*president].len() >= (*pledge as usize) {
-                                        (1 << (*president), score_deck[*president].len() as u8 - 10)
+                                        (
+                                            1 << (*president),
+                                            mul * (score_deck[*president].len() as u8 - 10),
+                                        )
                                     } else {
                                         (
                                             (1 << 5) - (1 << (*president)),
@@ -841,9 +848,9 @@ impl GameTrait for BasicGame {
                                 {
                                     (
                                         (1 << (*president)) + (1 << x),
-                                        score_deck[*president].len() as u8
+                                        mul * (score_deck[*president].len() as u8
                                             + score_deck[x].len() as u8
-                                            - 10,
+                                            - 10),
                                     )
                                 } else {
                                     (
@@ -856,7 +863,10 @@ impl GameTrait for BasicGame {
                             }
                             _ => {
                                 if score_deck[*president].len() >= (*pledge as usize) {
-                                    (1 << (*president), score_deck[*president].len() as u8 - 10)
+                                    (
+                                        1 << (*president),
+                                        2 * (score_deck[*president].len() as u8 - 10),
+                                    )
                                 } else {
                                     (
                                         (1 << 5) - (1 << (*president)),

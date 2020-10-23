@@ -7,9 +7,13 @@ public/pkg
 wasm-pack.log
 
 **/*.min.js
+**/*.min.css
+**/*.min.html
 
 .idea
 .vscode
 
 public/static/bulma-0.8.0
 public/static/css
+venv
+server/build

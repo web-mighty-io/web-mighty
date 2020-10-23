@@ -71,7 +71,6 @@ pub enum BasicState {
         president: usize,
         friend: usize,
         score: u8,
-        giruda: Option<CardType>,
     },
 }
 
@@ -668,10 +667,19 @@ impl GameTrait for BasicGame {
 
                 placed_cards[i] = card.clone();
 
-                is_friend_known = match friend_func {
-                    FriendFunc::ByCard(c) => card.eq(c),
-                    _ => is_friend_known,
-                };
+                if friend == None {
+                    friend = match friend_func {
+                        FriendFunc::ByCard(c) => {
+                            if card.eq(c) {
+                                is_friend_known = true;
+                                Some(*current_user)
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    };
+                }
 
                 if *current_user == start_user {
                     current_pattern = RushType::from(card.clone());
@@ -761,9 +769,7 @@ impl GameTrait for BasicGame {
 
                         match c {
                             Card::Normal(t, _) => {
-                                if turn_count == 0
-                                    && (self.get_mighty().eq(c) || current_pattern.contains(t))
-                                {
+                                if turn_count == 0 && current_pattern.contains(t) {
                                     continue;
                                 }
                             }
@@ -796,17 +802,13 @@ impl GameTrait for BasicGame {
                         friend = match friend_func {
                             FriendFunc::ByWinning(j) => {
                                 if *j == turn_count {
+                                    is_friend_known = true;
                                     Some(winner)
                                 } else {
                                     None
                                 }
                             }
                             _ => None,
-                        };
-
-                        is_friend_known = match friend_func {
-                            FriendFunc::ByWinning(j) => *j == turn_count,
-                            _ => is_friend_known,
                         };
                     }
 
@@ -823,7 +825,48 @@ impl GameTrait for BasicGame {
                     turn_count += 1;
 
                     if turn_count == 10 {
-                        // todo: when game is finished
+                        let friend = match friend {
+                            Some(x) => x,
+                            _ => *president,
+                        };
+                        let (winner, score) = if friend == *president {
+                            if score_deck[*president].len() >= (*pledge as usize) {
+                                (
+                                    1 << (*president),
+                                    2 * (score_deck[*president].len() as u8 - 10),
+                                )
+                            } else {
+                                (
+                                    1 << 5 - 1 << (*president),
+                                    *pledge - score_deck[*president].len() as u8,
+                                )
+                            }
+                        } else {
+                            if score_deck[*president].len() + score_deck[friend].len()
+                                >= (*pledge as usize)
+                            {
+                                (
+                                    1 << (*president) + 1 << friend,
+                                    score_deck[*president].len() as u8
+                                        + score_deck[friend].len() as u8
+                                        - 10,
+                                )
+                            } else {
+                                (
+                                    1 << 5 - 1 << (*president) - 1 << friend,
+                                    *pledge
+                                        - score_deck[*president].len() as u8
+                                        - score_deck[friend].len() as u8,
+                                )
+                            }
+                        };
+
+                        return Ok(BasicState::GameEnded {
+                            winner: winner,
+                            president: *president,
+                            friend: friend,
+                            score,
+                        });
                     }
                 }
 

@@ -69,7 +69,7 @@ pub enum BasicState {
         winner: u8,
         // below are game info
         president: usize,
-        friend: Option<usize>,
+        friend: usize,
         score: u8,
     },
 }
@@ -667,19 +667,14 @@ impl GameTrait for BasicGame {
 
                 placed_cards[i] = card.clone();
 
-                if friend == None {
-                    friend = match friend_func {
-                        FriendFunc::ByCard(c) => {
-                            if card.eq(c) {
-                                is_friend_known = true;
-                                Some(*current_user)
-                            } else {
-                                None
-                            }
+                match friend_func {
+                    FriendFunc::ByCard(c) => {
+                        if card.eq(c) {
+                            is_friend_known = true;
                         }
-                        _ => None,
-                    };
-                }
+                    }
+                    _ => {}
+                };
 
                 if *current_user == start_user {
                     current_pattern = RushType::from(card.clone());
@@ -823,46 +818,34 @@ impl GameTrait for BasicGame {
                     start_user = winner;
                     next_user = start_user;
                     turn_count += 1;
-                    let mut mul = 1;
 
                     if turn_count == 10 {
-                        let winner = match friend {
+                        let mut mul = 1;
+                        let friend = match friend {
                             Some(x) => {
                                 if *giruda == None {
                                     mul = 2;
                                 }
-                                if x == *president {
-                                    if score_deck[*president].len() >= (*pledge as usize) {
-                                        1 << (*president)
-                                    } else {
-                                        (1 << 5) - (1 << (*president))
-                                    }
-                                } else if score_deck[*president].len() + score_deck[x].len()
-                                    >= (*pledge as usize)
-                                {
-                                    (1 << (*president)) + (1 << x)
-                                } else {
-                                    (1 << 5) - (1 << (*president)) - (1 << x)
-                                }
+                                x
                             }
                             _ => {
-                                if score_deck[*president].len() >= (*pledge as usize) {
-                                    1 << (*president)
-                                } else {
-                                    (1 << 5) - (1 << (*president))
-                                }
+                                mul = 2;
+                                6
                             }
                         };
                         let mut score = 0;
+                        let mut winner = 0;
                         for i in 0..5 {
-                            if (1 << i) & winner != 0 {
+                            if i == *president || i == friend {
                                 score += score_deck[i as usize].len() as u8;
+                                winner += 1 << i;
                             }
                         }
-                        score = if score & (1 << (*president)) != 0 {
-                            mul * (score - 10)
+                        if score >= *pledge {
+                            score = mul * (score - 10);
                         } else {
-                            *pledge + score - 20
+                            score = *pledge + score - 20;
+                            winner = (1 << 5) - winner;
                         };
                         return Ok(BasicState::GameEnded {
                             winner,

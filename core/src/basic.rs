@@ -71,6 +71,7 @@ pub enum BasicState {
         president: usize,
         friend: usize,
         score: u8,
+        giruda: Option<CardType>,
     },
 }
 
@@ -817,15 +818,13 @@ impl GameTrait for BasicGame {
 
                     if turn_count == 10 {
                         let mut mul = 1;
+                        if *giruda == None {
+                            mul = 2;
+                        }
                         let friend = match friend {
-                            Some(x) => {
-                                if *giruda == None {
-                                    mul = 2;
-                                }
-                                x
-                            }
+                            Some(x) => x,
                             _ => {
-                                mul = 2;
+                                mul *= 2;
                                 6
                             }
                         };
@@ -848,6 +847,7 @@ impl GameTrait for BasicGame {
                             president: *president,
                             friend,
                             score,
+                            giruda: giruda.clone(),
                         });
                     }
                 }

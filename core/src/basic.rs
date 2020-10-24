@@ -830,18 +830,18 @@ impl GameTrait for BasicGame {
                         };
                         let mut score = 0;
                         let mut winner = 0;
-                        for i in 0..5 {
+                        for (i, s) in score_deck.iter().enumerate().take(5) {
                             if i == *president || i == friend {
-                                score += score_deck[i].len() as u8;
+                                score += s.len() as u8;
                                 winner += 1 << i;
                             }
-                        } // >
+                        }
                         if score >= *pledge {
                             score = mul * (score - 10);
                         } else {
                             score = *pledge + score - 20;
                             winner = (1 << 5) - winner;
-                        }; // >
+                        };
                         return Ok(BasicState::GameEnded {
                             winner,
                             president: *president,

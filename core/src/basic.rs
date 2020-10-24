@@ -830,7 +830,7 @@ impl GameTrait for BasicGame {
                         };
                         let mut score = 0;
                         let mut winner = 0;
-                        for (i, s) in score_deck.iter().enumerate().take(5) {
+                        for (i, s) in score_deck.iter().enumerate() {
                             if i == *president || i == friend {
                                 score += s.len() as u8;
                                 winner += 1 << i;

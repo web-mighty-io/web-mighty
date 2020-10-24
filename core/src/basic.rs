@@ -761,9 +761,7 @@ impl GameTrait for BasicGame {
 
                         match c {
                             Card::Normal(t, _) => {
-                                if turn_count == 0
-                                    && (self.get_mighty().eq(c) || current_pattern.contains(t))
-                                {
+                                if turn_count == 0 && current_pattern.contains(t) {
                                     continue;
                                 }
                             }
@@ -796,17 +794,13 @@ impl GameTrait for BasicGame {
                         friend = match friend_func {
                             FriendFunc::ByWinning(j) => {
                                 if *j == turn_count {
+                                    is_friend_known = true;
                                     Some(winner)
                                 } else {
                                     None
                                 }
                             }
                             _ => None,
-                        };
-
-                        is_friend_known = match friend_func {
-                            FriendFunc::ByWinning(j) => *j == turn_count,
-                            _ => is_friend_known,
                         };
                     }
 
@@ -823,7 +817,38 @@ impl GameTrait for BasicGame {
                     turn_count += 1;
 
                     if turn_count == 10 {
-                        // todo: when game is finished
+                        let mut mul = 1;
+                        if *giruda == None {
+                            mul = 2;
+                        }
+                        let friend = match friend {
+                            Some(x) => x,
+                            _ => {
+                                mul *= 2;
+                                6
+                            }
+                        };
+                        let mut score = 0;
+                        let mut winner = 0;
+                        for (i, s) in score_deck.iter().enumerate() {
+                            if i == *president || i == friend {
+                                score += s.len() as u8;
+                                winner += 1 << i;
+                            }
+                        }
+                        if score >= *pledge {
+                            score = mul * (score - 10);
+                        } else {
+                            score = *pledge + score - 20;
+                            winner = (1 << 5) - winner;
+                        };
+                        return Ok(BasicState::GameEnded {
+                            winner,
+                            president: *president,
+                            friend,
+                            score,
+                            giruda: giruda.clone(),
+                        });
                     }
                 }
 

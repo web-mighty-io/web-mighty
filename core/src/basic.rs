@@ -832,7 +832,7 @@ impl GameTrait for BasicGame {
                         let mut winner = 0;
                         for i in 0..5 {
                             if i == *president || i == friend {
-                                score += score_deck[i as usize].len() as u8;
+                                score += score_deck[i].len() as u8;
                                 winner += 1 << i;
                             }
                         } // >

@@ -667,13 +667,9 @@ impl GameTrait for BasicGame {
 
                 placed_cards[i] = card.clone();
 
-                match friend_func {
-                    FriendFunc::ByCard(c) => {
-                        if card.eq(c) {
-                            is_friend_known = true;
-                        }
-                    }
-                    _ => {}
+                is_friend_known = match friend_func {
+                    FriendFunc::ByCard(c) => card.eq(c),
+                    _ => is_friend_known,
                 };
 
                 if *current_user == start_user {
@@ -840,13 +836,13 @@ impl GameTrait for BasicGame {
                                 score += score_deck[i as usize].len() as u8;
                                 winner += 1 << i;
                             }
-                        }
+                        } // >
                         if score >= *pledge {
                             score = mul * (score - 10);
                         } else {
                             score = *pledge + score - 20;
                             winner = (1 << 5) - winner;
-                        };
+                        }; // >
                         return Ok(BasicState::GameEnded {
                             winner,
                             president: *president,

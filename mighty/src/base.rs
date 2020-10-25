@@ -1,66 +1,24 @@
 use crate::user::UserId;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
+use parse_display::{Display, FromStr, ParseError};
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
 pub enum CardType {
+    #[display("s")]
     Spade,
+    #[display("d")]
     Diamond,
+    #[display("h")]
     Heart,
+    #[display("c")]
     Clover,
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct ParseCardTypeError;
-
-impl FromStr for CardType {
-    type Err = ParseCardTypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "s" | "spade" => Ok(Self::Spade),
-            "d" | "diamond" => Ok(Self::Diamond),
-            "h" | "heart" => Ok(Self::Heart),
-            "c" | "clover" => Ok(Self::Clover),
-            _ => Err(ParseCardTypeError),
-        }
-    }
-}
-
-impl Display for CardType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                CardType::Spade => "s",
-                CardType::Diamond => "d",
-                CardType::Heart => "h",
-                CardType::Clover => "c",
-            }
-        )
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
 pub enum ColorType {
+    #[display("b")]
     Black,
+    #[display("r")]
     Red,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct ParseColorTypeError;
-
-impl FromStr for ColorType {
-    type Err = ParseColorTypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "b" | "black" => Ok(Self::Black),
-            "r" | "red" => Ok(Self::Red),
-            _ => Err(ParseColorTypeError),
-        }
-    }
 }
 
 impl From<CardType> for ColorType {
@@ -81,19 +39,6 @@ impl From<RushType> for ColorType {
     }
 }
 
-impl Display for ColorType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                ColorType::Black => "b",
-                ColorType::Red => "r",
-            }
-        )
-    }
-}
-
 impl ColorType {
     pub fn contains(&self, rhs: &CardType) -> bool {
         match self {
@@ -103,33 +48,20 @@ impl ColorType {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
 pub enum RushType {
+    #[display("s")]
     Spade,
+    #[display("d")]
     Diamond,
+    #[display("h")]
     Heart,
+    #[display("c")]
     Clover,
+    #[display("r")]
     Red,
+    #[display("b")]
     Black,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct ParseRushTypeError;
-
-impl FromStr for RushType {
-    type Err = ParseRushTypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "s" | "spade" => Ok(Self::Spade),
-            "d" | "diamond" => Ok(Self::Diamond),
-            "h" | "heart" => Ok(Self::Heart),
-            "c" | "clover" => Ok(Self::Clover),
-            "r" | "red" => Ok(Self::Red),
-            "b" | "black" => Ok(Self::Black),
-            _ => Err(ParseRushTypeError),
-        }
-    }
 }
 
 impl From<CardType> for RushType {
@@ -161,79 +93,43 @@ impl From<Card> for RushType {
     }
 }
 
-impl Display for RushType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                RushType::Spade => "s",
-                RushType::Diamond => "d",
-                RushType::Heart => "h",
-                RushType::Clover => "c",
-                RushType::Red => "r",
-                RushType::Black => "b",
-            }
-        )
-    }
-}
-
 impl RushType {
     pub fn contains(&self, c: &CardType) -> bool {
-        Self::from(c.clone()).eq(self) || Self::from(ColorType::from(c.clone())).eq(self)
+        Self::from(c.clone()) == *self || Self::from(ColorType::from(c.clone())) == *self
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Display)]
 pub enum Card {
+    #[display("{0}{1:x}")]
     Normal(CardType, u8),
+    #[display("j{0}")]
     Joker(ColorType),
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct ParseCardError;
-
-impl From<ParseColorTypeError> for ParseCardError {
-    fn from(_: ParseColorTypeError) -> Self {
-        Self
-    }
-}
-
-impl FromStr for Card {
-    type Err = ParseCardError;
+impl std::str::FromStr for Card {
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.get(0..1).ok_or(ParseCardError)? {
+        match s.get(0..1).ok_or_else(ParseError::new)? {
             "s" | "d" | "h" | "c" => {
-                let num = s.get(1..2).ok_or(ParseCardError)?;
-                let num = u8::from_str_radix(num, 13).map_err(|_| ParseCardError)?;
+                let num = s.get(1..2).ok_or_else(ParseError::new)?;
+                let num = u8::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
                 Ok(Self::Normal(
                     s.get(0..1)
-                        .ok_or(ParseCardError)?
+                        .ok_or_else(ParseError::new)?
                         .parse::<CardType>()
                         .unwrap(),
                     num,
                 ))
             }
             "j" => Ok(Self::Joker(
-                s.get(1..).ok_or(ParseCardError)?.parse::<ColorType>()?,
+                s.get(1..)
+                    .ok_or_else(ParseError::new)?
+                    .parse::<ColorType>()?,
             )),
-            _ => Err(ParseCardError),
+            _ => Err(ParseError::new()),
         }
-    }
-}
-
-impl Display for Card {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Card::Normal(c, n) =>
-                    format!("{}{}", c, std::char::from_digit(*n as u32, 13).unwrap()),
-                Card::Joker(c) => format!("j{}", c),
-            }
-        )
     }
 }
 
@@ -269,19 +165,20 @@ impl Card {
     }
 
     pub fn is_joker(&self) -> bool {
-        match self {
-            Card::Normal(_, _) => false,
-            Card::Joker(_) => true,
-        }
+        matches!(self, Card::Joker(_))
     }
 }
 
 /// type of friend making
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
 pub enum FriendFunc {
+    #[display("n")]
     None,
+    #[display("c{0}")]
     ByCard(Card),
+    #[display("u{0}")]
     ByUser(usize),
+    #[display("w{0}")]
     ByWinning(u8),
 }
 
@@ -293,6 +190,7 @@ pub enum GameError {
 
 pub trait GameTrait {
     type State;
+    type Command;
 
     fn get_users(&self) -> &Vec<UserId>;
 
@@ -361,26 +259,22 @@ pub trait GameTrait {
     }
 
     // first argument in instruction is user id (always in bound)
-    fn process<S: AsRef<str>>(&self, args: Vec<S>) -> Result<Self::State, GameError>;
+    fn process(&self, args: Self::Command) -> Result<Self::State, GameError>;
 }
 
 #[cfg(test)]
 mod base_tests {
     use super::*;
+    use parse_display::ParseError;
 
     #[test]
     fn card_type_from_str_test() {
-        assert_eq!(CardType::from_str("s"), Ok(CardType::Spade));
-        assert_eq!(CardType::from_str("d"), Ok(CardType::Diamond));
-        assert_eq!(CardType::from_str("h"), Ok(CardType::Heart));
-        assert_eq!(CardType::from_str("c"), Ok(CardType::Clover));
+        assert_eq!("s".parse(), Ok(CardType::Spade));
+        assert_eq!("d".parse(), Ok(CardType::Diamond));
+        assert_eq!("h".parse(), Ok(CardType::Heart));
+        assert_eq!("c".parse(), Ok(CardType::Clover));
 
-        assert_eq!(CardType::from_str("spade"), Ok(CardType::Spade));
-        assert_eq!(CardType::from_str("diamond"), Ok(CardType::Diamond));
-        assert_eq!(CardType::from_str("heart"), Ok(CardType::Heart));
-        assert_eq!(CardType::from_str("clover"), Ok(CardType::Clover));
-
-        assert_eq!(CardType::from_str("hello"), Err(ParseCardTypeError));
+        assert_eq!("hello".parse::<CardType>(), Err(ParseError::new()));
     }
 
     #[test]
@@ -393,13 +287,10 @@ mod base_tests {
 
     #[test]
     fn color_type_from_str_test() {
-        assert_eq!(ColorType::from_str("r"), Ok(ColorType::Red));
-        assert_eq!(ColorType::from_str("b"), Ok(ColorType::Black));
+        assert_eq!("r".parse(), Ok(ColorType::Red));
+        assert_eq!("b".parse(), Ok(ColorType::Black));
 
-        assert_eq!(ColorType::from_str("red"), Ok(ColorType::Red));
-        assert_eq!(ColorType::from_str("black"), Ok(ColorType::Black));
-
-        assert_eq!(ColorType::from_str("hello"), Err(ParseColorTypeError));
+        assert_eq!("hello".parse::<ColorType>(), Err(ParseError::new()));
     }
 
     #[test]
@@ -433,21 +324,14 @@ mod base_tests {
 
     #[test]
     fn rush_type_from_str_test() {
-        assert_eq!(RushType::from_str("s"), Ok(RushType::Spade));
-        assert_eq!(RushType::from_str("d"), Ok(RushType::Diamond));
-        assert_eq!(RushType::from_str("h"), Ok(RushType::Heart));
-        assert_eq!(RushType::from_str("c"), Ok(RushType::Clover));
-        assert_eq!(RushType::from_str("r"), Ok(RushType::Red));
-        assert_eq!(RushType::from_str("b"), Ok(RushType::Black));
+        assert_eq!("s".parse(), Ok(RushType::Spade));
+        assert_eq!("d".parse(), Ok(RushType::Diamond));
+        assert_eq!("h".parse(), Ok(RushType::Heart));
+        assert_eq!("c".parse(), Ok(RushType::Clover));
+        assert_eq!("r".parse(), Ok(RushType::Red));
+        assert_eq!("b".parse(), Ok(RushType::Black));
 
-        assert_eq!(RushType::from_str("spade"), Ok(RushType::Spade));
-        assert_eq!(RushType::from_str("diamond"), Ok(RushType::Diamond));
-        assert_eq!(RushType::from_str("heart"), Ok(RushType::Heart));
-        assert_eq!(RushType::from_str("clover"), Ok(RushType::Clover));
-        assert_eq!(RushType::from_str("red"), Ok(RushType::Red));
-        assert_eq!(RushType::from_str("black"), Ok(RushType::Black));
-
-        assert_eq!(RushType::from_str("hello"), Err(ParseRushTypeError));
+        assert_eq!("hello".parse::<RushType>(), Err(ParseError::new()));
     }
 
     #[test]
@@ -508,20 +392,19 @@ mod base_tests {
 
     #[test]
     fn card_from_str_test() {
-        assert_eq!(Card::from_str("s0"), Ok(Card::Normal(CardType::Spade, 0)));
-        assert_eq!(Card::from_str("d4"), Ok(Card::Normal(CardType::Diamond, 4)));
-        assert_eq!(Card::from_str("h9"), Ok(Card::Normal(CardType::Heart, 9)));
-        assert_eq!(Card::from_str("cc"), Ok(Card::Normal(CardType::Clover, 12)));
+        assert_eq!("s0".parse(), Ok(Card::Normal(CardType::Spade, 0)));
+        assert_eq!("d4".parse(), Ok(Card::Normal(CardType::Diamond, 4)));
+        assert_eq!("h9".parse(), Ok(Card::Normal(CardType::Heart, 9)));
+        assert_eq!("cc".parse(), Ok(Card::Normal(CardType::Clover, 12)));
+        assert_eq!("jr".parse(), Ok(Card::Joker(ColorType::Red)));
+        assert_eq!("jb".parse(), Ok(Card::Joker(ColorType::Black)));
 
-        assert_eq!(Card::from_str("jr"), Ok(Card::Joker(ColorType::Red)));
-        assert_eq!(Card::from_str("jb"), Ok(Card::Joker(ColorType::Black)));
-
-        assert_eq!(Card::from_str("t0"), Err(ParseCardError));
-        assert_eq!(Card::from_str("sd"), Err(ParseCardError));
-        assert_eq!(Card::from_str("p"), Err(ParseCardError));
-        assert_eq!(Card::from_str(""), Err(ParseCardError));
-        assert_eq!(Card::from_str("hello"), Err(ParseCardError));
-        assert_eq!(Card::from_str("ja"), Err(ParseCardError));
+        assert_eq!("t0".parse::<Card>(), Err(ParseError::new()));
+        assert_eq!("sd".parse::<Card>(), Err(ParseError::new()));
+        assert_eq!("p".parse::<Card>(), Err(ParseError::new()));
+        assert_eq!("".parse::<Card>(), Err(ParseError::new()));
+        assert_eq!("hello".parse::<Card>(), Err(ParseError::new()));
+        assert_eq!("ja".parse::<Card>(), Err(ParseError::new()));
     }
 
     #[test]

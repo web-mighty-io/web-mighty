@@ -95,7 +95,7 @@ impl From<Card> for RushType {
 
 impl RushType {
     pub fn contains(&self, c: &CardType) -> bool {
-        Self::from(c.clone()).eq(self) || Self::from(ColorType::from(c.clone())).eq(self)
+        Self::from(c.clone()) == *self || Self::from(ColorType::from(c.clone())) == *self
     }
 }
 
@@ -124,7 +124,9 @@ impl std::str::FromStr for Card {
                 ))
             }
             "j" => Ok(Self::Joker(
-                s.get(1..).ok_or_else(ParseError::new)?.parse::<ColorType>()?,
+                s.get(1..)
+                    .ok_or_else(ParseError::new)?
+                    .parse::<ColorType>()?,
             )),
             _ => Err(ParseError::new()),
         }

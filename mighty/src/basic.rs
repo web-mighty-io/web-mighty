@@ -166,7 +166,7 @@ impl BasicGame {
                 .map(|v| {
                     v.iter()
                         .map(|c| {
-                            if Card::Normal(CardType::Spade, 0).eq(c) {
+                            if Card::Normal(CardType::Spade, 0) == *c {
                                 -2
                             } else if c.is_score() {
                                 2
@@ -327,14 +327,14 @@ impl GameTrait for BasicGame {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
 
-                    if p != 0 {
-                        if p > 20 {
-                            return Err(GameError::CommandError(format!(
-                                "maximum pledge should be 20, actual: {}",
-                                p
-                            )));
-                        }
+                    if p > 20 {
+                        return Err(GameError::CommandError(format!(
+                            "maximum pledge should be 20, actual: {}",
+                            p
+                        )));
+                    }
 
+                    if p != 0 {
                         done[i] = false;
                         let max_pledge = pledge.iter().map(|(_, j)| *j).max().unwrap();
                         let pledge_offset = if matches!(c, None) { 1 } else { 0 };
@@ -385,13 +385,12 @@ impl GameTrait for BasicGame {
                             }
 
                             let mut deck = deck.clone();
-                            let president = if last_max == 0 {
-                                rand::thread_rng().gen_range(0, 5)
-                            } else {
-                                *candidate
-                                    .choose(&mut rand::thread_rng())
-                                    .unwrap_or(&rand::thread_rng().gen_range(0, 5))
-                            };
+                            if last_max == 0 {
+                                candidate.clear();
+                            }
+                            let president = *candidate
+                                .choose(&mut rand::thread_rng())
+                                .unwrap_or(&rand::thread_rng().gen_range(0, 5));
 
                             deck[president].append(&mut left.clone());
                             Ok(BasicState::SelectFriend {
@@ -436,7 +435,7 @@ impl GameTrait for BasicGame {
 
                     let mut deck = deck.clone();
                     for card in drop_card.iter() {
-                        let idx = deck[i].iter().position(|x| x.eq(card)).ok_or_else(|| {
+                        let idx = deck[i].iter().position(|x| *x == *card).ok_or_else(|| {
                             GameError::CommandError(
                                 "the dropped card is not in your deck".to_owned(),
                             )
@@ -444,20 +443,15 @@ impl GameTrait for BasicGame {
                         deck[i].remove(idx);
                     }
 
-                    let (_, pledge) = pledge;
+                    let (giruda, pledge) = pledge.clone();
                     let friend = match &friend_func {
                         FriendFunc::None => None,
-                        FriendFunc::ByCard(c) => {
-                            let mut res = None;
-
-                            for (i, d) in deck.iter().enumerate() {
-                                if i != *president && d.contains(c) {
-                                    res = Some(i);
-                                }
-                            }
-
-                            res
-                        }
+                        FriendFunc::ByCard(c) => deck
+                            .iter()
+                            .enumerate()
+                            .filter(|(i, d)| *i != *president && d.contains(c))
+                            .map(|(i, _)| i)
+                            .next(),
                         FriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
                         FriendFunc::ByWinning(_) => None,
                     };
@@ -470,8 +464,8 @@ impl GameTrait for BasicGame {
                         friend_func,
                         friend,
                         is_friend_known,
-                        giruda: None,
-                        pledge: *pledge,
+                        giruda,
+                        pledge,
                         deck,
                         score_deck: Vec::new(),
                         turn_count: 0,
@@ -512,12 +506,6 @@ impl GameTrait for BasicGame {
                         ));
                     }
 
-                    if !deck[i].contains(&card) {
-                        return Err(GameError::CommandError(
-                            "your card is not in deck".to_owned(),
-                        ));
-                    }
-
                     let mut friend = *friend;
                     let mut is_friend_known = *is_friend_known;
                     let mut deck = deck.clone();
@@ -528,17 +516,17 @@ impl GameTrait for BasicGame {
                     let mut current_pattern = current_pattern.clone();
                     let mut is_joker_called = *is_joker_called;
 
-                    for j in 0..deck.len() {
-                        if deck[i][j] == card {
-                            deck[i].remove(j);
-                            break;
-                        }
+                    {
+                        let idx = deck[i].iter().position(|x| *x == card).ok_or_else(|| {
+                            GameError::CommandError("your card is not in deck".to_owned())
+                        })?;
+                        deck[i].remove(idx);
                     }
 
                     placed_cards[i] = card.clone();
 
                     is_friend_known = match friend_func {
-                        FriendFunc::ByCard(c) => card.eq(c),
+                        FriendFunc::ByCard(c) => *c == card,
                         _ => is_friend_known,
                     };
 
@@ -549,22 +537,17 @@ impl GameTrait for BasicGame {
                             Card::Normal(t, n) => {
                                 let mut joker_calls = Vec::new();
 
-                                if let Some(giruda) = giruda {
-                                    joker_calls.push(if CardType::Clover.eq(giruda) {
-                                        CardType::Spade
-                                    } else {
-                                        CardType::Clover
-                                    });
-
-                                    joker_calls.push(if CardType::Heart.eq(giruda) {
-                                        CardType::Diamond
-                                    } else {
-                                        CardType::Heart
-                                    });
+                                joker_calls.push(if Some(CardType::Clover) == *giruda {
+                                    CardType::Spade
                                 } else {
-                                    joker_calls.push(CardType::Clover);
-                                    joker_calls.push(CardType::Heart);
-                                }
+                                    CardType::Clover
+                                });
+
+                                joker_calls.push(if Some(CardType::Heart) == *giruda {
+                                    CardType::Diamond
+                                } else {
+                                    CardType::Heart
+                                });
 
                                 if joker_calls.contains(&t) && n == 2 {
                                     is_joker_called = j;

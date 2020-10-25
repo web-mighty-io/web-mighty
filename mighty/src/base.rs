@@ -111,20 +111,20 @@ impl std::str::FromStr for Card {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.get(0..1).ok_or(ParseError::new())? {
+        match s.get(0..1).ok_or_else(ParseError::new)? {
             "s" | "d" | "h" | "c" => {
-                let num = s.get(1..2).ok_or(ParseError::new())?;
+                let num = s.get(1..2).ok_or_else(ParseError::new)?;
                 let num = u8::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
                 Ok(Self::Normal(
                     s.get(0..1)
-                        .ok_or(ParseError::new())?
+                        .ok_or_else(ParseError::new)?
                         .parse::<CardType>()
                         .unwrap(),
                     num,
                 ))
             }
             "j" => Ok(Self::Joker(
-                s.get(1..).ok_or(ParseError::new())?.parse::<ColorType>()?,
+                s.get(1..).ok_or_else(ParseError::new)?.parse::<ColorType>()?,
             )),
             _ => Err(ParseError::new()),
         }

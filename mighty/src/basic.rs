@@ -831,18 +831,25 @@ mod basic_tests {
     fn process_test() {
         let mut g: BasicGame = Default::default();
 
-        // assert_eq!(g.get_state(), "n");
-        // assert_eq!(
-        //     g.process(vec!["0"]).err().unwrap(),
-        //     GameError::CommandError(String::from("command length should be 2, actual: 1"))
-        // );
-        // assert_eq!(
-        //     g.process(vec!["0", "s"]).err().unwrap(),
-        //     GameError::CommandError(String::from(
-        //         "game state is not same. expected: 'n', actual: 's'"
-        //     ))
-        // );
-        // g.state = g.process(vec!["0", "n"]).unwrap();
-        // assert_eq!(g.get_state(), "e");
+        assert_eq!(g.get_state(), "n");
+        assert_eq!(
+            g.process(BasicCommand::SelectFriend(
+                0,
+                FriendFunc::None,
+                vec![Card::Joker(ColorType::Red)]
+            ))
+            .err()
+            .unwrap(),
+            GameError::CommandError(String::from("expected BasicCommand::StartGame"))
+        );
+        assert_eq!(
+            g.process(BasicCommand::StartGame(1)).err().unwrap(),
+            GameError::CommandError(String::from(
+                "you are not the leader of this room, expected: 0, actual: 1"
+            ))
+        );
+
+        g.state = g.process(BasicCommand::StartGame(0)).unwrap();
+        assert_eq!(g.get_state(), "e");
     }
 }

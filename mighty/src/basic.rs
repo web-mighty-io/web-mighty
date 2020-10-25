@@ -341,9 +341,9 @@ impl GameTrait for BasicGame {
 
                         if p < 13 - pledge_offset {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than {} in {}giruda game, actual: {}",
+                                "pledge should be greater or equal than {} in {}game, actual: {}",
                                 13 - pledge_offset,
-                                if pledge_offset == 1 { "no " } else { "" },
+                                if pledge_offset == 1 { "no giruda " } else { "" },
                                 p
                             )));
                         }
@@ -351,7 +351,7 @@ impl GameTrait for BasicGame {
                             return Err(GameError::CommandError(format!(
                                 "pledge should be greater or equal than current maximum{}: {}, actual: {}",
                                 if pledge_offset == 1 { " - 1" } else { "" },
-                                max_pledge - 1, p
+                                max_pledge - pledge_offset, p
                             )));
                         }
 
@@ -384,13 +384,15 @@ impl GameTrait for BasicGame {
                                 }
                             }
 
+                            // todo: make pledge random
                             let mut deck = deck.clone();
                             if last_max == 0 {
                                 candidate.clear();
                             }
-                            let president = *candidate
+                            let president = candidate
                                 .choose(&mut rand::thread_rng())
-                                .unwrap_or(&rand::thread_rng().gen_range(0, 5));
+                                .copied()
+                                .unwrap_or_else(|| rand::thread_rng().gen_range(0, 5));
 
                             deck[president].append(&mut left.clone());
                             Ok(BasicState::SelectFriend {
@@ -823,16 +825,67 @@ mod basic_tests {
             ))
             .err()
             .unwrap(),
-            GameError::CommandError(String::from("expected BasicCommand::StartGame"))
+            GameError::CommandError("expected BasicCommand::StartGame".to_owned())
         );
         assert_eq!(
             g.process(BasicCommand::StartGame(1)).err().unwrap(),
-            GameError::CommandError(String::from(
-                "you are not the leader of this room, expected: 0, actual: 1"
-            ))
+            GameError::CommandError(
+                "you are not the leader of this room, expected: 0, actual: 1".to_owned()
+            )
         );
 
         g.state = g.process(BasicCommand::StartGame(0)).unwrap();
         assert_eq!(g.get_state(), "e");
+
+        assert_eq!(
+            g.process(BasicCommand::StartGame(0)).err().unwrap(),
+            GameError::CommandError("expected BasicCommand::Pledge".to_owned())
+        );
+        assert_eq!(
+            g.process(BasicCommand::Pledge(0, None, 21)).err().unwrap(),
+            GameError::CommandError("maximum pledge should be 20, actual: 21".to_owned())
+        );
+        assert_eq!(
+            g.process(BasicCommand::Pledge(0, None, 11)).err().unwrap(),
+            GameError::CommandError(
+                "pledge should be greater or equal than 12 in no giruda game, actual: 11"
+                    .to_owned()
+            )
+        );
+        assert_eq!(
+            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 12))
+                .err()
+                .unwrap(),
+            GameError::CommandError(
+                "pledge should be greater or equal than 13 in game, actual: 12".to_owned()
+            )
+        );
+
+        g.state = g
+            .process(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
+            .unwrap();
+
+        assert_eq!(
+            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 13))
+                .err()
+                .unwrap(),
+            GameError::CommandError(
+                "pledge should be greater or equal than current maximum: 14, actual: 13".to_owned()
+            )
+        );
+        assert_eq!(
+            g.process(BasicCommand::Pledge(0, None, 12)).err().unwrap(),
+            GameError::CommandError(
+                "pledge should be greater or equal than current maximum - 1: 13, actual: 12"
+                    .to_owned()
+            )
+        );
+
+        g.state = g.process(BasicCommand::Pledge(0, None, 0)).unwrap();
+        g.state = g.process(BasicCommand::Pledge(1, None, 0)).unwrap();
+        g.state = g.process(BasicCommand::Pledge(2, None, 0)).unwrap();
+        g.state = g.process(BasicCommand::Pledge(3, None, 0)).unwrap();
+        g.state = g.process(BasicCommand::Pledge(4, None, 0)).unwrap();
+        assert_eq!(g.get_state(), "f");
     }
 }

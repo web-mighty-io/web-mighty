@@ -534,6 +534,7 @@ impl GameTrait for BasicGame {
 
                     if *current_user == start_user {
                         current_pattern = RushType::from(card.clone());
+                        is_joker_called = false;
 
                         match card {
                             Card::Normal(t, n) => {

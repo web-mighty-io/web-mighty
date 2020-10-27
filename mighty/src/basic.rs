@@ -270,6 +270,8 @@ pub enum BasicCommand {
     SelectFriend(usize, FriendFunc, Vec<Card>),
     // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
     Go(usize, Card, RushType, bool),
+    // user-id
+    Random(usize),
 }
 
 impl GameTrait for BasicGame {
@@ -292,8 +294,8 @@ impl GameTrait for BasicGame {
     /// Third and after is different for each state.
     fn process(&self, args: BasicCommand) -> Result<BasicState, GameError> {
         match &self.state {
-            BasicState::NotStarted => {
-                if let BasicCommand::StartGame(i) = args {
+            BasicState::NotStarted => match args {
+                BasicCommand::StartGame(i) => {
                     if i != 0 {
                         return Err(GameError::CommandError(format!(
                             "you are not the leader of this room, expected: 0, actual: {}",
@@ -310,20 +312,19 @@ impl GameTrait for BasicGame {
                         deck,
                         left,
                     })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::StartGame".to_owned(),
-                    ))
                 }
-            }
+                _ => Err(GameError::CommandError(
+                    "expected BasicCommand::StartGame".to_owned(),
+                )),
+            },
 
             BasicState::Election {
                 pledge,
                 done,
                 deck,
                 left,
-            } => {
-                if let BasicCommand::Pledge(i, c, p) = args {
+            } => match args {
+                BasicCommand::Pledge(i, c, p) => {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
 
@@ -349,10 +350,10 @@ impl GameTrait for BasicGame {
                         }
                         if p < max_pledge - pledge_offset {
                             return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than current maximum{}: {}, actual: {}",
-                                if pledge_offset == 1 { " - 1" } else { "" },
-                                max_pledge - pledge_offset, p
-                            )));
+                                    "pledge should be greater or equal than current maximum{}: {}, actual: {}",
+                                    if pledge_offset == 1 { " - 1" } else { "" },
+                                    max_pledge - pledge_offset, p
+                                )));
                         }
 
                         pledge[i] = (c, p);
@@ -409,12 +410,15 @@ impl GameTrait for BasicGame {
                             })
                         }
                     }
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::Pledge".to_owned(),
-                    ))
                 }
-            }
+                BasicCommand::Random(_) => {
+                    // todo
+                    Ok(self.state.clone())
+                }
+                _ => Err(GameError::CommandError(
+                    "expected BasicCommand::Pledge".to_owned(),
+                )),
+            },
 
             // command is 'f'
             // third argument:
@@ -427,8 +431,8 @@ impl GameTrait for BasicGame {
                 president,
                 pledge,
                 deck,
-            } => {
-                if let BasicCommand::SelectFriend(i, friend_func, drop_card) = args {
+            } => match args {
+                BasicCommand::SelectFriend(i, friend_func, drop_card) => {
                     if i != *president {
                         return Err(GameError::CommandError(
                             "you are not the president of this game".to_owned(),
@@ -477,12 +481,15 @@ impl GameTrait for BasicGame {
                         current_pattern: RushType::Spade,
                         is_joker_called: false,
                     })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::SelectFriend".to_owned(),
-                    ))
                 }
-            }
+                BasicCommand::Random(_) => {
+                    // todo
+                    Ok(self.state.clone())
+                }
+                _ => Err(GameError::CommandError(
+                    "expected BasicCommand::SelectFriend".to_owned(),
+                )),
+            },
 
             // command is 'g'
             BasicState::InGame {
@@ -500,9 +507,9 @@ impl GameTrait for BasicGame {
                 current_user,
                 current_pattern,
                 is_joker_called,
-            } => {
-                if let BasicCommand::Go(i, card, r, j) = args {
-                    if i != *current_user {
+            } => match args {
+                BasicCommand::Go(user_id, card, rush_type, joker_call) => {
+                    if user_id != *current_user {
                         return Err(GameError::CommandError(
                             "you are not the current player".to_owned(),
                         ));
@@ -519,13 +526,13 @@ impl GameTrait for BasicGame {
                     let mut is_joker_called = *is_joker_called;
 
                     {
-                        let idx = deck[i].iter().position(|x| *x == card).ok_or_else(|| {
+                        let idx = deck[user_id].iter().position(|x| *x == card).ok_or_else(|| {
                             GameError::CommandError("your card is not in deck".to_owned())
                         })?;
-                        deck[i].remove(idx);
+                        deck[user_id].remove(idx);
                     }
 
-                    placed_cards[i] = card.clone();
+                    placed_cards[user_id] = card.clone();
 
                     is_friend_known = match friend_func {
                         FriendFunc::ByCard(c) => *c == card,
@@ -553,12 +560,12 @@ impl GameTrait for BasicGame {
                                 });
 
                                 if joker_calls.contains(&t) && n == 2 {
-                                    is_joker_called = j;
+                                    is_joker_called = joker_call;
                                 }
                             }
 
                             Card::Joker(t) => {
-                                current_pattern = r;
+                                current_pattern = rush_type;
 
                                 let containing = match t {
                                     ColorType::Black => {
@@ -693,12 +700,15 @@ impl GameTrait for BasicGame {
                         current_pattern,
                         is_joker_called,
                     })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::Go".to_owned(),
-                    ))
                 }
-            }
+                BasicCommand::Random(_) => {
+                    // todo
+                    Ok(self.state.clone())
+                }
+                _ => Err(GameError::CommandError(
+                    "expected BasicCommand::Go".to_owned(),
+                )),
+            },
 
             // command is 'd'
             BasicState::GameEnded { .. } => {

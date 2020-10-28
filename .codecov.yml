@@ -4,7 +4,7 @@ codecov:
 coverage:
   status:
     core:
-      flags: core
+      flags: mighty
     public:
       flags: public
     server:
@@ -13,7 +13,7 @@ coverage:
 flags:
   core:
     paths:
-      - core/src
+      - mighty/src
   public:
     paths:
       - public/src

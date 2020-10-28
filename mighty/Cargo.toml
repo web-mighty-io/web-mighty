@@ -1,5 +1,5 @@
 [package]
-name = "core"
+name = "mighty"
 version = "0.1.0"
 authors = ["buttercrab <jaeyong0201@gmail.com>"]
 edition = "2018"
@@ -12,3 +12,4 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7"
+parse-display = "0.3"

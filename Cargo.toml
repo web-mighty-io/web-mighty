@@ -1,2 +1,2 @@
 [workspace]
-members = ['core', 'public', 'server']
+members = ['mighty', 'public', 'server']

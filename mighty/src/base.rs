@@ -1,4 +1,5 @@
-use crate::user::UserId;
+use crate::error::{Error, Result};
+use crate::user::{User, UserId};
 use parse_display::{Display, FromStr, ParseError};
 
 #[derive(PartialEq, Clone, Debug, Display, FromStr)]
@@ -110,7 +111,7 @@ pub enum Card {
 impl std::str::FromStr for Card {
     type Err = ParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.get(0..1).ok_or_else(ParseError::new)? {
             "s" | "d" | "h" | "c" => {
                 let num = s.get(1..2).ok_or_else(ParseError::new)?;
@@ -169,44 +170,58 @@ impl Card {
     }
 }
 
-/// type of friend making
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
-pub enum FriendFunc {
-    #[display("n")]
-    None,
-    #[display("c{0}")]
-    ByCard(Card),
-    #[display("u{0}")]
-    ByUser(usize),
-    #[display("w{0}")]
-    ByWinning(u8),
+pub trait MightyState {
+    type Command: std::str::FromStr<Err = ParseError>;
+
+    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool;
+
+    fn next(&self, cmd: Self::Command) -> Result<Self>
+    where
+        Self: std::marker::Sized;
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub enum GameError {
-    CommandError(String),
-    InternalError(String),
+pub struct MightyGame<T>
+where
+    T: MightyState,
+{
+    users: Vec<Option<User>>,
+    state: Vec<T>,
 }
 
-pub trait GameTrait {
-    type State;
-    type Command;
+impl<T> Default for MightyGame<T>
+where
+    T: MightyState + std::default::Default,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
-    fn get_users(&self) -> &Vec<UserId>;
+impl<T> MightyGame<T>
+where
+    T: MightyState + std::default::Default,
+{
+    pub fn new() -> MightyGame<T> {
+        MightyGame {
+            users: vec![None; 5],
+            state: vec![Default::default()],
+        }
+    }
+}
 
-    fn get_users_mut(&mut self) -> &mut Vec<UserId>;
-
+impl<T> MightyGame<T>
+where
+    T: MightyState,
+{
     // todo: make thread-safe
-    fn add_user(&mut self, user: UserId) -> bool {
-        let v = self.get_users_mut();
-
-        if v.contains(&user) {
+    pub fn add_user(&mut self, user: User) -> bool {
+        if self.users.contains(&Some(user.clone())) {
             return false;
         }
 
-        for i in v.iter_mut() {
-            if *i == 0 {
-                *i = user;
+        for i in self.users.iter_mut() {
+            if *i == None {
+                *i = Some(user);
                 return true;
             }
         }
@@ -215,51 +230,63 @@ pub trait GameTrait {
     }
 
     // todo: make thread-safe
-    fn remove_user(&mut self, user: UserId) -> bool {
-        let v = self.get_users_mut();
-
-        for i in v.iter_mut() {
-            if *i == user {
-                *i = 0;
-                return true;
+    pub fn remove_user(&mut self, user: UserId) -> bool {
+        for i in self.users.iter_mut() {
+            if let Some(u) = i {
+                if u.get_id() == user {
+                    *i = None;
+                    return true;
+                }
             }
         }
 
         false
     }
 
-    fn len(&self) -> usize {
-        self.get_users()
+    pub fn len(&self) -> usize {
+        self.users
             .iter()
-            .fold(0, |cnt, user| if *user == 0 { cnt } else { cnt + 1 })
+            .fold(0, |cnt, user| if *user == None { cnt } else { cnt + 1 })
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     // todo: make thread-safe
-    fn get_index(&self, user: UserId) -> Option<usize> {
-        let v = self.get_users();
-
-        for (i, u) in v.iter().enumerate() {
-            if *u == user {
-                return Some(i);
+    pub fn get_index(&self, user: UserId) -> Option<usize> {
+        for (i, u) in self.users.iter().enumerate() {
+            if let Some(u) = u {
+                if u.get_id() == user {
+                    return Some(i);
+                }
             }
         }
 
         None
     }
 
-    fn get_user_list(&self) -> Vec<UserId> {
-        self.get_users()
+    pub fn get_user_list(&self) -> Vec<UserId> {
+        self.users
             .iter()
-            .filter_map(|user| if *user != 0 { Some(*user) } else { None })
+            .filter_map(|user| match user {
+                Some(u) => Some(u.get_id()),
+                None => None,
+            })
             .collect()
     }
+}
 
-    // first argument in instruction is user id (always in bound)
-    fn process(&self, args: Self::Command) -> Result<Self::State, GameError>;
+impl<T> MightyGame<T>
+where
+    T: MightyState,
+{
+    pub fn next(&mut self, cmd: String) -> std::result::Result<(), Error> {
+        let cmd = cmd.parse::<T::Command>()?;
+        let next_state = self.state.last().unwrap().next(cmd)?;
+        self.state.push(next_state);
+        Ok(())
+    }
 }
 
 #[cfg(test)]

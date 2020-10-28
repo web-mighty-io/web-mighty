@@ -389,7 +389,7 @@ impl MightyState for BasicState {
                             let idx = deck[user_id]
                                 .iter()
                                 .position(|x| *x == *card)
-                                .ok_or_else(|| Error::NotInDeck)?;
+                                .ok_or(Error::NotInDeck)?;
                             deck[user_id].remove(idx);
                         }
 
@@ -470,7 +470,7 @@ impl MightyState for BasicState {
                         let idx = deck[user_id]
                             .iter()
                             .position(|x| *x == card)
-                            .ok_or_else(|| Error::NotInDeck)?;
+                            .ok_or(Error::NotInDeck)?;
                         deck[user_id].remove(idx);
                     }
 
@@ -562,9 +562,9 @@ impl MightyState for BasicState {
                             };
                         }
 
-                        let winner = winner.ok_or_else(|| {
-                            Error::Internal("internal error occurred when calculating score")
-                        })?;
+                        let winner = winner.ok_or(Error::Internal(
+                            "internal error occurred when calculating score",
+                        ))?;
 
                         if let FriendFunc::ByWinning(j) = friend_func {
                             friend = friend.or_else(|| {

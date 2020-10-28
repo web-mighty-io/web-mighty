@@ -1,7 +1,51 @@
 use crate::base::*;
 use crate::error::{Error, Result};
+use parse_display::{Display, FromStr, ParseError};
 use rand::seq::SliceRandom;
 use rand::Rng;
+
+/// type of friend making
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+pub enum BasicFriendFunc {
+    #[display("n")]
+    None,
+    #[display("c{0}")]
+    ByCard(Card),
+    #[display("u{0}")]
+    ByUser(usize),
+    #[display("w{0}")]
+    ByWinning(u8),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum BasicCommand {
+    // user-id
+    StartGame(usize),
+    // user-id, giruda, pledge (0 for done)
+    Pledge(usize, Option<CardType>, u8),
+    // user-id, friend function type, dropped cards
+    SelectFriend(usize, BasicFriendFunc, Vec<Card>),
+    // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
+    Go(usize, Card, RushType, bool),
+    // user-id
+    Random(usize),
+}
+
+impl std::str::FromStr for BasicCommand {
+    type Err = ParseError;
+
+    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {
+        // todo
+        unimplemented!()
+    }
+}
+
+impl std::fmt::Display for BasicCommand {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // todo
+        unimplemented!()
+    }
+}
 
 /// State of basic mighty game.
 ///
@@ -35,7 +79,7 @@ pub enum BasicState {
         president: usize,
         // friend func executed every task when friend is not determined
         // result is for person 0 to 4 (in-game user id)
-        friend_func: FriendFunc,
+        friend_func: BasicFriendFunc,
         // 0 to 4 for in-game user id
         friend: Option<usize>,
         // if friend is known to other people
@@ -180,6 +224,8 @@ impl BasicState {
 }
 
 impl MightyState for BasicState {
+    type Command = BasicCommand;
+
     // true if lhs < rhs
     // undefined when lhs == rhs
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
@@ -259,10 +305,10 @@ impl MightyState for BasicState {
     /// Second argument has to be the state of the game
     /// for checking command
     /// Third and after is different for each state.
-    fn next(&self, cmd: Command) -> Result<BasicState> {
+    fn next(&self, cmd: BasicCommand) -> Result<BasicState> {
         match self {
             BasicState::NotStarted => match cmd {
-                Command::StartGame(user_id) => {
+                BasicCommand::StartGame(user_id) => {
                     if user_id != 0 {
                         return Err(Error::NotLeader);
                     }
@@ -286,7 +332,7 @@ impl MightyState for BasicState {
                 deck,
                 left,
             } => match cmd {
-                Command::Pledge(user_id, c, p) => {
+                BasicCommand::Pledge(user_id, c, p) => {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
 
@@ -359,7 +405,7 @@ impl MightyState for BasicState {
                         }
                     }
                 }
-                Command::Random(_) => {
+                BasicCommand::Random(_) => {
                     // todo
                     Ok(self.clone())
                 }
@@ -379,7 +425,7 @@ impl MightyState for BasicState {
                 deck,
             } => {
                 match cmd {
-                    Command::SelectFriend(user_id, friend_func, drop_card) => {
+                    BasicCommand::SelectFriend(user_id, friend_func, drop_card) => {
                         if user_id != *president {
                             return Err(Error::NotPresident);
                         }
@@ -395,19 +441,18 @@ impl MightyState for BasicState {
 
                         let (giruda, pledge) = pledge.clone();
                         let friend = match &friend_func {
-                            FriendFunc::None => None,
-                            FriendFunc::ByCard(c) => deck
+                            BasicFriendFunc::None => None,
+                            BasicFriendFunc::ByCard(c) => deck
                                 .iter()
                                 .enumerate()
                                 .filter(|(i, d)| *i != *president && d.contains(c))
                                 .map(|(i, _)| i)
                                 .next(),
-                            FriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
-                            FriendFunc::ByWinning(_) => None,
+                            BasicFriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
+                            BasicFriendFunc::ByWinning(_) => None,
                         };
 
-                        let is_friend_known =
-                            matches!(&friend_func, FriendFunc::None | FriendFunc::ByUser(_));
+                        let is_friend_known = matches!(&friend_func, BasicFriendFunc::None | BasicFriendFunc::ByUser(_));
 
                         Ok(BasicState::InGame {
                             president: *president,
@@ -426,7 +471,7 @@ impl MightyState for BasicState {
                             is_joker_called: false,
                         })
                     }
-                    Command::Random(_) => {
+                    BasicCommand::Random(_) => {
                         // todo
                         Ok(self.clone())
                     }
@@ -451,7 +496,7 @@ impl MightyState for BasicState {
                 current_pattern,
                 is_joker_called,
             } => match cmd {
-                Command::Go(user_id, card, rush_type, joker_call) => {
+                BasicCommand::Go(user_id, card, rush_type, joker_call) => {
                     if user_id != *current_user {
                         return Err(Error::InvalidUser(*current_user));
                     }
@@ -477,7 +522,7 @@ impl MightyState for BasicState {
                     placed_cards[user_id] = card.clone();
 
                     is_friend_known = match friend_func {
-                        FriendFunc::ByCard(c) => *c == card,
+                        BasicFriendFunc::ByCard(c) => *c == card,
                         _ => is_friend_known,
                     };
 
@@ -566,7 +611,7 @@ impl MightyState for BasicState {
                             "internal error occurred when calculating score",
                         ))?;
 
-                        if let FriendFunc::ByWinning(j) = friend_func {
+                        if let BasicFriendFunc::ByWinning(j) = friend_func {
                             friend = friend.or_else(|| {
                                 Some(winner).filter(|_| *j == turn_count && winner != *president)
                             });
@@ -590,7 +635,7 @@ impl MightyState for BasicState {
                             if matches!(giruda, None) {
                                 mul *= 2;
                             }
-                            if matches!(friend_func, FriendFunc::None) {
+                            if matches!(friend_func, BasicFriendFunc::None) {
                                 mul *= 2;
                             }
 
@@ -639,7 +684,7 @@ impl MightyState for BasicState {
                         is_joker_called,
                     })
                 }
-                Command::Random(_) => {
+                BasicCommand::Random(_) => {
                     // todo
                     Ok(self.clone())
                 }
@@ -664,7 +709,7 @@ mod basic_tests {
         fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
             BasicState::InGame {
                 president: 0,
-                friend_func: FriendFunc::None,
+                friend_func: BasicFriendFunc::None,
                 friend: Option::None,
                 is_friend_known: false,
                 giruda: giruda.parse().ok(),
@@ -731,9 +776,9 @@ mod basic_tests {
 
         assert_eq!(g.get_state(), "n");
         assert_eq!(
-            g.next(Command::SelectFriend(
+            g.next(BasicCommand::SelectFriend(
                 0,
-                FriendFunc::None,
+                BasicFriendFunc::None,
                 vec![Card::Joker(ColorType::Red)]
             ))
             .err()
@@ -741,52 +786,52 @@ mod basic_tests {
             Error::InvalidCommand("BasicCommand::StartGame")
         );
         assert_eq!(
-            g.next(Command::StartGame(1)).err().unwrap(),
+            g.next(BasicCommand::StartGame(1)).err().unwrap(),
             Error::NotLeader
         );
 
-        g = g.next(Command::StartGame(0)).unwrap();
+        g = g.next(BasicCommand::StartGame(0)).unwrap();
         assert_eq!(g.get_state(), "e");
 
         assert_eq!(
-            g.next(Command::StartGame(0)).err().unwrap(),
+            g.next(BasicCommand::StartGame(0)).err().unwrap(),
             Error::InvalidCommand("BasicCommand::Pledge")
         );
         assert_eq!(
-            g.next(Command::Pledge(0, None, 21)).err().unwrap(),
+            g.next(BasicCommand::Pledge(0, None, 21)).err().unwrap(),
             Error::InvalidPledge(true, 20)
         );
         assert_eq!(
-            g.next(Command::Pledge(0, None, 11)).err().unwrap(),
+            g.next(BasicCommand::Pledge(0, None, 11)).err().unwrap(),
             Error::InvalidPledge(false, 12)
         );
         assert_eq!(
-            g.next(Command::Pledge(0, Some(CardType::Spade), 12))
+            g.next(BasicCommand::Pledge(0, Some(CardType::Spade), 12))
                 .err()
                 .unwrap(),
             Error::InvalidPledge(false, 13)
         );
 
         g = g
-            .next(Command::Pledge(2, Some(CardType::Spade), 14))
+            .next(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
             .unwrap();
 
         assert_eq!(
-            g.next(Command::Pledge(0, Some(CardType::Spade), 13))
+            g.next(BasicCommand::Pledge(0, Some(CardType::Spade), 13))
                 .err()
                 .unwrap(),
             Error::InvalidPledge(false, 14)
         );
         assert_eq!(
-            g.next(Command::Pledge(0, None, 12)).err().unwrap(),
+            g.next(BasicCommand::Pledge(0, None, 12)).err().unwrap(),
             Error::InvalidPledge(false, 13)
         );
 
-        g = g.next(Command::Pledge(0, None, 0)).unwrap();
-        g = g.next(Command::Pledge(1, None, 0)).unwrap();
-        g = g.next(Command::Pledge(2, None, 0)).unwrap();
-        g = g.next(Command::Pledge(3, None, 0)).unwrap();
-        g = g.next(Command::Pledge(4, None, 0)).unwrap();
+        g = g.next(BasicCommand::Pledge(0, None, 0)).unwrap();
+        g = g.next(BasicCommand::Pledge(1, None, 0)).unwrap();
+        g = g.next(BasicCommand::Pledge(2, None, 0)).unwrap();
+        g = g.next(BasicCommand::Pledge(3, None, 0)).unwrap();
+        g = g.next(BasicCommand::Pledge(4, None, 0)).unwrap();
         assert_eq!(g.get_state(), "f");
     }
 }

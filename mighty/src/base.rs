@@ -1,3 +1,5 @@
+use crate::error::{Error, Result};
+use crate::user::{User, UserId};
 use parse_display::{Display, FromStr, ParseError};
 
 #[derive(PartialEq, Clone, Debug, Display, FromStr)]
@@ -168,35 +170,164 @@ impl Card {
     }
 }
 
-// todo: impl `FromStr` & `Display`
-#[derive(PartialEq, Clone, Debug)]
-pub enum GameError {
-    // expected command
-    InvalidCommand(&'static str),
-    // false: should be greater or equal than second argument
-    // true: should be less or equal than second argument
-    InvalidPledge(bool, u8),
-    // expected user
-    InvalidUser(usize),
-    NotLeader,
-    NotPresident,
-    NotInDeck,
-    // expected rushtype
-    WrongCardType(RushType),
-    // message
-    Internal(&'static str),
+/// type of friend making
+#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+pub enum FriendFunc {
+    #[display("n")]
+    None,
+    #[display("c{0}")]
+    ByCard(Card),
+    #[display("u{0}")]
+    ByUser(usize),
+    #[display("w{0}")]
+    ByWinning(u8),
 }
 
-pub type Result<T> = std::result::Result<T, GameError>;
+#[derive(Clone, Debug, PartialEq)]
+pub enum Command {
+    // user-id
+    StartGame(usize),
+    // user-id, giruda, pledge (0 for done)
+    Pledge(usize, Option<CardType>, u8),
+    // user-id, friend function type, dropped cards
+    SelectFriend(usize, FriendFunc, Vec<Card>),
+    // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
+    Go(usize, Card, RushType, bool),
+    // user-id
+    Random(usize),
+}
+
+impl std::str::FromStr for Command {
+    type Err = ParseError;
+
+    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {
+        // todo
+        unimplemented!()
+    }
+}
+
+impl std::fmt::Display for Command {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // todo
+        unimplemented!()
+    }
+}
 
 pub trait MightyState {
-    type Command;
-
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool;
 
-    fn next(&self, args: Self::Command) -> Result<Self>
+    fn next(&self, cmd: Command) -> Result<Self>
     where
         Self: std::marker::Sized;
+}
+
+pub struct MightyGame<T>
+where
+    T: MightyState,
+{
+    users: Vec<Option<User>>,
+    state: Vec<T>,
+}
+
+impl<T> Default for MightyGame<T>
+where
+    T: MightyState + std::default::Default,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> MightyGame<T>
+where
+    T: MightyState + std::default::Default,
+{
+    pub fn new() -> MightyGame<T> {
+        MightyGame {
+            users: vec![],
+            state: vec![Default::default()],
+        }
+    }
+}
+
+impl<T> MightyGame<T>
+where
+    T: MightyState,
+{
+    // todo: make thread-safe
+    pub fn add_user(&mut self, user: User) -> bool {
+        if self.users.contains(&Some(user.clone())) {
+            return false;
+        }
+
+        for i in self.users.iter_mut() {
+            if *i == None {
+                *i = Some(user);
+                return true;
+            }
+        }
+
+        false
+    }
+
+    // todo: make thread-safe
+    pub fn remove_user(&mut self, user: UserId) -> bool {
+        for i in self.users.iter_mut() {
+            if let Some(u) = i {
+                if u.get_id() == user {
+                    *i = None;
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    pub fn len(&self) -> usize {
+        self.users
+            .iter()
+            .fold(0, |cnt, user| if *user == None { cnt } else { cnt + 1 })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    // todo: make thread-safe
+    pub fn get_index(&self, user: UserId) -> Option<usize> {
+        for (i, u) in self.users.iter().enumerate() {
+            if let Some(u) = u {
+                if u.get_id() == user {
+                    return Some(i);
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn get_user_list(&self) -> Vec<UserId> {
+        self.users
+            .iter()
+            .filter_map(|user| match user {
+                Some(u) => Some(u.get_id()),
+                None => None,
+            })
+            .collect()
+    }
+}
+
+impl<T> MightyGame<T>
+where
+    T: MightyState,
+{
+    pub fn next(&mut self, cmd: String) -> std::result::Result<(), Error> {
+        let cmd = cmd.parse::<Command>()?;
+        let next_state = self.state.last().unwrap().next(cmd)?;
+        self.state.push(next_state);
+        Ok(())
+    }
 }
 
 #[cfg(test)]

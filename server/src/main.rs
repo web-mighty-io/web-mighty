@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[derive(Clap)]
 #[clap(version = "1.0.0-dev", author = "Jaeyong Sung")]
 struct Opts {
-    #[clap(short = "i", long = "host", default_value = "127.0.0.1")]
+    #[clap(short = 'i', long = "host", default_value = "127.0.0.1")]
     host: String,
     #[clap(long = "http-port", default_value = "80")]
     http_port: u16,
@@ -13,9 +13,9 @@ struct Opts {
     https_port: u16,
     #[clap(long = "https")]
     https: bool,
-    #[clap(short = "l", long = "log", parse(from_os_str))]
+    #[clap(short = 'l', long = "log", parse(from_os_str))]
     log: Option<PathBuf>,
-    #[clap(short = "v", long = "verbose", parse(from_occurrences))]
+    #[clap(short = 'v', long = "verbose", parse(from_occurrences))]
     verbose: i32,
 }
 

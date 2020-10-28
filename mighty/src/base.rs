@@ -454,6 +454,12 @@ mod base_tests {
     }
 
     #[test]
+    fn card_is_joker_test() {
+        assert_eq!(Card::Joker(ColorType::Red).is_joker(), true);
+        assert_eq!(Card::Normal(CardType::Spade, 5).is_joker(), false);
+    }
+
+    #[test]
     fn card_display_test() {
         assert_eq!(Card::Normal(CardType::Spade, 0).to_string(), "s0");
         assert_eq!(Card::Normal(CardType::Diamond, 5).to_string(), "d5");

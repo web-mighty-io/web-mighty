@@ -1,8 +1,7 @@
 use crate::base::*;
-use crate::user::UserId;
+use crate::error::{Error, Result};
 use rand::seq::SliceRandom;
 use rand::Rng;
-use std::cmp::Ordering;
 
 /// State of basic mighty game.
 ///
@@ -75,45 +74,34 @@ pub enum BasicState {
     },
 }
 
-/// Game structure for basic mighty game.
-///
-/// - `users`: User List
-/// - `state`: Game state
-#[derive(Clone, Debug)]
-pub struct BasicGame {
-    users: Vec<UserId>,
-    state: BasicState,
-}
-
-impl Default for BasicGame {
+impl Default for BasicState {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl BasicGame {
-    pub fn new() -> BasicGame {
-        BasicGame {
-            users: vec![0; 5],
-            state: BasicState::NotStarted,
-        }
+impl BasicState {
+    pub fn new() -> BasicState {
+        BasicState::NotStarted
     }
 
     /// Check if joker called.
     /// **Valid output only in in-game.**
     fn is_joker_called(&self) -> bool {
-        match self.state {
-            BasicState::InGame {
-                is_joker_called, ..
-            } => is_joker_called,
-            _ => false,
+        if let BasicState::InGame {
+            is_joker_called, ..
+        } = self
+        {
+            *is_joker_called
+        } else {
+            false
         }
     }
 
     /// Get the current pattern of this turn.
     /// **Valid output only in in-game.**
     fn get_current_pattern(&self) -> RushType {
-        match &self.state {
+        match self {
             BasicState::InGame {
                 current_pattern, ..
             } => current_pattern.clone(),
@@ -125,7 +113,7 @@ impl BasicGame {
     /// Get the giruda of this turn.
     /// **Valid output only in in-game.**
     fn get_giruda(&self) -> Option<CardType> {
-        match &self.state {
+        match self {
             BasicState::InGame { giruda, .. } => giruda.clone(),
             // don't need this value
             _ => None,
@@ -135,7 +123,7 @@ impl BasicGame {
     /// Get the mighty card in game
     /// **Valid output only in in-game.**
     fn get_mighty(&self) -> Card {
-        match &self.state {
+        match self {
             BasicState::InGame { giruda, .. } => match giruda {
                 Some(CardType::Spade) => Card::Normal(CardType::Diamond, 0),
                 _ => Card::Normal(CardType::Spade, 0),
@@ -146,7 +134,7 @@ impl BasicGame {
     }
 
     pub fn get_state(&self) -> &str {
-        match self.state {
+        match self {
             BasicState::NotStarted => "n",
             BasicState::Election { .. } => "e",
             BasicState::SelectFriend { .. } => "f",
@@ -164,19 +152,23 @@ impl BasicGame {
             let is_not_missed_deal = deck
                 .iter()
                 .map(|v| {
-                    v.iter()
-                        .map(|c| {
-                            if Card::Normal(CardType::Spade, 0) == *c {
-                                -2
-                            } else if c.is_score() {
-                                2
-                            } else if matches!(c, Card::Joker(..)) {
-                                -1
-                            } else {
-                                0
-                            }
-                        })
-                        .sum::<isize>()
+                    if v.len() == 10 {
+                        v.iter()
+                            .map(|c| {
+                                if Card::Normal(CardType::Spade, 0) == *c {
+                                    -2
+                                } else if c.is_score() {
+                                    2
+                                } else if matches!(c, Card::Joker(..)) {
+                                    -1
+                                } else {
+                                    0
+                                }
+                            })
+                            .sum::<isize>()
+                    } else {
+                        3
+                    }
                 })
                 .all(|s| s > 2);
 
@@ -185,10 +177,12 @@ impl BasicGame {
             }
         }
     }
+}
 
+impl MightyState for BasicState {
     // true if lhs < rhs
     // undefined when lhs == rhs
-    pub fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
+    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
         let mighty = self.get_mighty();
         if *lhs == mighty {
             return false;
@@ -258,31 +252,6 @@ impl BasicGame {
             },
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum BasicCommand {
-    // user-id
-    StartGame(usize),
-    // user-id, giruda, pledge (0 for done)
-    Pledge(usize, Option<CardType>, u8),
-    // user-id, friend function type, dropped cards
-    SelectFriend(usize, FriendFunc, Vec<Card>),
-    // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
-    Go(usize, Card, RushType, bool),
-}
-
-impl GameTrait for BasicGame {
-    type State = BasicState;
-    type Command = BasicCommand;
-
-    fn get_users(&self) -> &Vec<UserId> {
-        &self.users
-    }
-
-    fn get_users_mut(&mut self) -> &mut Vec<UserId> {
-        &mut self.users
-    }
 
     /// Process the given arguments and change the game state.
     /// First argument has to be the *in-game user id*
@@ -290,18 +259,15 @@ impl GameTrait for BasicGame {
     /// Second argument has to be the state of the game
     /// for checking command
     /// Third and after is different for each state.
-    fn process(&self, args: BasicCommand) -> Result<BasicState, GameError> {
-        match &self.state {
-            BasicState::NotStarted => {
-                if let BasicCommand::StartGame(i) = args {
-                    if i != 0 {
-                        return Err(GameError::CommandError(format!(
-                            "you are not the leader of this room, expected: 0, actual: {}",
-                            i
-                        )));
+    fn next(&self, cmd: Command) -> Result<BasicState> {
+        match self {
+            BasicState::NotStarted => match cmd {
+                Command::StartGame(user_id) => {
+                    if user_id != 0 {
+                        return Err(Error::NotLeader);
                     }
 
-                    let mut deck = BasicGame::get_random_deck();
+                    let mut deck = BasicState::get_random_deck();
                     let left = deck.pop().unwrap();
 
                     Ok(BasicState::Election {
@@ -310,52 +276,35 @@ impl GameTrait for BasicGame {
                         deck,
                         left,
                     })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::StartGame".to_owned(),
-                    ))
                 }
-            }
+                _ => Err(Error::InvalidCommand("BasicCommand::StartGame")),
+            },
 
             BasicState::Election {
                 pledge,
                 done,
                 deck,
                 left,
-            } => {
-                if let BasicCommand::Pledge(i, c, p) = args {
+            } => match cmd {
+                Command::Pledge(user_id, c, p) => {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
 
                     if p > 20 {
-                        return Err(GameError::CommandError(format!(
-                            "maximum pledge should be 20, actual: {}",
-                            p
-                        )));
+                        return Err(Error::InvalidPledge(true, 20));
                     }
 
                     if p != 0 {
-                        done[i] = false;
+                        done[user_id] = false;
                         let max_pledge = pledge.iter().map(|(_, j)| *j).max().unwrap();
-                        let pledge_offset = if matches!(c, None) { 1 } else { 0 };
+                        let max_pledge = std::cmp::max(max_pledge, 13);
+                        let offset = if matches!(c, None) { 1 } else { 0 };
 
-                        if p < 13 - pledge_offset {
-                            return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than {} in {}game, actual: {}",
-                                13 - pledge_offset,
-                                if pledge_offset == 1 { "no giruda " } else { "" },
-                                p
-                            )));
-                        }
-                        if p < max_pledge - pledge_offset {
-                            return Err(GameError::CommandError(format!(
-                                "pledge should be greater or equal than current maximum{}: {}, actual: {}",
-                                if pledge_offset == 1 { " - 1" } else { "" },
-                                max_pledge - pledge_offset, p
-                            )));
+                        if p < max_pledge - offset {
+                            return Err(Error::InvalidPledge(false, max_pledge - offset));
                         }
 
-                        pledge[i] = (c, p);
+                        pledge[user_id] = (c, p);
 
                         Ok(BasicState::Election {
                             pledge,
@@ -364,7 +313,7 @@ impl GameTrait for BasicGame {
                             left: left.clone(),
                         })
                     } else {
-                        done[i] = true;
+                        done[user_id] = true;
 
                         if done.iter().all(|x| *x) {
                             let mut candidate = Vec::new();
@@ -373,11 +322,11 @@ impl GameTrait for BasicGame {
                             for (i, p) in pledge.iter().enumerate() {
                                 let (_, c) = p;
                                 match c.cmp(&last_max) {
-                                    Ordering::Greater => {
+                                    std::cmp::Ordering::Greater => {
                                         candidate = vec![i];
                                         last_max = *c;
                                     }
-                                    Ordering::Equal => {
+                                    std::cmp::Ordering::Equal => {
                                         candidate.push(i);
                                     }
                                     _ => {}
@@ -409,12 +358,13 @@ impl GameTrait for BasicGame {
                             })
                         }
                     }
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::Pledge".to_owned(),
-                    ))
                 }
-            }
+                Command::Random(_) => {
+                    // todo
+                    Ok(self.clone())
+                }
+                _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
+            },
 
             // command is 'f'
             // third argument:
@@ -428,59 +378,59 @@ impl GameTrait for BasicGame {
                 pledge,
                 deck,
             } => {
-                if let BasicCommand::SelectFriend(i, friend_func, drop_card) = args {
-                    if i != *president {
-                        return Err(GameError::CommandError(
-                            "you are not the president of this game".to_owned(),
-                        ));
+                match cmd {
+                    Command::SelectFriend(user_id, friend_func, drop_card) => {
+                        if user_id != *president {
+                            return Err(Error::NotPresident);
+                        }
+
+                        let mut deck = deck.clone();
+                        for card in drop_card.iter() {
+                            let idx = deck[user_id]
+                                .iter()
+                                .position(|x| *x == *card)
+                                .ok_or(Error::NotInDeck)?;
+                            deck[user_id].remove(idx);
+                        }
+
+                        let (giruda, pledge) = pledge.clone();
+                        let friend = match &friend_func {
+                            FriendFunc::None => None,
+                            FriendFunc::ByCard(c) => deck
+                                .iter()
+                                .enumerate()
+                                .filter(|(i, d)| *i != *president && d.contains(c))
+                                .map(|(i, _)| i)
+                                .next(),
+                            FriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
+                            FriendFunc::ByWinning(_) => None,
+                        };
+
+                        let is_friend_known =
+                            matches!(&friend_func, FriendFunc::None | FriendFunc::ByUser(_));
+
+                        Ok(BasicState::InGame {
+                            president: *president,
+                            friend_func,
+                            friend,
+                            is_friend_known,
+                            giruda,
+                            pledge,
+                            deck,
+                            score_deck: Vec::new(),
+                            turn_count: 0,
+                            placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
+                            start_user: *president,
+                            current_user: *president,
+                            current_pattern: RushType::Spade,
+                            is_joker_called: false,
+                        })
                     }
-
-                    let mut deck = deck.clone();
-                    for card in drop_card.iter() {
-                        let idx = deck[i].iter().position(|x| *x == *card).ok_or_else(|| {
-                            GameError::CommandError(
-                                "the dropped card is not in your deck".to_owned(),
-                            )
-                        })?;
-                        deck[i].remove(idx);
+                    Command::Random(_) => {
+                        // todo
+                        Ok(self.clone())
                     }
-
-                    let (giruda, pledge) = pledge.clone();
-                    let friend = match &friend_func {
-                        FriendFunc::None => None,
-                        FriendFunc::ByCard(c) => deck
-                            .iter()
-                            .enumerate()
-                            .filter(|(i, d)| *i != *president && d.contains(c))
-                            .map(|(i, _)| i)
-                            .next(),
-                        FriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
-                        FriendFunc::ByWinning(_) => None,
-                    };
-
-                    let is_friend_known =
-                        matches!(&friend_func, FriendFunc::None | FriendFunc::ByUser(_));
-
-                    Ok(BasicState::InGame {
-                        president: *president,
-                        friend_func,
-                        friend,
-                        is_friend_known,
-                        giruda,
-                        pledge,
-                        deck,
-                        score_deck: Vec::new(),
-                        turn_count: 0,
-                        placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
-                        start_user: *president,
-                        current_user: *president,
-                        current_pattern: RushType::Spade,
-                        is_joker_called: false,
-                    })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::SelectFriend".to_owned(),
-                    ))
+                    _ => Err(Error::InvalidCommand("BasicCommand::SelectFriend")),
                 }
             }
 
@@ -500,12 +450,10 @@ impl GameTrait for BasicGame {
                 current_user,
                 current_pattern,
                 is_joker_called,
-            } => {
-                if let BasicCommand::Go(i, card, r, j) = args {
-                    if i != *current_user {
-                        return Err(GameError::CommandError(
-                            "you are not the current player".to_owned(),
-                        ));
+            } => match cmd {
+                Command::Go(user_id, card, rush_type, joker_call) => {
+                    if user_id != *current_user {
+                        return Err(Error::InvalidUser(*current_user));
                     }
 
                     let mut friend = *friend;
@@ -519,13 +467,14 @@ impl GameTrait for BasicGame {
                     let mut is_joker_called = *is_joker_called;
 
                     {
-                        let idx = deck[i].iter().position(|x| *x == card).ok_or_else(|| {
-                            GameError::CommandError("your card is not in deck".to_owned())
-                        })?;
-                        deck[i].remove(idx);
+                        let idx = deck[user_id]
+                            .iter()
+                            .position(|x| *x == card)
+                            .ok_or(Error::NotInDeck)?;
+                        deck[user_id].remove(idx);
                     }
 
-                    placed_cards[i] = card.clone();
+                    placed_cards[user_id] = card.clone();
 
                     is_friend_known = match friend_func {
                         FriendFunc::ByCard(c) => *c == card,
@@ -553,12 +502,12 @@ impl GameTrait for BasicGame {
                                 });
 
                                 if joker_calls.contains(&t) && n == 2 {
-                                    is_joker_called = j;
+                                    is_joker_called = joker_call;
                                 }
                             }
 
                             Card::Joker(t) => {
-                                current_pattern = r;
+                                current_pattern = rush_type;
 
                                 let containing = match t {
                                     ColorType::Black => {
@@ -574,9 +523,7 @@ impl GameTrait for BasicGame {
                                 };
 
                                 if !containing {
-                                    return Err(GameError::CommandError(
-                                        "rush type is not in joker type".to_owned(),
-                                    ));
+                                    return Err(Error::WrongCardType(current_pattern));
                                 }
                             }
                         }
@@ -615,11 +562,9 @@ impl GameTrait for BasicGame {
                             };
                         }
 
-                        let winner = winner.ok_or_else(|| {
-                            GameError::InternalError(
-                                "internal error occurred when calculating score".to_owned(),
-                            )
-                        })?;
+                        let winner = winner.ok_or(Error::Internal(
+                            "internal error occurred when calculating score",
+                        ))?;
 
                         if let FriendFunc::ByWinning(j) = friend_func {
                             friend = friend.or_else(|| {
@@ -693,17 +638,18 @@ impl GameTrait for BasicGame {
                         current_pattern,
                         is_joker_called,
                     })
-                } else {
-                    Err(GameError::CommandError(
-                        "expected BasicCommand::Go".to_owned(),
-                    ))
                 }
-            }
+                Command::Random(_) => {
+                    // todo
+                    Ok(self.clone())
+                }
+                _ => Err(Error::InvalidCommand("BasicCommand::Go")),
+            },
 
             // command is 'd'
             BasicState::GameEnded { .. } => {
                 // todo
-                Ok(self.state.clone())
+                Ok(self.clone())
             }
         }
     }
@@ -715,29 +661,26 @@ mod basic_tests {
 
     #[test]
     fn compare_cards_test() {
-        fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicGame {
-            BasicGame {
-                users: vec![],
-                state: BasicState::InGame {
-                    president: 0,
-                    friend_func: FriendFunc::None,
-                    friend: Option::None,
-                    is_friend_known: false,
-                    giruda: giruda.parse().ok(),
-                    pledge: 0,
-                    deck: vec![],
-                    score_deck: vec![],
-                    turn_count: 0,
-                    placed_cards: vec![],
-                    start_user: 0,
-                    current_user: 0,
-                    current_pattern: current_pattern.parse().unwrap(),
-                    is_joker_called,
-                },
+        fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
+            BasicState::InGame {
+                president: 0,
+                friend_func: FriendFunc::None,
+                friend: Option::None,
+                is_friend_known: false,
+                giruda: giruda.parse().ok(),
+                pledge: 0,
+                deck: vec![],
+                score_deck: vec![],
+                turn_count: 0,
+                placed_cards: vec![],
+                start_user: 0,
+                current_user: 0,
+                current_pattern: current_pattern.parse().unwrap(),
+                is_joker_called,
             }
         }
 
-        fn compare_cards(game: &BasicGame, c1: &str, c2: &str) -> bool {
+        fn compare_cards(game: &BasicState, c1: &str, c2: &str) -> bool {
             game.compare_cards(&c1.parse().unwrap(), &c2.parse().unwrap())
         }
 
@@ -783,110 +726,67 @@ mod basic_tests {
     }
 
     #[test]
-    fn user_test() {
-        let mut g = BasicGame::new();
-
-        assert_eq!(g.len(), 0);
-        assert_eq!(g.is_empty(), true);
-        assert_eq!(g.add_user(1), true);
-        assert_eq!(g.add_user(1), false);
-
-        assert_eq!(g.len(), 1);
-        assert_eq!(g.is_empty(), false);
-        assert_eq!(g.add_user(2), true);
-        assert_eq!(g.add_user(3), true);
-
-        assert_eq!(g.remove_user(4), false);
-        assert_eq!(g.remove_user(2), true);
-        assert_eq!(g.remove_user(2), false);
-
-        assert_eq!(g.len(), 2);
-        assert_eq!(g.get_index(1), Some(0));
-        assert_eq!(g.get_index(2), None);
-        assert_eq!(g.get_index(3), Some(2));
-
-        assert_eq!(g.get_user_list(), vec![1, 3]);
-
-        assert_eq!(g.add_user(4), true);
-        assert_eq!(g.add_user(5), true);
-        assert_eq!(g.add_user(6), true);
-        assert_eq!(g.add_user(7), false);
-    }
-
-    #[test]
     fn process_test() {
-        let mut g: BasicGame = Default::default();
+        let mut g = BasicState::new();
 
         assert_eq!(g.get_state(), "n");
         assert_eq!(
-            g.process(BasicCommand::SelectFriend(
+            g.next(Command::SelectFriend(
                 0,
                 FriendFunc::None,
                 vec![Card::Joker(ColorType::Red)]
             ))
             .err()
             .unwrap(),
-            GameError::CommandError("expected BasicCommand::StartGame".to_owned())
+            Error::InvalidCommand("BasicCommand::StartGame")
         );
         assert_eq!(
-            g.process(BasicCommand::StartGame(1)).err().unwrap(),
-            GameError::CommandError(
-                "you are not the leader of this room, expected: 0, actual: 1".to_owned()
-            )
+            g.next(Command::StartGame(1)).err().unwrap(),
+            Error::NotLeader
         );
 
-        g.state = g.process(BasicCommand::StartGame(0)).unwrap();
+        g = g.next(Command::StartGame(0)).unwrap();
         assert_eq!(g.get_state(), "e");
 
         assert_eq!(
-            g.process(BasicCommand::StartGame(0)).err().unwrap(),
-            GameError::CommandError("expected BasicCommand::Pledge".to_owned())
+            g.next(Command::StartGame(0)).err().unwrap(),
+            Error::InvalidCommand("BasicCommand::Pledge")
         );
         assert_eq!(
-            g.process(BasicCommand::Pledge(0, None, 21)).err().unwrap(),
-            GameError::CommandError("maximum pledge should be 20, actual: 21".to_owned())
+            g.next(Command::Pledge(0, None, 21)).err().unwrap(),
+            Error::InvalidPledge(true, 20)
         );
         assert_eq!(
-            g.process(BasicCommand::Pledge(0, None, 11)).err().unwrap(),
-            GameError::CommandError(
-                "pledge should be greater or equal than 12 in no giruda game, actual: 11"
-                    .to_owned()
-            )
+            g.next(Command::Pledge(0, None, 11)).err().unwrap(),
+            Error::InvalidPledge(false, 12)
         );
         assert_eq!(
-            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 12))
+            g.next(Command::Pledge(0, Some(CardType::Spade), 12))
                 .err()
                 .unwrap(),
-            GameError::CommandError(
-                "pledge should be greater or equal than 13 in game, actual: 12".to_owned()
-            )
+            Error::InvalidPledge(false, 13)
         );
 
-        g.state = g
-            .process(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
+        g = g
+            .next(Command::Pledge(2, Some(CardType::Spade), 14))
             .unwrap();
 
         assert_eq!(
-            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 13))
+            g.next(Command::Pledge(0, Some(CardType::Spade), 13))
                 .err()
                 .unwrap(),
-            GameError::CommandError(
-                "pledge should be greater or equal than current maximum: 14, actual: 13".to_owned()
-            )
+            Error::InvalidPledge(false, 14)
         );
         assert_eq!(
-            g.process(BasicCommand::Pledge(0, None, 12)).err().unwrap(),
-            GameError::CommandError(
-                "pledge should be greater or equal than current maximum - 1: 13, actual: 12"
-                    .to_owned()
-            )
+            g.next(Command::Pledge(0, None, 12)).err().unwrap(),
+            Error::InvalidPledge(false, 13)
         );
 
-        g.state = g.process(BasicCommand::Pledge(0, None, 0)).unwrap();
-        g.state = g.process(BasicCommand::Pledge(1, None, 0)).unwrap();
-        g.state = g.process(BasicCommand::Pledge(2, None, 0)).unwrap();
-        g.state = g.process(BasicCommand::Pledge(3, None, 0)).unwrap();
-        g.state = g.process(BasicCommand::Pledge(4, None, 0)).unwrap();
+        g = g.next(Command::Pledge(0, None, 0)).unwrap();
+        g = g.next(Command::Pledge(1, None, 0)).unwrap();
+        g = g.next(Command::Pledge(2, None, 0)).unwrap();
+        g = g.next(Command::Pledge(3, None, 0)).unwrap();
+        g = g.next(Command::Pledge(4, None, 0)).unwrap();
         assert_eq!(g.get_state(), "f");
     }
 }

@@ -384,10 +384,13 @@ impl MightyState for BasicState {
                                 candidate.choose(&mut rand::thread_rng()).copied().unwrap();
                             let mut pledge = pledge[president];
                             if last_max == 0 {
-                                let mut pledge_vec = vec![(None, 12)];
-                                for i in "sdhc".chars() {
-                                    pledge_vec.push((i.to_string().parse().ok(), 13));
-                                }
+                                let pledge_vec = vec![
+                                    (None, 12),
+                                    (Some(CardType::Spade), 13),
+                                    (Some(CardType::Diamond), 13),
+                                    (Some(CardType::Heart), 13),
+                                    (Some(CardType::Clover), 13),
+                                ];
                                 pledge =
                                     pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap();
                             }

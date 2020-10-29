@@ -170,53 +170,12 @@ impl Card {
     }
 }
 
-/// type of friend making
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
-pub enum FriendFunc {
-    #[display("n")]
-    None,
-    #[display("c{0}")]
-    ByCard(Card),
-    #[display("u{0}")]
-    ByUser(usize),
-    #[display("w{0}")]
-    ByWinning(u8),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Command {
-    // user-id
-    StartGame(usize),
-    // user-id, giruda, pledge (0 for done)
-    Pledge(usize, Option<CardType>, u8),
-    // user-id, friend function type, dropped cards
-    SelectFriend(usize, FriendFunc, Vec<Card>),
-    // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
-    Go(usize, Card, RushType, bool),
-    // user-id
-    Random(usize),
-}
-
-impl std::str::FromStr for Command {
-    type Err = ParseError;
-
-    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {
-        // todo
-        unimplemented!()
-    }
-}
-
-impl std::fmt::Display for Command {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // todo
-        unimplemented!()
-    }
-}
-
 pub trait MightyState {
+    type Command: std::str::FromStr<Err = ParseError>;
+
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool;
 
-    fn next(&self, cmd: Command) -> Result<Self>
+    fn next(&self, cmd: Self::Command) -> Result<Self>
     where
         Self: std::marker::Sized;
 }
@@ -244,7 +203,7 @@ where
 {
     pub fn new() -> MightyGame<T> {
         MightyGame {
-            users: vec![],
+            users: vec![None; 5],
             state: vec![Default::default()],
         }
     }
@@ -323,7 +282,7 @@ where
     T: MightyState,
 {
     pub fn next(&mut self, cmd: String) -> std::result::Result<(), Error> {
-        let cmd = cmd.parse::<Command>()?;
+        let cmd = cmd.parse::<T::Command>()?;
         let next_state = self.state.last().unwrap().next(cmd)?;
         self.state.push(next_state);
         Ok(())
@@ -492,6 +451,12 @@ mod base_tests {
         assert_eq!(Card::Normal(CardType::Spade, 9).is_score(), true);
         assert_eq!(Card::Normal(CardType::Diamond, 8).is_score(), false);
         assert_eq!(Card::Joker(ColorType::Red).is_score(), false);
+    }
+
+    #[test]
+    fn card_is_joker_test() {
+        assert_eq!(Card::Joker(ColorType::Red).is_joker(), true);
+        assert_eq!(Card::Normal(CardType::Spade, 5).is_joker(), false);
     }
 
     #[test]

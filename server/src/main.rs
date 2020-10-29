@@ -1,15 +1,18 @@
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_web::{get, middleware, App, HttpServer, Responder};
+use actix_web::{get, middleware, web, App, Either, HttpResponse, HttpServer, Responder};
 use clap::Clap;
 use rand::Rng;
+use serde_json::json;
+use server::app_state::AppState;
 use slog::Drain;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
+// todo: write help
 #[derive(Clap)]
 #[clap(version = "1.0.0-dev", author = "Jaeyong Sung")]
 struct Opts {
-    #[clap(short = 'i', long = "host", default_value = "127.0.0.1")]
+    #[clap(short = 'i', long = "host", default_value = "0.0.0.0")]
     host: String,
     #[clap(short = 'p', long = "http-port", default_value = "80")]
     http_port: u16,
@@ -20,20 +23,30 @@ struct Opts {
     #[clap(short = 'l', long = "log", parse(from_os_str))]
     log: Option<PathBuf>,
     #[clap(
+        short = 's',
+        long = "static-files",
+        default_value = "static",
+        parse(from_os_str)
+    )]
+    static_files: PathBuf,
+    #[clap(
         short = 'v',
         long = "verbose",
-        parse(from_occurrences),
-        default_value = "4"
+        default_value = "4",
+        parse(from_occurrences)
     )]
     verbose: usize,
 }
 
+// todo: move to other file
 #[get("/")]
-async fn index(id: Identity) -> impl Responder {
+async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
-        format!("Hello {}!", id)
+        Either::A(format!("Hello {}!", id))
     } else {
-        format!("Hello Visitor!")
+        let handlebars = data.get_handlebars();
+        let body = handlebars.render("index.hbs", &json!({})).unwrap();
+        Either::B(HttpResponse::Ok().body(body))
     }
 }
 
@@ -64,6 +77,8 @@ async fn main() -> std::io::Result<()> {
     let _guard = slog_scope::set_global_logger(_log);
     slog_stdlog::init().unwrap();
 
+    let state = AppState::new(opts.static_files);
+
     // todo: change the way of generating private key
     //       reason: the key changes every time server starts
     let private_key = rand::thread_rng().gen::<[u8; 32]>();
@@ -75,6 +90,7 @@ async fn main() -> std::io::Result<()> {
                     .secure(true),
             ))
             .wrap(middleware::Logger::default())
+            .app_data(state.clone())
             .service(index)
     })
     .bind(format!("{}:{}", opts.host, opts.http_port))?

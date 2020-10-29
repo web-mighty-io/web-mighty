@@ -8,6 +8,13 @@ edition = "2018"
 
 [dependencies]
 mighty = { path = "../mighty", default-features = false, features = ["server"] }
-actix-web = "2"
-actix-rt = "1"
-clap = { git = "https://github.com/clap-rs/clap/" }
+
+actix-web = "3"
+actix-identity = "0.3"
+clap = "3.0.0-beta.2"
+rand = "0.7"
+slog = "2.5"
+slog-term = "2.6"
+slog-async = "2.5"
+slog-scope = "4.3"
+slog-stdlog = "4.1"

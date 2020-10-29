@@ -148,7 +148,7 @@ impl BasicState {
         match self {
             BasicState::InGame {
                 current_pattern, ..
-            } => current_pattern.clone(),
+            } => *current_pattern,
             // don't need this value
             _ => RushType::Spade,
         }
@@ -158,7 +158,7 @@ impl BasicState {
     /// **Valid output only in in-game.**
     fn get_giruda(&self) -> Option<CardType> {
         match self {
-            BasicState::InGame { giruda, .. } => giruda.clone(),
+            BasicState::InGame { giruda, .. } => *giruda,
             // don't need this value
             _ => None,
         }
@@ -238,7 +238,7 @@ impl MightyState for BasicState {
         }
 
         let cur_pat = self.get_current_pattern();
-        let cur_color = ColorType::from(cur_pat.clone());
+        let cur_color = ColorType::from(cur_pat);
         let giruda = self.get_giruda();
         let giruda_color = giruda.clone().map(ColorType::from);
 
@@ -382,14 +382,14 @@ impl MightyState for BasicState {
                             let mut deck = deck.clone();
                             let president =
                                 candidate.choose(&mut rand::thread_rng()).copied().unwrap();
-                            let mut pledge = pledge[president].clone();
+                            let mut pledge = pledge[president];
                             if last_max == 0 {
-                                let mut pledge_vec: Vec<(Option<CardType>, u8)> = Vec::new();
+                                let mut pledge_vec = vec![(None, 12)];
                                 for i in "sdhc".chars() {
                                     pledge_vec.push((i.to_string().parse().ok(), 13));
                                 }
-                                pledge_vec.push((None, 12));
-                                pledge = pledge_vec[rand::thread_rng().gen_range(0, 5)].clone();
+                                pledge =
+                                    pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap();
                             }
 
                             deck[president].append(&mut left.clone());
@@ -408,17 +408,7 @@ impl MightyState for BasicState {
                         }
                     }
                 }
-                BasicCommand::Random(user_id) => {
-                    let mut done = done.clone();
-                    let pledge = pledge.clone();
-                    done[user_id] = true;
-                    Ok(BasicState::Election {
-                        pledge,
-                        done,
-                        deck: deck.clone(),
-                        left: left.clone(),
-                    })
-                }
+                BasicCommand::Random(user_id) => self.next(BasicCommand::Pledge(user_id, None, 0)),
                 _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
             },
 
@@ -433,61 +423,64 @@ impl MightyState for BasicState {
                 president,
                 pledge,
                 deck,
-            } => {
-                match cmd {
-                    BasicCommand::SelectFriend(user_id, friend_func, drop_card) => {
-                        if user_id != *president {
-                            return Err(Error::NotPresident);
-                        }
-
-                        let mut deck = deck.clone();
-                        for card in drop_card.iter() {
-                            let idx = deck[user_id]
-                                .iter()
-                                .position(|x| *x == *card)
-                                .ok_or(Error::NotInDeck)?;
-                            deck[user_id].remove(idx);
-                        }
-
-                        let (giruda, pledge) = pledge.clone();
-                        let friend = match &friend_func {
-                            BasicFriendFunc::None => None,
-                            BasicFriendFunc::ByCard(c) => deck
-                                .iter()
-                                .enumerate()
-                                .filter(|(i, d)| *i != *president && d.contains(c))
-                                .map(|(i, _)| i)
-                                .next(),
-                            BasicFriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
-                            BasicFriendFunc::ByWinning(_) => None,
-                        };
-
-                        let is_friend_known = matches!(&friend_func, BasicFriendFunc::None | BasicFriendFunc::ByUser(_));
-
-                        Ok(BasicState::InGame {
-                            president: *president,
-                            friend_func,
-                            friend,
-                            is_friend_known,
-                            giruda,
-                            pledge,
-                            deck,
-                            score_deck: Vec::new(),
-                            turn_count: 0,
-                            placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
-                            start_user: *president,
-                            current_user: *president,
-                            current_pattern: RushType::Spade,
-                            is_joker_called: false,
-                        })
+            } => match cmd {
+                BasicCommand::SelectFriend(user_id, friend_func, drop_card) => {
+                    if user_id != *president {
+                        return Err(Error::NotPresident);
                     }
-                    BasicCommand::Random(_) => {
-                        // todo
-                        Ok(self.clone())
+
+                    let mut deck = deck.clone();
+                    for card in drop_card.iter() {
+                        let idx = deck[user_id]
+                            .iter()
+                            .position(|x| *x == *card)
+                            .ok_or(Error::NotInDeck)?;
+                        deck[user_id].remove(idx);
                     }
-                    _ => Err(Error::InvalidCommand("BasicCommand::SelectFriend")),
+
+                    let (giruda, pledge) = *pledge;
+                    let friend = match &friend_func {
+                        BasicFriendFunc::None => None,
+                        BasicFriendFunc::ByCard(c) => deck
+                            .iter()
+                            .enumerate()
+                            .filter(|(i, d)| *i != *president && d.contains(c))
+                            .map(|(i, _)| i)
+                            .next(),
+                        BasicFriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
+                        BasicFriendFunc::ByWinning(_) => None,
+                    };
+
+                    let is_friend_known =
+                        matches!(&friend_func, BasicFriendFunc::None | BasicFriendFunc::ByUser(_));
+
+                    Ok(BasicState::InGame {
+                        president: *president,
+                        friend_func,
+                        friend,
+                        is_friend_known,
+                        giruda,
+                        pledge,
+                        deck,
+                        score_deck: Vec::new(),
+                        turn_count: 0,
+                        placed_cards: vec![Card::Normal(CardType::Spade, 0); 5],
+                        start_user: *president,
+                        current_user: *president,
+                        current_pattern: RushType::Spade,
+                        is_joker_called: false,
+                    })
                 }
-            }
+                BasicCommand::Random(user_id) => self.next(BasicCommand::SelectFriend(
+                    user_id,
+                    BasicFriendFunc::ByUser(rand::thread_rng().gen_range(0, 5)),
+                    deck[user_id]
+                        .choose_multiple(&mut rand::thread_rng(), 4)
+                        .cloned()
+                        .collect(),
+                )),
+                _ => Err(Error::InvalidCommand("BasicCommand::SelectFriend")),
+            },
 
             // command is 'g'
             BasicState::InGame {
@@ -518,7 +511,7 @@ impl MightyState for BasicState {
                     let mut turn_count = *turn_count;
                     let mut placed_cards = placed_cards.clone();
                     let mut start_user = *start_user;
-                    let mut current_pattern = current_pattern.clone();
+                    let mut current_pattern = *current_pattern;
                     let mut is_joker_called = *is_joker_called;
 
                     {
@@ -672,7 +665,7 @@ impl MightyState for BasicState {
                                 friend,
                                 score,
                                 pledge,
-                                giruda: giruda.clone(),
+                                giruda: *giruda,
                             });
                         }
                     }
@@ -682,7 +675,7 @@ impl MightyState for BasicState {
                         friend_func: friend_func.clone(),
                         friend,
                         is_friend_known,
-                        giruda: giruda.clone(),
+                        giruda: *giruda,
                         pledge: *pledge,
                         deck,
                         score_deck,
@@ -694,9 +687,14 @@ impl MightyState for BasicState {
                         is_joker_called,
                     })
                 }
-                BasicCommand::Random(_) => {
-                    // todo
-                    Ok(self.clone())
+                BasicCommand::Random(user_id) => {
+                    let rand_card = deck[user_id].choose(&mut rand::thread_rng()).unwrap();
+                    self.next(BasicCommand::Go(
+                        user_id,
+                        rand_card.clone(),
+                        RushType::from(rand_card.clone()),
+                        false,
+                    ))
                 }
                 _ => Err(Error::InvalidCommand("BasicCommand::Go")),
             },

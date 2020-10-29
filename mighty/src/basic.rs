@@ -379,20 +379,23 @@ impl MightyState for BasicState {
                                 }
                             }
 
-                            // todo: make pledge random
                             let mut deck = deck.clone();
+                            let president =
+                                candidate.choose(&mut rand::thread_rng()).copied().unwrap();
+                            let mut pledge = pledge[president].clone();
                             if last_max == 0 {
-                                candidate.clear();
+                                let mut pledge_vec: Vec<(Option<CardType>, u8)> = Vec::new();
+                                for i in "sdhc".chars() {
+                                    pledge_vec.push((i.to_string().parse().ok(), 13));
+                                }
+                                pledge_vec.push((None, 12));
+                                pledge = pledge_vec[rand::thread_rng().gen_range(0, 5)].clone();
                             }
-                            let president = candidate
-                                .choose(&mut rand::thread_rng())
-                                .copied()
-                                .unwrap_or_else(|| rand::thread_rng().gen_range(0, 5));
 
                             deck[president].append(&mut left.clone());
                             Ok(BasicState::SelectFriend {
                                 president,
-                                pledge: pledge[president].clone(),
+                                pledge,
                                 deck,
                             })
                         } else {
@@ -405,9 +408,16 @@ impl MightyState for BasicState {
                         }
                     }
                 }
-                BasicCommand::Random(_) => {
-                    // todo
-                    Ok(self.clone())
+                BasicCommand::Random(user_id) => {
+                    let mut done = done.clone();
+                    let pledge = pledge.clone();
+                    done[user_id] = true;
+                    Ok(BasicState::Election {
+                        pledge,
+                        done,
+                        deck: deck.clone(),
+                        left: left.clone(),
+                    })
                 }
                 _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
             },

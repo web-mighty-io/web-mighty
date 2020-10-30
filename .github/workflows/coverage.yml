@@ -11,6 +11,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
+          version: 1.48.0
           toolchain: nightly
           override: true
 

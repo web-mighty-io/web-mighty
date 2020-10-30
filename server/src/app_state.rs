@@ -1,5 +1,8 @@
 use actix_web::web;
 use handlebars::Handlebars;
+use ignore::WalkBuilder;
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 #[cfg(feature = "watch-file")]
@@ -18,18 +21,23 @@ pub struct AppState {
     #[cfg(feature = "watch-file")]
     #[warn(dead_code)]
     watcher: RecommendedWatcher,
+    #[cfg(not(feature = "watch-file"))]
+    resources: HashMap<String, String>,
+    #[cfg(feature = "watch-file")]
+    resources: Mutex<HashMap<String, String>>,
 }
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new(path: PathBuf) -> web::Data<AppState> {
+    pub fn new(path: &PathBuf) -> web::Data<AppState> {
         web::Data::new(AppState {
-            handlebars: new_handlebars(path),
+            handlebars: make_handlebars(path),
+            resources: get_resources(&path),
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new(path: PathBuf) -> web::Data<AppState> {
+    pub fn new(path: &PathBuf) -> web::Data<AppState> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
 
@@ -38,12 +46,14 @@ impl AppState {
             .unwrap();
 
         let state = web::Data::new(AppState {
-            handlebars: Mutex::new(new_handlebars(path)),
+            handlebars: Mutex::new(make_handlebars(path)),
             watcher,
+            resources: Mutex::new(get_resources(&path)),
         });
         let state_clone = state.clone();
+        let path_clone = path.clone();
 
-        thread::spawn(move || watch(state_clone, rx));
+        thread::spawn(move || watch(state_clone, rx, path_clone));
 
         state
     }
@@ -57,9 +67,19 @@ impl AppState {
     pub fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
         self.handlebars.lock().unwrap()
     }
+
+    #[cfg(not(feature = "watch-file"))]
+    pub fn get_resources(&self) -> &HashMap<String, String> {
+        &self.resources
+    }
+
+    #[cfg(feature = "watch-file")]
+    pub fn get_resources(&self) -> MutexGuard<'_, HashMap<String, String>> {
+        self.resources.lock().unwrap()
+    }
 }
 
-fn new_handlebars(path: PathBuf) -> Handlebars<'static> {
+fn make_handlebars(path: &PathBuf) -> Handlebars<'static> {
     let mut handlebars = Handlebars::new();
 
     for entry in WalkDir::new(path.as_path())
@@ -84,8 +104,47 @@ fn new_handlebars(path: PathBuf) -> Handlebars<'static> {
     handlebars
 }
 
+fn get_resources(path: &PathBuf) -> HashMap<String, String> {
+    let mut resources = HashMap::new();
+
+    for entry in WalkBuilder::new(path.join("res"))
+        .hidden(false)
+        .git_global(false)
+        .git_ignore(false)
+        .git_exclude(false)
+        .require_git(false)
+        .ignore_case_insensitive(true)
+        .parents(false)
+        .build()
+        .filter_map(|e| e.ok())
+    {
+        log::info!(
+            "{}",
+            (&*entry
+                .path()
+                .strip_prefix(path.join("res"))
+                .unwrap()
+                .to_string_lossy())
+                .to_owned()
+        );
+        if let Ok(content) = fs::read_to_string(entry.path()) {
+            resources.insert(
+                (&*entry
+                    .path()
+                    .strip_prefix(path.join("res"))
+                    .unwrap()
+                    .to_string_lossy())
+                    .to_owned(),
+                content,
+            );
+        }
+    }
+
+    resources
+}
+
 #[cfg(feature = "watch-file")]
-fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>) {
+fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) {
     loop {
         match rx.recv() {
             Ok(RawEvent {
@@ -93,18 +152,31 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>) {
                 op: Ok(_),
                 cookie: _,
             }) => {
+                log::info!("file {:?} changed", path);
+                let stripped_path = &*path.strip_prefix(&root).unwrap().to_string_lossy();
                 if let Some(ext) = path.extension() {
                     if ext == "hbs" {
-                        log::info!("file {:?} changed", path);
                         let mut handlebars = data.handlebars.lock().unwrap();
                         handlebars
-                            .register_template_file(
-                                &*path.clone().file_name().unwrap().to_string_lossy(),
-                                path,
-                            )
+                            .register_template_file(stripped_path, &path)
                             .unwrap();
+                        drop(handlebars);
+                        continue;
                     }
                 }
+
+                let stripped_path = &*path
+                    .strip_prefix(root.join("res"))
+                    .unwrap()
+                    .to_string_lossy();
+                let stripped_path = stripped_path.to_owned();
+                let mut resources = data.resources.lock().unwrap();
+                if resources.contains_key(&stripped_path) {
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        resources.insert(stripped_path, content);
+                    }
+                }
+                drop(resources);
             }
             Ok(event) => log::warn!("broken event: {:?}", event),
             Err(e) => log::error!("file watch error: {:?}", e.to_string()),

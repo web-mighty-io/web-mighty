@@ -4,7 +4,9 @@ use clap::Clap;
 use rand::Rng;
 use serde_json::json;
 use server::app_state::AppState;
+use server::util;
 use slog::Drain;
+use std::env;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
@@ -50,6 +52,17 @@ async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/res/{file:.*}")]
+async fn resource(data: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
+    log::info!("{}", file);
+    let resources = data.get_resources();
+    if let Some(body) = resources.get(&file) {
+        Either::A(HttpResponse::Ok().body(body))
+    } else {
+        Either::B(HttpResponse::NotFound())
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
@@ -77,7 +90,12 @@ async fn main() -> std::io::Result<()> {
     let _guard = slog_scope::set_global_logger(_log);
     slog_stdlog::init().unwrap();
 
-    let state = AppState::new(opts.static_files);
+    let static_files = if opts.static_files.is_relative() {
+        util::compress(env::current_dir().unwrap().join(opts.static_files))
+    } else {
+        opts.static_files
+    };
+    let state = AppState::new(&static_files);
 
     // todo: change the way of generating private key
     //       reason: the key changes every time server starts
@@ -92,6 +110,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
             .service(index)
+            .service(resource)
     })
     .bind(format!("{}:{}", opts.host, opts.http_port))?
     .run()

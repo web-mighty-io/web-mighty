@@ -148,16 +148,16 @@ def install_bulma() -> None:
     res = requests.get(url)
     with open('bulma.zip', 'wb') as f:
         f.write(res.content)
-    os.system('unzip -d public/static bulma.zip')
+    os.system('unzip -d public/static/res bulma.zip')
     os.remove('bulma.zip')
 
 
 def minify_files() -> None:
-    _, files = run_fast_scandir('public/static', ['.html'])
+    # _, files = run_fast_scandir('public/static', ['.html'])
     success = True
-    for i in files:
-        if 'min' not in i.split('.'):
-            success = success and minify_file(i, 'https://html-minifier.com/raw')
+    # for i in files:
+    #     if 'min' not in i.split('.'):
+    #         success = success and minify_file(i, 'https://html-minifier.com/raw')
     _, files = run_fast_scandir('public/static', ['.css'])
     for i in files:
         if 'min' not in i.split('.'):
@@ -181,10 +181,10 @@ def minify_files() -> None:
 
 
 def compile_sass_files(sass_path: str) -> None:
-    _, files = run_fast_scandir('public/static/sass', ['.sass'])
+    _, files = run_fast_scandir('public/static/res/scss', ['.scss'])
     success = True
     for i in files:
-        output = subprocess.run('{} {} {}'.format(sass_path, i, i.replace('sass', 'css')), shell=True)
+        output = subprocess.run('{} {} {}'.format(sass_path, i, i.replace('scss', 'css')), shell=True)
         success = success and output.returncode == 0
 
     if not success:

@@ -65,15 +65,16 @@ jobs:
           args: --all -- --check
 
       - name: Checking if it builds without warnings (Default feature)
-        uses: actions-rs/clippy-check@v1
+        uses: actions-rs/cargo@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: clippy
+          args: -- -D warnings
 
       - name: Checking if it builds without warnings (All features)
-        uses: actions-rs/clippy-check@v1
+        uses: actions-rs/cargo@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          command: clippy
+          args: --all-features -- -D warnings
 
       - name: Testing wasm
         run: |

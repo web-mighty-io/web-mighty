@@ -6,7 +6,7 @@ pub fn compress<P: AsRef<Path>>(from: P) -> PathBuf {
     let from = from.as_ref();
     let mut path = PathBuf::new();
 
-    for i in from.into_iter() {
+    for i in from.iter() {
         match &*i.to_string_lossy() {
             "." => {}
             ".." => {

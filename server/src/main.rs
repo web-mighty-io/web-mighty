@@ -54,7 +54,6 @@ async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
 
 #[get("/res/{file:.*}")]
 async fn resource(data: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
-    log::info!("{}", file);
     let resources = data.get_resources();
     if let Some(body) = resources.get(&file) {
         Either::A(HttpResponse::Ok().body(body))

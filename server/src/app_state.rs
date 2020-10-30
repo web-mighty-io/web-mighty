@@ -4,6 +4,7 @@ use ignore::WalkBuilder;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use walkdir::WalkDir;
 #[cfg(feature = "watch-file")]
 use {
@@ -118,15 +119,6 @@ fn get_resources(path: &PathBuf) -> HashMap<String, String> {
         .build()
         .filter_map(|e| e.ok())
     {
-        log::info!(
-            "{}",
-            (&*entry
-                .path()
-                .strip_prefix(path.join("res"))
-                .unwrap()
-                .to_string_lossy())
-                .to_owned()
-        );
         if let Ok(content) = fs::read_to_string(entry.path()) {
             resources.insert(
                 (&*entry
@@ -163,20 +155,33 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) {
                         drop(handlebars);
                         continue;
                     }
-                }
 
-                let stripped_path = &*path
-                    .strip_prefix(root.join("res"))
-                    .unwrap()
-                    .to_string_lossy();
-                let stripped_path = stripped_path.to_owned();
-                let mut resources = data.resources.lock().unwrap();
-                if resources.contains_key(&stripped_path) {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        resources.insert(stripped_path, content);
+                    if ext == "scss" {
+                        let _ = Command::new("sass")
+                            .arg(&path)
+                            .arg(
+                                root.join(
+                                    path.strip_prefix(&root)
+                                        .unwrap()
+                                        .to_string_lossy()
+                                        .replace("scss", "css"),
+                                ),
+                            )
+                            .output();
                     }
                 }
-                drop(resources);
+
+                if let Ok(stripped_path) = path.strip_prefix(root.join("res")) {
+                    let stripped_path = &*stripped_path.to_string_lossy();
+                    let stripped_path = stripped_path.to_owned();
+                    let mut resources = data.resources.lock().unwrap();
+                    if resources.contains_key(&stripped_path) {
+                        if let Ok(content) = fs::read_to_string(&path) {
+                            resources.insert(stripped_path, content);
+                        }
+                    }
+                    drop(resources);
+                }
             }
             Ok(event) => log::warn!("broken event: {:?}", event),
             Err(e) => log::error!("file watch error: {:?}", e.to_string()),

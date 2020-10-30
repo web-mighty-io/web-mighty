@@ -2,7 +2,7 @@ use crate::error::{Error, Result};
 use crate::user::{User, UserId};
 use parse_display::{Display, FromStr, ParseError};
 
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr, Copy)]
 pub enum CardType {
     #[display("s")]
     Spade,
@@ -14,7 +14,7 @@ pub enum CardType {
     Clover,
 }
 
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr, Copy)]
 pub enum ColorType {
     #[display("b")]
     Black,
@@ -49,7 +49,7 @@ impl ColorType {
     }
 }
 
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+#[derive(PartialEq, Clone, Debug, Display, FromStr, Copy)]
 pub enum RushType {
     #[display("s")]
     Spade,
@@ -96,7 +96,7 @@ impl From<Card> for RushType {
 
 impl RushType {
     pub fn contains(&self, c: &CardType) -> bool {
-        Self::from(c.clone()) == *self || Self::from(ColorType::from(c.clone())) == *self
+        Self::from(*c) == *self || Self::from(ColorType::from(*c)) == *self
     }
 }
 

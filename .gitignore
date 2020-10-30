@@ -13,7 +13,7 @@ wasm-pack.log
 .idea
 .vscode
 
-*/bulma
+public/static/bulma
 public/static/css
 venv
 server/build

@@ -2,14 +2,14 @@
 pub type UserId = u64;
 
 #[derive(Clone, Debug)]
-pub struct User<'a> {
+pub struct User {
     id: UserId,
-    name: &'a str,
+    name: String,
     // TODO: add options for user (profile img, ranking, etc.)
 }
 
-impl<'a> User<'a> {
-    pub fn new(id: UserId, name: &str) -> User {
+impl User {
+    pub fn new(id: UserId, name: String) -> User {
         User { id, name }
     }
 
@@ -17,12 +17,12 @@ impl<'a> User<'a> {
         self.id
     }
 
-    pub fn get_name(&self) -> &str {
-        self.name
+    pub fn get_name(&self) -> &String {
+        &self.name
     }
 }
 
-impl<'a> PartialEq for User<'a> {
+impl PartialEq for User {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
@@ -34,8 +34,8 @@ mod user_tests {
 
     #[test]
     fn user_test() {
-        let a = User::new(1, "a");
-        let b = User::new(2, "b");
+        let a = User::new(1, "a".to_owned());
+        let b = User::new(2, "b".to_owned());
 
         let c = a.clone();
 

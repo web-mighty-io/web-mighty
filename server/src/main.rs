@@ -18,10 +18,10 @@ struct Opts {
     host: String,
     #[clap(short = 'p', long = "http-port", default_value = "80")]
     http_port: u16,
-    #[clap(long = "https-port", default_value = "443")]
-    https_port: u16,
-    #[clap(long = "https")]
-    https: bool,
+    // #[clap(long = "https-port", default_value = "443")]
+    // https_port: u16,
+    // #[clap(long = "https")]
+    // https: bool,
     #[clap(short = 'l', long = "log", parse(from_os_str))]
     log: Option<PathBuf>,
     #[clap(
@@ -44,11 +44,15 @@ struct Opts {
 #[get("/")]
 async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
-        Either::A(format!("Hello {}!", id))
+        let handlebars = data.get_handlebars();
+        let body = handlebars
+            .render("main.hbs", &json!({ "user_id": id }))
+            .unwrap();
+        HttpResponse::Ok().body(body)
     } else {
         let handlebars = data.get_handlebars();
         let body = handlebars.render("index.hbs", &json!({})).unwrap();
-        Either::B(HttpResponse::Ok().body(body))
+        HttpResponse::Ok().body(body)
     }
 }
 

@@ -4,11 +4,11 @@ use ignore::WalkBuilder;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 use walkdir::WalkDir;
 #[cfg(feature = "watch-file")]
 use {
     notify::{raw_watcher, RawEvent, RecommendedWatcher, RecursiveMode, Watcher},
+    std::process::Command,
     std::sync::mpsc::{channel, Receiver},
     std::sync::{Mutex, MutexGuard},
     std::thread,

@@ -20,7 +20,7 @@ pub struct AppState {
     #[cfg(feature = "watch-file")]
     handlebars: Mutex<Handlebars<'static>>,
     #[cfg(feature = "watch-file")]
-    #[warn(dead_code)]
+    #[allow(dead_code)]
     watcher: RecommendedWatcher,
     #[cfg(not(feature = "watch-file"))]
     resources: HashMap<String, String>,

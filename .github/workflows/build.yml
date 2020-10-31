@@ -47,10 +47,16 @@ jobs:
         with:
           command: build
 
-      - name: Checking if test passes
+      - name: Checking if test passes (Default feature)
         uses: actions-rs/cargo@v1
         with:
           command: test
+
+      - name: Checking if test passes (All features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
 
       - name: Checking if code is formatted
         uses: actions-rs/cargo@v1
@@ -58,11 +64,17 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings (Default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
+      - name: Checking if it builds without warnings (All features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features -- -D warnings
 
       - name: Testing wasm
         run: |

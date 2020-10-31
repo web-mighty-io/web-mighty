@@ -17,3 +17,10 @@ wasm-pack.log
 public/static/res/css
 venv
 server/build
+
+**/*.pem
+**/*.key
+**/*.csr
+**/*.crt
+**/*.srl
+**/*.ext

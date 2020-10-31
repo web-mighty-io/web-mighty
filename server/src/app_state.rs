@@ -3,11 +3,12 @@ use handlebars::Handlebars;
 use ignore::WalkBuilder;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use walkdir::WalkDir;
 #[cfg(feature = "watch-file")]
 use {
     notify::{raw_watcher, RawEvent, RecommendedWatcher, RecursiveMode, Watcher},
+    std::path::PathBuf,
     std::process::Command,
     std::sync::mpsc::{channel, Receiver},
     std::sync::{Mutex, MutexGuard},
@@ -30,29 +31,28 @@ pub struct AppState {
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new(path: &PathBuf) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P) -> web::Data<AppState> {
         web::Data::new(AppState {
-            handlebars: make_handlebars(path),
+            handlebars: make_handlebars(&path),
             resources: get_resources(&path),
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new(path: &PathBuf) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P) -> web::Data<AppState> {
+        let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
 
-        watcher
-            .watch(path.as_path(), RecursiveMode::Recursive)
-            .unwrap();
+        watcher.watch(path, RecursiveMode::Recursive).unwrap();
 
         let state = web::Data::new(AppState {
-            handlebars: Mutex::new(make_handlebars(path)),
+            handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
         });
         let state_clone = state.clone();
-        let path_clone = path.clone();
+        let path_clone = path.to_path_buf();
 
         thread::spawn(move || watch(state_clone, rx, path_clone));
 
@@ -80,10 +80,11 @@ impl AppState {
     }
 }
 
-fn make_handlebars(path: &PathBuf) -> Handlebars<'static> {
+fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
+    let path = path.as_ref();
     let mut handlebars = Handlebars::new();
 
-    for entry in WalkDir::new(path.as_path())
+    for entry in WalkDir::new(path)
         .follow_links(true)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -91,11 +92,7 @@ fn make_handlebars(path: &PathBuf) -> Handlebars<'static> {
         if entry.file_name().to_string_lossy().ends_with(".hbs") {
             handlebars
                 .register_template_file(
-                    &*entry
-                        .path()
-                        .strip_prefix(path.as_path())
-                        .unwrap()
-                        .to_string_lossy(),
+                    &*entry.path().strip_prefix(path).unwrap().to_string_lossy(),
                     entry.path(),
                 )
                 .unwrap();
@@ -105,7 +102,8 @@ fn make_handlebars(path: &PathBuf) -> Handlebars<'static> {
     handlebars
 }
 
-fn get_resources(path: &PathBuf) -> HashMap<String, String> {
+fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, String> {
+    let path = path.as_ref();
     let mut resources = HashMap::new();
 
     for entry in WalkBuilder::new(path.join("res"))

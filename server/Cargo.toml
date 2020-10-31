@@ -24,8 +24,11 @@ slog-scope = "4.3"
 slog-stdlog = "4.1"
 walkdir = "2"
 
+futures = { version = "0.3", optional = true }
 notify = { version = "4.0.15", optional = true }
+openssl = { version = "0.10", optional = true }
 
 [features]
 default = []
 watch-file = ["notify"]
+https = ["openssl", "actix-web/openssl", "futures"]

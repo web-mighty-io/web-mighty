@@ -1,3 +1,4 @@
+use std::env;
 use std::path::{Path, PathBuf};
 
 /// compress `..` and `.`
@@ -21,6 +22,15 @@ pub fn compress<P: AsRef<Path>>(from: P) -> PathBuf {
     }
 
     path
+}
+
+pub fn to_absolute_path<P: AsRef<Path>>(from: P) -> PathBuf {
+    let from = from.as_ref();
+    if from.is_relative() {
+        compress(env::current_dir().unwrap().join(from))
+    } else {
+        from.to_path_buf()
+    }
 }
 
 #[cfg(test)]

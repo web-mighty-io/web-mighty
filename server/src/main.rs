@@ -1,18 +1,19 @@
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_web::{get, middleware, web, App, Either, HttpResponse, HttpServer, Responder};
 use clap::Clap;
-#[cfg(feature = "https")]
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use rand::Rng;
 use serde_json::json;
 use server::app_state::AppState;
-#[cfg(feature = "https")]
-use server::https::RedirectHttps;
 use server::util;
 use slog::Drain;
 use slog_scope::GlobalLoggerGuard;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
+#[cfg(feature = "https")]
+use {
+    openssl::ssl::{SslAcceptor, SslFiletype, SslMethod},
+    server::https::RedirectHttps,
+};
 
 // todo: write help
 #[derive(Clap)]

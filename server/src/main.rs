@@ -17,22 +17,51 @@ use {
 
 // todo: write help
 #[derive(Clap)]
-#[clap(version = "1.0.0-dev", author = "Jaeyong Sung")]
+#[clap(version = "1.0.0-dev", about = "The Mighty Mighty Card Game Server")]
 struct Opts {
-    #[clap(short = 'i', long = "host", default_value = "0.0.0.0")]
+    #[clap(
+        short = 'i',
+        long = "host",
+        default_value = "0.0.0.0",
+        about = "host of this server"
+    )]
     host: String,
-    #[clap(short = 'p', long = "http-port", default_value = "80")]
+    #[clap(
+        short = 'p',
+        long = "http-port",
+        default_value = "80",
+        about = "port to run http server"
+    )]
     http_port: u16,
     #[cfg(feature = "https")]
-    #[clap(long = "https-port", default_value = "443")]
+    #[clap(
+        long = "https-port",
+        default_value = "443",
+        about = "port to run https server"
+    )]
     https_port: u16,
     #[cfg(feature = "https")]
-    #[clap(long = "https-key", default_value = "key.pem", parse(from_os_str))]
+    #[clap(
+        long = "https-key",
+        default_value = "key.pem",
+        parse(from_os_str),
+        about = "private key file to run https"
+    )]
     https_key: PathBuf,
     #[cfg(feature = "https")]
-    #[clap(long = "https-cert", default_value = "cert.pem", parse(from_os_str))]
+    #[clap(
+        long = "https-cert",
+        default_value = "cert.pem",
+        parse(from_os_str),
+        about = "certification file to run https"
+    )]
     https_cert: PathBuf,
-    #[clap(short = 'l', long = "log", parse(from_os_str))]
+    #[clap(
+        short = 'l',
+        long = "log",
+        parse(from_os_str),
+        about = "file to log (stdout when no input)"
+    )]
     log: Option<PathBuf>,
     #[clap(
         short = 's',
@@ -110,6 +139,7 @@ fn generate_private_key() -> [u8; 32] {
 }
 
 #[cfg(feature = "https")]
+#[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
@@ -144,6 +174,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[cfg(not(feature = "https"))]
+#[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();

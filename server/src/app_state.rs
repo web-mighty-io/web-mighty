@@ -134,7 +134,7 @@ fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, String> {
 }
 
 #[cfg(feature = "watch-file")]
-fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) {
+fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! {
     loop {
         match rx.recv() {
             Ok(RawEvent {

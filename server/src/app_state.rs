@@ -3,7 +3,7 @@ use handlebars::Handlebars;
 use ignore::WalkBuilder;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, MAIN_SEPARATOR};
 use walkdir::WalkDir;
 #[cfg(feature = "watch-file")]
 use {
@@ -92,7 +92,12 @@ fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
         if entry.file_name().to_string_lossy().ends_with(".hbs") {
             handlebars
                 .register_template_file(
-                    &*entry.path().strip_prefix(path).unwrap().to_string_lossy(),
+                    &*entry
+                        .path()
+                        .strip_prefix(path)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace(MAIN_SEPARATOR, "/"),
                     entry.path(),
                 )
                 .unwrap();
@@ -124,7 +129,8 @@ fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, String> {
                     .strip_prefix(path.join("res"))
                     .unwrap()
                     .to_string_lossy())
-                    .to_owned(),
+                    .to_owned()
+                    .replace(MAIN_SEPARATOR, "/"),
                 content,
             );
         }
@@ -148,7 +154,10 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                     if ext == "hbs" {
                         let mut handlebars = data.handlebars.lock().unwrap();
                         handlebars
-                            .register_template_file(stripped_path, &path)
+                            .register_template_file(
+                                &*stripped_path.replace(MAIN_SEPARATOR, "/"),
+                                &path,
+                            )
                             .unwrap();
                         drop(handlebars);
                         continue;
@@ -171,7 +180,7 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
 
                 if let Ok(stripped_path) = path.strip_prefix(root.join("res")) {
                     let stripped_path = &*stripped_path.to_string_lossy();
-                    let stripped_path = stripped_path.to_owned();
+                    let stripped_path = stripped_path.to_owned().replace(MAIN_SEPARATOR, "/");
                     let mut resources = data.resources.lock().unwrap();
                     if resources.contains_key(&stripped_path) {
                         if let Ok(content) = fs::read_to_string(&path) {

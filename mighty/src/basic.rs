@@ -535,21 +535,12 @@ impl MightyState for BasicState {
 
                         if !deck[user_id].iter().all(|x| match *x {
                             Card::Normal(t, _) => {
-                                if *x == self.get_mighty() {
-                                    true
-                                } else if let Some(y) = giruda {
-                                    t == *y
-                                } else {
-                                    false
-                                }
+                                *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y)
                             }
                             Card::Joker(_) => true,
-                        }) {
-                            if let Some(y) = giruda {
-                                if RushType::from(*y) == current_pattern {
-                                    return Err(Error::WrongCard);
-                                }
-                            }
+                        }) && matches!(giruda, Some(y) if RushType::from(*y) == current_pattern)
+                        {
+                            return Err(Error::WrongCard);
                         }
                         deck[user_id].remove(idx);
 

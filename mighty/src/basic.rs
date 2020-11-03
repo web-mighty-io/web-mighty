@@ -517,14 +517,6 @@ impl MightyState for BasicState {
                     let mut current_pattern = *current_pattern;
                     let mut is_joker_called = *is_joker_called;
 
-                    {
-                        let idx = deck[user_id]
-                            .iter()
-                            .position(|x| *x == card)
-                            .ok_or(Error::NotInDeck)?;
-                        deck[user_id].remove(idx);
-                    }
-
                     placed_cards[user_id] = card.clone();
 
                     is_friend_known = match friend_func {
@@ -532,9 +524,25 @@ impl MightyState for BasicState {
                         _ => is_friend_known,
                     };
 
+                    let idx = deck[user_id]
+                        .iter()
+                        .position(|x| *x == card)
+                        .ok_or(Error::NotInDeck)?;
+
                     if *current_user == start_user {
                         current_pattern = RushType::from(card.clone());
                         is_joker_called = false;
+
+                        if !deck[user_id].iter().all(|x| match *x {
+                            Card::Normal(t, _) => {
+                                *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y)
+                            }
+                            Card::Joker(_) => true,
+                        }) && matches!(giruda, Some(y) if RushType::from(*y) == current_pattern)
+                        {
+                            return Err(Error::WrongCard);
+                        }
+                        deck[user_id].remove(idx);
 
                         match card {
                             Card::Normal(t, n) => {
@@ -578,6 +586,16 @@ impl MightyState for BasicState {
                                 }
                             }
                         }
+                    } else if self.get_mighty() == card {
+                        deck[user_id].remove(idx);
+                    } else if !deck[user_id]
+                        .iter()
+                        .all(|x| !current_pattern.is_same_type(x))
+                        && !current_pattern.is_same_type(&card)
+                    {
+                        return Err(Error::WrongCard);
+                    } else {
+                        deck[user_id].remove(idx);
                     }
 
                     let mut next_user = (*current_user + 1) % 5;

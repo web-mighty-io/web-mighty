@@ -1,9 +1,11 @@
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_web::{get, middleware, web, App, Either, HttpResponse, HttpServer, Responder};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_web::{middleware, web, App, HttpServer};
 use clap::Clap;
+use deadpool_postgres::Pool;
 use rand::Rng;
-use serde_json::json;
+use serde::Deserialize;
 use server::app_state::AppState;
+use server::handlers::{config, p404};
 use server::util;
 use slog::Drain;
 use slog_scope::GlobalLoggerGuard;
@@ -15,7 +17,6 @@ use {
     server::https::RedirectHttps,
 };
 
-// todo: write help
 #[derive(Clap)]
 #[clap(version = "1.0.0-dev", about = "The Mighty Mighty Card Game Server")]
 struct Opts {
@@ -60,49 +61,32 @@ struct Opts {
         short = 'l',
         long = "log",
         parse(from_os_str),
-        about = "file to log (stdout when no input)"
+        about = "file to log (stdout when not used)"
     )]
     log: Option<PathBuf>,
     #[clap(
         short = 's',
         long = "static-files",
         default_value = "static",
-        parse(from_os_str)
+        parse(from_os_str),
+        about = "location to static files"
     )]
     static_files: PathBuf,
     #[clap(
         short = 'v',
         long = "verbose",
         default_value = "4",
-        parse(from_occurrences)
+        parse(from_occurrences),
+        about = "verbose output"
     )]
     verbose: usize,
-}
-
-// todo: move to other file
-#[get("/")]
-async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
-    if let Some(id) = id.identity() {
-        let handlebars = data.get_handlebars();
-        let body = handlebars
-            .render("main.hbs", &json!({ "user_id": id }))
-            .unwrap();
-        HttpResponse::Ok().body(body)
-    } else {
-        let handlebars = data.get_handlebars();
-        let body = handlebars.render("index.hbs", &json!({})).unwrap();
-        HttpResponse::Ok().body(body)
-    }
-}
-
-#[get("/res/{file:.*}")]
-async fn resource(data: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
-    let resources = data.get_resources();
-    if let Some(body) = resources.get(&file) {
-        Either::A(HttpResponse::Ok().body(body))
-    } else {
-        Either::B(HttpResponse::NotFound())
-    }
+    #[clap(
+        short = 'e',
+        long = "env",
+        parse(from_os_str),
+        about = ".env file path for postgres db connection (./.env for default)"
+    )]
+    dotenv: Option<PathBuf>,
 }
 
 fn set_log(opts: &Opts) -> GlobalLoggerGuard {
@@ -138,11 +122,45 @@ fn generate_private_key() -> [u8; 32] {
     rand::thread_rng().gen::<[u8; 32]>()
 }
 
+#[derive(Deserialize)]
+struct Config {
+    #[allow(dead_code)]
+    addr: String,
+    pg: deadpool_postgres::Config,
+}
+
+impl Config {
+    fn new() -> Config {
+        let mut cfg = config::Config::new();
+        cfg.merge(config::Environment::new().separator("__"))
+            .unwrap();
+        cfg.try_into().unwrap()
+    }
+}
+
+// todo: make configurable (dotenv)
+fn make_db_pool() -> Pool {
+    let cfg = Config::new();
+    cfg.pg.create_pool(tokio_postgres::NoTls).unwrap()
+}
+
+fn load_dotenv(opts: &Opts) {
+    match &opts.dotenv {
+        Some(path) => {
+            dotenv::from_path(path).ok();
+        }
+        None => {
+            dotenv::dotenv().ok();
+        }
+    }
+}
+
 #[cfg(feature = "https")]
 #[cfg(not(tarpaulin_include))]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
+    load_dotenv(&opts);
     let _guard = set_log(&opts);
     let state = AppState::new(util::to_absolute_path(opts.static_files));
     let private_key = generate_private_key();
@@ -164,8 +182,9 @@ async fn main() -> std::io::Result<()> {
             .wrap(RedirectHttps::new(http_port, https_port))
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
-            .service(index)
-            .service(resource)
+            .data(make_db_pool())
+            .configure(config)
+            .default_service(web::to(p404))
     })
     .bind(format!("{}:{}", opts.host, opts.http_port))?
     .bind_openssl(format!("{}:{}", opts.host, opts.https_port), builder)?
@@ -178,6 +197,7 @@ async fn main() -> std::io::Result<()> {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
+    load_dotenv(&opts);
     let _guard = set_log(&opts);
     let state = AppState::new(util::to_absolute_path(opts.static_files));
     let private_key = generate_private_key();
@@ -191,8 +211,9 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
-            .service(index)
-            .service(resource)
+            .data(make_db_pool())
+            .configure(config)
+            .default_service(web::to(p404))
     })
     .bind(format!("{}:{}", opts.host, opts.http_port))?
     .run()

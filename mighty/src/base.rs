@@ -101,11 +101,15 @@ impl RushType {
 
     pub fn is_same_type(&self, c: &Card) -> bool {
         let r = Self::from(c.clone());
-        *self == r
-            || (*self == RushType::Red && ColorType::from(r) == ColorType::Red)
-            || (*self == RushType::Black && ColorType::from(r) == ColorType::Black)
-            || (ColorType::from(*self) == ColorType::Red && r == RushType::Red)
-            || (ColorType::from(*self) == ColorType::Black && r == RushType::Black)
+        if *self == r {
+            return true;
+        }
+        match *self {
+            RushType::Red => ColorType::from(r) == ColorType::Red,
+            RushType::Diamond | RushType::Heart => r == RushType::Red,
+            RushType::Black => ColorType::from(r) == ColorType::Black,
+            RushType::Spade | RushType::Clover => r == RushType::Black,
+        }
     }
 }
 

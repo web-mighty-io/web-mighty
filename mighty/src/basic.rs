@@ -34,9 +34,34 @@ pub enum BasicCommand {
 impl std::str::FromStr for BasicCommand {
     type Err = ParseError;
 
-    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {
-        // todo
-        unimplemented!()
+    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {  // todo
+        
+        match s.get(0..1).ok_or_else(ParseError::new)? {
+
+            "h"=> {
+                let num = s.get(1..2).ok_or_else(ParseError::new)?;
+                let num = u8::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
+                Ok(Self::StartGame(num))
+            }
+            "r"=> {
+                let num = s.get(1..2).ok_or_else(ParseError::new)?;
+                let num = u8::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
+                Ok(Self::Random(num))
+            }
+            _ => Err(ParseError::new()),
+        }
+
+/*
+        match input {
+            "startgame"  => Ok(BasicCommand::StartGame(usize),
+            "pledge"  => Ok(BasicCommand::Pledge(usize, Option<CardType>, u8),
+            "selectfried"  => Ok(BasicCommand::SelectFriend(usize, BasicFriendFunc, Vec<Card>),
+            "go" => Ok(BasicCommand::Go(usize, Card, RushType, bool)),
+            "random" => Ok(BasicCommand::Random(usize)),
+            _ => Err()
+        }
+*/
+        // unimplemented!()
     }
 }
 

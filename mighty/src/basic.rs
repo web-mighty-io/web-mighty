@@ -530,9 +530,28 @@ impl MightyState for BasicState {
                         .ok_or(Error::NotInDeck)?;
 
                     if *current_user == start_user {
-                        deck[user_id].remove(idx);
                         current_pattern = RushType::from(card.clone());
                         is_joker_called = false;
+
+                        if !deck[user_id].iter().all(|x| match *x {
+                            Card::Normal(t, _) => {
+                                if *x == self.get_mighty() {
+                                    true
+                                } else if let Some(y) = giruda {
+                                    t == *y
+                                } else {
+                                    false
+                                }
+                            }
+                            Card::Joker(_) => true,
+                        }) {
+                            if let Some(y) = giruda {
+                                if RushType::from(*y) == current_pattern {
+                                    return Err(Error::WrongCard);
+                                }
+                            }
+                        }
+                        deck[user_id].remove(idx);
 
                         match card {
                             Card::Normal(t, n) => {
@@ -583,7 +602,7 @@ impl MightyState for BasicState {
                         .all(|x| !current_pattern.is_same_type(x))
                         && !current_pattern.is_same_type(&card)
                     {
-                        return Err(Error::WrongCardType(current_pattern));
+                        return Err(Error::WrongCard);
                     } else {
                         deck[user_id].remove(idx);
                     }

@@ -21,6 +21,8 @@ pub enum Error {
     WrongCardType(RushType),
     #[display("internal error: {0}")]
     Internal(&'static str),
+    #[display("you can't place this card")]
+    WrongCard,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -2,7 +2,6 @@ use crate::handlers::LoginForm;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::{Pool, PoolError};
 use derive_more::Display;
-use tokio_postgres::Error;
 
 #[derive(Debug, Display)]
 pub enum LoginError {
@@ -18,7 +17,7 @@ impl From<PoolError> for LoginError {
 }
 
 impl From<tokio_postgres::Error> for LoginError {
-    fn from(e: Error) -> Self {
+    fn from(e: tokio_postgres::Error) -> Self {
         Self::from(PoolError::from(e))
     }
 }
@@ -35,6 +34,7 @@ impl ResponseError for LoginError {
     }
 }
 
+// todo: change sql
 pub async fn login(form: &LoginForm, pool: &Pool) -> Result<(), LoginError> {
     let client = pool.get().await?;
     let stmt = client

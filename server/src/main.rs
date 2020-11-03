@@ -124,6 +124,7 @@ fn generate_private_key() -> [u8; 32] {
 
 #[derive(Deserialize)]
 struct Config {
+    #[allow(dead_code)]
     addr: String,
     pg: deadpool_postgres::Config,
 }

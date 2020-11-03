@@ -20,10 +20,20 @@ pub async fn login(
 
 #[post("/logout")]
 pub async fn logout(id: Identity) -> impl Responder {
-    HttpResponse::NotImplemented()
+    id.forget();
+    HttpResponse::Ok()
 }
 
 #[post("/register")]
-pub async fn register(id: Identity, form: web::Form<RegisterForm>) -> impl Responder {
-    HttpResponse::NotImplemented()
+pub async fn register(
+    id: Identity,
+    form: web::Form<RegisterForm>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, Error> {
+    let _ = db::register(&form, &db_pool).await?;
+    id.remember(form.username.clone());
+    Ok(HttpResponse::Found()
+        .header(http::header::LOCATION, "/")
+        .finish()
+        .into_body())
 }

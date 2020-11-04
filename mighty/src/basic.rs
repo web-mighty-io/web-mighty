@@ -858,24 +858,74 @@ mod basic_tests {
 
         assert_eq!("p2n0".parse(), Ok(BasicCommand::Pledge(2, None, 12)));
         assert_eq!("p2n8".parse(), Ok(BasicCommand::Pledge(2, None, 20)));
-        assert_eq!("p2h0".parse(), Ok(BasicCommand::Pledge(2, Some(CardType::Heart) , 13)));
-        assert_eq!("p2h7".parse(), Ok(BasicCommand::Pledge(2, Some(CardType::Heart) , 20)));
+        assert_eq!(
+            "p2h0".parse(),
+            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 13))
+        );
+        assert_eq!(
+            "p2h7".parse(),
+            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 20))
+        );
 
         let dropped: Vec<Card> = vec![
             Card::Joker(ColorType::Black),
             Card::Joker(ColorType::Red),
             Card::Normal(CardType::Spade, 0),
-            Card::Normal(CardType::Clover, 12)];
-        
-        assert_eq!("s1jbjrs0ccn".parse(), Ok(BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone())));
-        assert_eq!("s1jbjrs0cccsb".parse(), Ok(BasicCommand::SelectFriend(1, BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)), dropped.clone())));
-        assert_eq!("s1jbjrs0ccu4".parse(), Ok(BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone())));
-        assert_eq!("s1jbjrs0ccw6".parse(), Ok(BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone())));
-        
-        assert_eq!("g3s3b1".parse(), Ok(BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true)));
-        assert_eq!("g3jrs0".parse(), Ok(BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false)));
+            Card::Normal(CardType::Clover, 12),
+        ];
 
-        
+        assert_eq!(
+            "s1jbjrs0ccn".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::None,
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0cccsb".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0ccu4".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByUser(4),
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0ccw6".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByWinning(6),
+                dropped.clone()
+            ))
+        );
+
+        assert_eq!(
+            "g3s3b1".parse(),
+            Ok(BasicCommand::Go(
+                3,
+                Card::Normal(CardType::Spade, 3),
+                RushType::Black,
+                true
+            ))
+        );
+        assert_eq!(
+            "g3jrs0".parse(),
+            Ok(BasicCommand::Go(
+                3,
+                Card::Joker(ColorType::Red),
+                RushType::Spade,
+                false
+            ))
+        );
+
         assert_eq!("r0".parse(), Ok(BasicCommand::Random(0)));
         assert_eq!("r3".parse(), Ok(BasicCommand::Random(3)));
     }

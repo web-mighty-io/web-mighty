@@ -98,6 +98,19 @@ impl RushType {
     pub fn contains(&self, c: &CardType) -> bool {
         Self::from(*c) == *self || Self::from(ColorType::from(*c)) == *self
     }
+
+    pub fn is_same_type(&self, c: &Card) -> bool {
+        let r = Self::from(c.clone());
+        if *self == r {
+            return true;
+        }
+        match *self {
+            RushType::Red => ColorType::from(r) == ColorType::Red,
+            RushType::Diamond | RushType::Heart => r == RushType::Red,
+            RushType::Black => ColorType::from(r) == ColorType::Black,
+            RushType::Spade | RushType::Clover => r == RushType::Black,
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug, Display)]

@@ -50,18 +50,6 @@ impl std::str::FromStr for BasicCommand {
             }
             _ => Err(ParseError::new()),
         }
-
-
-        match input {
-            "startgame"  => Ok(BasicCommand::StartGame(usize),
-            "pledge"  => Ok(BasicCommand::Pledge(usize, Option<CardType>, u8),
-            "selectfried"  => Ok(BasicCommand::SelectFriend(usize, BasicFriendFunc, Vec<Card>),
-            "go" => Ok(BasicCommand::Go(usize, Card, RushType, bool)),
-            "random" => Ok(BasicCommand::Random(usize)),
-            _ => Err()
-        }
-
-        // unimplemented!()
     }
 }
 

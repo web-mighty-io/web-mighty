@@ -37,20 +37,29 @@ impl std::str::FromStr for BasicCommand {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // todo
 
-        let p_num = s.get(1..2).ok_or_else(ParseError::new)?;
-        let p_num = usize::from_str_radix(p_num, 10).map_err(|_| ParseError::new())?;
+        let p_num = s
+            .get(1..2)
+            .ok_or_else(ParseError::new)?
+            .parse::<usize>()
+            .unwrap();
 
         match s.get(0..1).ok_or_else(ParseError::new)? {
             "h" => Ok(Self::StartGame(p_num)),
             "p" => match s.get(2..3).ok_or_else(ParseError::new)? {
                 "n" => {
-                    let num = s.get(3..4).ok_or_else(ParseError::new)?;
-                    let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                    let num = s
+                        .get(3..4)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<u8>()
+                        .unwrap();
                     Ok(Self::Pledge(p_num, None, num + 12))
                 }
                 "s" | "d" | "h" | "c" => {
-                    let num = s.get(3..4).ok_or_else(ParseError::new)?;
-                    let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                    let num = s
+                        .get(3..4)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<u8>()
+                        .unwrap();
                     Ok(Self::Pledge(
                         p_num,
                         Some(
@@ -98,8 +107,11 @@ impl std::str::FromStr for BasicCommand {
                         dropped,
                     )),
                     "u" => {
-                        let num = s.get(11..12).ok_or_else(ParseError::new)?;
-                        let num = usize::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                        let num = s
+                            .get(11..12)
+                            .ok_or_else(ParseError::new)?
+                            .parse::<usize>()
+                            .unwrap();
                         Ok(Self::SelectFriend(
                             p_num,
                             BasicFriendFunc::ByUser(num),
@@ -107,8 +119,11 @@ impl std::str::FromStr for BasicCommand {
                         ))
                     }
                     "w" => {
-                        let num = s.get(11..12).ok_or_else(ParseError::new)?;
-                        let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                        let num = s
+                            .get(11..12)
+                            .ok_or_else(ParseError::new)?
+                            .parse::<u8>()
+                            .unwrap();
                         Ok(Self::SelectFriend(
                             p_num,
                             BasicFriendFunc::ByWinning(num),
@@ -135,8 +150,11 @@ impl std::str::FromStr for BasicCommand {
             }
 
             "r" => {
-                let num = s.get(1..2).ok_or_else(ParseError::new)?;
-                let num = usize::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                let num = s
+                    .get(1..2)
+                    .ok_or_else(ParseError::new)?
+                    .parse::<usize>()
+                    .unwrap();
                 Ok(Self::Random(num))
             }
 

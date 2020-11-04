@@ -34,16 +34,16 @@ pub enum BasicCommand {
 impl std::str::FromStr for BasicCommand {
     type Err = ParseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {  // todo
-        
-        match s.get(0..1).ok_or_else(ParseError::new)? {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        // todo
 
-            "h"=> {
+        match s.get(0..1).ok_or_else(ParseError::new)? {
+            "h" => {
                 let num = s.get(1..2).ok_or_else(ParseError::new)?;
                 let num = usize::from_str_radix(num, 5).map_err(|_| ParseError::new())?;
                 Ok(Self::StartGame(num))
             }
-            "r"=> {
+            "r" => {
                 let num = s.get(1..2).ok_or_else(ParseError::new)?;
                 let num = usize::from_str_radix(num, 5).map_err(|_| ParseError::new())?;
                 Ok(Self::Random(num))

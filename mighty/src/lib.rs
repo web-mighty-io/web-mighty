@@ -1,4 +1,6 @@
 pub mod base;
 pub mod basic;
-pub mod error;
-pub mod user;
+mod error;
+
+pub use base::MightyGame;
+pub use error::Error;

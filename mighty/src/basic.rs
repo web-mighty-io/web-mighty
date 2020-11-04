@@ -152,13 +152,19 @@ impl std::fmt::Display for BasicCommand {
     }
 }
 
+impl BasicCommand {
+    pub fn random(user: usize) -> BasicCommand {
+        BasicCommand::Random(user)
+    }
+}
+
 /// State of basic mighty game.
 ///
 /// - `NotStarted`: When game is not started
 /// - `Election`: After passing out cards,
 /// - `SelectFriend`: After election, president will select friend (or not)
 /// - `InGame`: After selecting friend, they will play 10 turns
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum BasicState {
     NotStarted,
     Election {
@@ -328,9 +334,7 @@ impl BasicState {
     }
 }
 
-impl MightyState for BasicState {
-    type Command = BasicCommand;
-
+impl BasicState {
     // true if lhs < rhs
     // undefined when lhs == rhs
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
@@ -410,7 +414,7 @@ impl MightyState for BasicState {
     /// Second argument has to be the state of the game
     /// for checking command
     /// Third and after is different for each state.
-    fn next(&self, cmd: BasicCommand) -> Result<BasicState> {
+    fn process(&self, cmd: BasicCommand) -> Result<BasicState> {
         match self {
             BasicState::NotStarted => match cmd {
                 BasicCommand::StartGame(user_id) => {
@@ -516,7 +520,9 @@ impl MightyState for BasicState {
                         }
                     }
                 }
-                BasicCommand::Random(user_id) => self.next(BasicCommand::Pledge(user_id, None, 0)),
+                BasicCommand::Random(user_id) => {
+                    self.process(BasicCommand::Pledge(user_id, None, 0))
+                }
                 _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
             },
 
@@ -579,7 +585,7 @@ impl MightyState for BasicState {
                         is_joker_called: false,
                     })
                 }
-                BasicCommand::Random(user_id) => self.next(BasicCommand::SelectFriend(
+                BasicCommand::Random(user_id) => self.process(BasicCommand::SelectFriend(
                     user_id,
                     BasicFriendFunc::ByUser(rand::thread_rng().gen_range(0, 5)),
                     deck[user_id]
@@ -815,7 +821,7 @@ impl MightyState for BasicState {
                 }
                 BasicCommand::Random(user_id) => {
                     let rand_card = deck[user_id].choose(&mut rand::thread_rng()).unwrap();
-                    self.next(BasicCommand::Go(
+                    self.process(BasicCommand::Go(
                         user_id,
                         rand_card.clone(),
                         RushType::from(rand_card.clone()),
@@ -831,6 +837,13 @@ impl MightyState for BasicState {
                 Ok(self.clone())
             }
         }
+    }
+}
+
+impl MightyState for BasicState {
+    fn next(&self, cmd: String) -> Result<Box<dyn MightyState>> {
+        let cmd = cmd.parse::<BasicCommand>()?;
+        Ok(Box::new(self.process(cmd)?))
     }
 }
 
@@ -939,7 +952,7 @@ mod basic_tests {
 
         assert_eq!(g.get_state(), "n");
         assert_eq!(
-            g.next(BasicCommand::SelectFriend(
+            g.process(BasicCommand::SelectFriend(
                 0,
                 BasicFriendFunc::None,
                 vec![Card::Joker(ColorType::Red)]
@@ -949,52 +962,52 @@ mod basic_tests {
             Error::InvalidCommand("BasicCommand::StartGame")
         );
         assert_eq!(
-            g.next(BasicCommand::StartGame(1)).err().unwrap(),
+            g.process(BasicCommand::StartGame(1)).err().unwrap(),
             Error::NotLeader
         );
 
-        g = g.next(BasicCommand::StartGame(0)).unwrap();
+        g = g.process(BasicCommand::StartGame(0)).unwrap();
         assert_eq!(g.get_state(), "e");
 
         assert_eq!(
-            g.next(BasicCommand::StartGame(0)).err().unwrap(),
+            g.process(BasicCommand::StartGame(0)).err().unwrap(),
             Error::InvalidCommand("BasicCommand::Pledge")
         );
         assert_eq!(
-            g.next(BasicCommand::Pledge(0, None, 21)).err().unwrap(),
+            g.process(BasicCommand::Pledge(0, None, 21)).err().unwrap(),
             Error::InvalidPledge(true, 20)
         );
         assert_eq!(
-            g.next(BasicCommand::Pledge(0, None, 11)).err().unwrap(),
+            g.process(BasicCommand::Pledge(0, None, 11)).err().unwrap(),
             Error::InvalidPledge(false, 12)
         );
         assert_eq!(
-            g.next(BasicCommand::Pledge(0, Some(CardType::Spade), 12))
+            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 12))
                 .err()
                 .unwrap(),
             Error::InvalidPledge(false, 13)
         );
 
         g = g
-            .next(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
+            .process(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
             .unwrap();
 
         assert_eq!(
-            g.next(BasicCommand::Pledge(0, Some(CardType::Spade), 13))
+            g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 13))
                 .err()
                 .unwrap(),
             Error::InvalidPledge(false, 14)
         );
         assert_eq!(
-            g.next(BasicCommand::Pledge(0, None, 12)).err().unwrap(),
+            g.process(BasicCommand::Pledge(0, None, 12)).err().unwrap(),
             Error::InvalidPledge(false, 13)
         );
 
-        g = g.next(BasicCommand::Pledge(0, None, 0)).unwrap();
-        g = g.next(BasicCommand::Pledge(1, None, 0)).unwrap();
-        g = g.next(BasicCommand::Pledge(2, None, 0)).unwrap();
-        g = g.next(BasicCommand::Pledge(3, None, 0)).unwrap();
-        g = g.next(BasicCommand::Pledge(4, None, 0)).unwrap();
+        g = g.process(BasicCommand::Pledge(0, None, 0)).unwrap();
+        g = g.process(BasicCommand::Pledge(1, None, 0)).unwrap();
+        g = g.process(BasicCommand::Pledge(2, None, 0)).unwrap();
+        g = g.process(BasicCommand::Pledge(3, None, 0)).unwrap();
+        g = g.process(BasicCommand::Pledge(4, None, 0)).unwrap();
         assert_eq!(g.get_state(), "f");
     }
 }

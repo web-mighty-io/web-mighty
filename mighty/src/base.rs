@@ -1,5 +1,5 @@
+use crate::basic::BasicState;
 use crate::error::{Error, Result};
-use crate::user::{User, UserId};
 use parse_display::{Display, FromStr, ParseError};
 
 #[derive(PartialEq, Clone, Debug, Display, FromStr, Copy)]
@@ -171,51 +171,39 @@ impl Card {
 }
 
 pub trait MightyState {
-    type Command: std::str::FromStr<Err = ParseError>;
-
-    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool;
-
-    fn next(&self, cmd: Self::Command) -> Result<Self>
-    where
-        Self: std::marker::Sized;
+    fn next(&self, cmd: String) -> Result<Box<dyn MightyState>>;
 }
 
-pub struct MightyGame<T>
-where
-    T: MightyState,
-{
-    users: Vec<Option<User>>,
-    state: Vec<T>,
+pub struct MightyGame {
+    users: Vec<Option<u64>>,
+    state: Vec<Box<dyn MightyState>>,
 }
 
-impl<T> Default for MightyGame<T>
-where
-    T: MightyState + std::default::Default,
-{
+impl Default for MightyGame {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> MightyGame<T>
-where
-    T: MightyState + std::default::Default,
-{
-    pub fn new() -> MightyGame<T> {
+impl MightyGame {
+    pub fn new() -> MightyGame {
         MightyGame {
             users: vec![None; 5],
-            state: vec![Default::default()],
+            state: Vec::new(),
         }
     }
-}
 
-impl<T> MightyGame<T>
-where
-    T: MightyState,
-{
+    // todo: implement when other rule is implemented
+    pub fn with<S: AsRef<str>>(_: S) -> MightyGame {
+        MightyGame {
+            users: vec![None; 5],
+            state: vec![Box::new(BasicState::new())],
+        }
+    }
+
     // todo: make thread-safe
-    pub fn add_user(&mut self, user: User) -> bool {
-        if self.users.contains(&Some(user.clone())) {
+    pub fn add_user(&mut self, user: u64) -> bool {
+        if self.users.contains(&Some(user)) {
             return false;
         }
 
@@ -230,10 +218,10 @@ where
     }
 
     // todo: make thread-safe
-    pub fn remove_user(&mut self, user: UserId) -> bool {
+    pub fn remove_user(&mut self, user: u64) -> bool {
         for i in self.users.iter_mut() {
             if let Some(u) = i {
-                if u.get_id() == user {
+                if *u == user {
                     *i = None;
                     return true;
                 }
@@ -254,10 +242,10 @@ where
     }
 
     // todo: make thread-safe
-    pub fn get_index(&self, user: UserId) -> Option<usize> {
+    pub fn get_index(&self, user: u64) -> Option<usize> {
         for (i, u) in self.users.iter().enumerate() {
             if let Some(u) = u {
-                if u.get_id() == user {
+                if *u == user {
                     return Some(i);
                 }
             }
@@ -266,23 +254,13 @@ where
         None
     }
 
-    pub fn get_user_list(&self) -> Vec<UserId> {
-        self.users
-            .iter()
-            .filter_map(|user| match user {
-                Some(u) => Some(u.get_id()),
-                None => None,
-            })
-            .collect()
+    pub fn get_user_list(&self) -> Vec<u64> {
+        self.users.iter().filter_map(|user| *user).collect()
     }
 }
 
-impl<T> MightyGame<T>
-where
-    T: MightyState,
-{
+impl MightyGame {
     pub fn next(&mut self, cmd: String) -> std::result::Result<(), Error> {
-        let cmd = cmd.parse::<T::Command>()?;
         let next_state = self.state.last().unwrap().next(cmd)?;
         self.state.push(next_state);
         Ok(())

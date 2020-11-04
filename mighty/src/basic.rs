@@ -40,12 +40,12 @@ impl std::str::FromStr for BasicCommand {
 
             "h"=> {
                 let num = s.get(1..2).ok_or_else(ParseError::new)?;
-                let num = usize::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
+                let num = usize::from_str_radix(num, 5).map_err(|_| ParseError::new())?;
                 Ok(Self::StartGame(num))
             }
             "r"=> {
                 let num = s.get(1..2).ok_or_else(ParseError::new)?;
-                let num = usize::from_str_radix(num, 13).map_err(|_| ParseError::new())?;
+                let num = usize::from_str_radix(num, 5).map_err(|_| ParseError::new())?;
                 Ok(Self::Random(num))
             }
             _ => Err(ParseError::new()),

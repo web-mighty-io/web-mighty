@@ -34,9 +34,114 @@ pub enum BasicCommand {
 impl std::str::FromStr for BasicCommand {
     type Err = ParseError;
 
-    fn from_str(_: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // todo
-        unimplemented!()
+
+        let p_num = s.get(1..2).ok_or_else(ParseError::new)?;
+        let p_num = usize::from_str_radix(p_num, 10).map_err(|_| ParseError::new())?;
+
+        match s.get(0..1).ok_or_else(ParseError::new)? {
+            "h" => Ok(Self::StartGame(p_num)),
+            "p" => match s.get(2..3).ok_or_else(ParseError::new)? {
+                "n" => {
+                    let num = s.get(3..4).ok_or_else(ParseError::new)?;
+                    let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                    Ok(Self::Pledge(p_num, None, num + 12))
+                }
+                "s" | "d" | "h" | "c" => {
+                    let num = s.get(3..4).ok_or_else(ParseError::new)?;
+                    let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                    Ok(Self::Pledge(
+                        p_num,
+                        Some(
+                            s.get(2..3)
+                                .ok_or_else(ParseError::new)?
+                                .parse::<CardType>()
+                                .unwrap(),
+                        ),
+                        num + 13,
+                    ))
+                }
+                _ => Err(ParseError::new()),
+            },
+
+            "s" => {
+                let dropped: Vec<Card> = vec![
+                    s.get(2..4)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<Card>()
+                        .unwrap(),
+                    s.get(4..6)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<Card>()
+                        .unwrap(),
+                    s.get(6..8)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<Card>()
+                        .unwrap(),
+                    s.get(8..10)
+                        .ok_or_else(ParseError::new)?
+                        .parse::<Card>()
+                        .unwrap(),
+                ];
+
+                match s.get(10..11).ok_or_else(ParseError::new)? {
+                    "n" => Ok(Self::SelectFriend(p_num, BasicFriendFunc::None, dropped)),
+                    "c" => Ok(Self::SelectFriend(
+                        p_num,
+                        BasicFriendFunc::ByCard(
+                            s.get(11..13)
+                                .ok_or_else(ParseError::new)?
+                                .parse::<Card>()
+                                .unwrap(),
+                        ),
+                        dropped,
+                    )),
+                    "u" => {
+                        let num = s.get(11..12).ok_or_else(ParseError::new)?;
+                        let num = usize::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                        Ok(Self::SelectFriend(
+                            p_num,
+                            BasicFriendFunc::ByUser(num),
+                            dropped,
+                        ))
+                    }
+                    "w" => {
+                        let num = s.get(11..12).ok_or_else(ParseError::new)?;
+                        let num = u8::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                        Ok(Self::SelectFriend(
+                            p_num,
+                            BasicFriendFunc::ByWinning(num),
+                            dropped,
+                        ))
+                    }
+                    _ => Err(ParseError::new()),
+                }
+            }
+
+            "g" => {
+                let p_card = s
+                    .get(2..4)
+                    .ok_or_else(ParseError::new)?
+                    .parse::<Card>()
+                    .unwrap();
+                let p_rushtype = s
+                    .get(4..5)
+                    .ok_or_else(ParseError::new)?
+                    .parse::<RushType>()
+                    .unwrap();
+                let joker_called = s.get(5..6).ok_or_else(ParseError::new)? == "1";
+                Ok(Self::Go(p_num, p_card, p_rushtype, joker_called))
+            }
+
+            "r" => {
+                let num = s.get(1..2).ok_or_else(ParseError::new)?;
+                let num = usize::from_str_radix(num, 10).map_err(|_| ParseError::new())?;
+                Ok(Self::Random(num))
+            }
+
+            _ => Err(ParseError::new()),
+        }
     }
 }
 
@@ -745,6 +850,85 @@ impl MightyState for BasicState {
 #[cfg(test)]
 mod basic_tests {
     use super::*;
+
+    #[test]
+    fn command_from_str_test() {
+        assert_eq!("h0".parse(), Ok(BasicCommand::StartGame(0)));
+        assert_eq!("h2".parse(), Ok(BasicCommand::StartGame(2)));
+
+        assert_eq!("p2n0".parse(), Ok(BasicCommand::Pledge(2, None, 12)));
+        assert_eq!("p2n8".parse(), Ok(BasicCommand::Pledge(2, None, 20)));
+        assert_eq!(
+            "p2h0".parse(),
+            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 13))
+        );
+        assert_eq!(
+            "p2h7".parse(),
+            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 20))
+        );
+
+        let dropped: Vec<Card> = vec![
+            Card::Joker(ColorType::Black),
+            Card::Joker(ColorType::Red),
+            Card::Normal(CardType::Spade, 0),
+            Card::Normal(CardType::Clover, 12),
+        ];
+
+        assert_eq!(
+            "s1jbjrs0ccn".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::None,
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0cccsb".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0ccu4".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByUser(4),
+                dropped.clone()
+            ))
+        );
+        assert_eq!(
+            "s1jbjrs0ccw6".parse(),
+            Ok(BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByWinning(6),
+                dropped.clone()
+            ))
+        );
+
+        assert_eq!(
+            "g3s3b1".parse(),
+            Ok(BasicCommand::Go(
+                3,
+                Card::Normal(CardType::Spade, 3),
+                RushType::Black,
+                true
+            ))
+        );
+        assert_eq!(
+            "g3jrs0".parse(),
+            Ok(BasicCommand::Go(
+                3,
+                Card::Joker(ColorType::Red),
+                RushType::Spade,
+                false
+            ))
+        );
+
+        assert_eq!("r0".parse(), Ok(BasicCommand::Random(0)));
+        assert_eq!("r3".parse(), Ok(BasicCommand::Random(3)));
+    }
 
     #[test]
     fn compare_cards_test() {

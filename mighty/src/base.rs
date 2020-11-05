@@ -185,6 +185,8 @@ impl Card {
 
 pub trait MightyState {
     fn next(&self, cmd: String) -> Result<Box<dyn MightyState>>;
+
+    fn generate(&self, user: usize) -> Box<dyn MightyState>;
 }
 
 pub struct MightyGame {

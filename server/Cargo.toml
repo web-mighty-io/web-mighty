@@ -11,6 +11,7 @@ mighty = { path = "../mighty", default-features = false, features = ["server"] }
 
 actix-identity = "0.3"
 actix-web = "3"
+actix-web-actors = "3"
 clap = "3.0.0-beta.2"
 config = "0.10"
 deadpool-postgres = { git = "https://github.com/bikeshedder/deadpool", rev = "fc5048" }

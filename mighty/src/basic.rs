@@ -946,7 +946,7 @@ mod basic_tests {
             Ok(BasicCommand::SelectFriend(
                 1,
                 BasicFriendFunc::ByWinning(6),
-                dropped.clone()
+                dropped
             ))
         );
 

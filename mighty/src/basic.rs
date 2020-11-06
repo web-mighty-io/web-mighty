@@ -164,9 +164,87 @@ impl std::str::FromStr for BasicCommand {
 }
 
 impl std::fmt::Display for BasicCommand {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // todo
-        unimplemented!()
+        match &*self {
+            BasicCommand::StartGame(p_num) => write!(f, "h{}", p_num),
+            BasicCommand::Pledge(p_num, ctype, num) => match ctype {
+                None => {
+                    if num < &12 {
+                        panic!("Invalid Pledge: {}", num);
+                    }
+                    write!(f, "p{}n{}", p_num, num - 12)
+                }
+                Some(n) => {
+                    if num < &13 {
+                        panic!("Invalid Pledge: {}", num);
+                    }
+                    write!(f, "p{}{}{}", p_num, n.to_string(), num - 13)
+                }
+            },
+            BasicCommand::SelectFriend(p_num, f_function, cvec) => {
+                if cvec.len() != 4 {
+                    panic!("Invalid Vector Size");
+                }
+
+                match f_function {
+                    BasicFriendFunc::ByCard(card) => write!(
+                        f,
+                        "s{}{}{}{}{}c{}",
+                        p_num,
+                        cvec[0].to_string(),
+                        cvec[1].to_string(),
+                        cvec[2].to_string(),
+                        cvec[3].to_string(),
+                        card.to_string()
+                    ),
+                    BasicFriendFunc::ByUser(num) => write!(
+                        f,
+                        "s{}{}{}{}{}u{}",
+                        p_num,
+                        cvec[0].to_string(),
+                        cvec[1].to_string(),
+                        cvec[2].to_string(),
+                        cvec[3].to_string(),
+                        num
+                    ),
+                    BasicFriendFunc::ByWinning(num) => write!(
+                        f,
+                        "s{}{}{}{}{}w{}",
+                        p_num,
+                        cvec[0].to_string(),
+                        cvec[1].to_string(),
+                        cvec[2].to_string(),
+                        cvec[3].to_string(),
+                        num
+                    ),
+                    BasicFriendFunc::None => write!(
+                        f,
+                        "s{}{}{}{}{}n",
+                        p_num,
+                        cvec[0].to_string(),
+                        cvec[1].to_string(),
+                        cvec[2].to_string(),
+                        cvec[3].to_string()
+                    ),
+                }
+            }
+            BasicCommand::Go(p_num, card, rush_type, joker_called) => {
+                let num = match joker_called {
+                    true => 1,
+                    false => 0,
+                };
+                write!(
+                    f,
+                    "g{}{}{}{}",
+                    p_num,
+                    card.to_string(),
+                    rush_type.to_string(),
+                    num
+                )
+            }
+            BasicCommand::Random(p_num) => write!(f, "r{}", p_num),
+        }
     }
 }
 
@@ -868,6 +946,75 @@ impl MightyState for BasicState {
 #[cfg(test)]
 mod basic_tests {
     use super::*;
+
+    #[test]
+    fn str_from_command_test() {
+        assert_eq!("h2", format!("{}", BasicCommand::StartGame(2)));
+        assert_eq!("p1n3", format!("{}", BasicCommand::Pledge(1, None, 15)));
+        assert_eq!(
+            "p1s4",
+            format!("{}", BasicCommand::Pledge(1, Some(CardType::Spade), 17))
+        );
+
+        let dropped: Vec<Card> = vec![
+            Card::Joker(ColorType::Black),
+            Card::Joker(ColorType::Red),
+            Card::Normal(CardType::Spade, 0),
+            Card::Normal(CardType::Clover, 12),
+        ];
+
+        assert_eq!(
+            "s1jbjrs0ccn",
+            format!(
+                "{}",
+                BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone())
+            )
+        );
+
+        assert_eq!(
+            "s1jbjrs0cccsb",
+            format!(
+                "{}",
+                BasicCommand::SelectFriend(
+                    1,
+                    BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
+                    dropped.clone()
+                )
+            )
+        );
+        assert_eq!(
+            "s1jbjrs0ccu4",
+            format!(
+                "{}",
+                BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone())
+            )
+        );
+        assert_eq!(
+            "s1jbjrs0ccw6",
+            format!(
+                "{}",
+                BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone())
+            )
+        );
+
+        assert_eq!(
+            "g3s3b1",
+            format!(
+                "{}",
+                BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true)
+            )
+        );
+        assert_eq!(
+            "g3jrs0",
+            format!(
+                "{}",
+                BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false)
+            )
+        );
+
+        assert_eq!("r0", format!("{}", BasicCommand::Random(0)));
+        assert_eq!("r3", format!("{}", BasicCommand::Random(3)));
+    }
 
     #[test]
     fn command_from_str_test() {

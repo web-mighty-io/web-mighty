@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 mighty = { path = "../mighty", default-features = false, features = ["server"] }
 
+actix = "0.10"
 actix-identity = "0.3"
 actix-web = "3"
 actix-web-actors = "3"

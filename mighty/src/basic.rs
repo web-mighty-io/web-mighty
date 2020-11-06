@@ -1093,11 +1093,7 @@ mod basic_tests {
             Ok(BasicCommand::SelectFriend(
                 1,
                 BasicFriendFunc::ByWinning(6),
-<<<<<<< HEAD
                 dropped.clone()
-=======
-                dropped
->>>>>>> 55ef4c731baeda90ced1e83a31a68bccf16b4459
             ))
         );
 

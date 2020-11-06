@@ -941,6 +941,31 @@ impl MightyState for BasicState {
         let cmd = cmd.parse::<BasicCommand>()?;
         Ok(Box::new(self.process(cmd)?))
     }
+
+    // todo: fill else
+    fn generate(&self, user: usize) -> Box<dyn MightyState> {
+        match self {
+            BasicState::NotStarted => Box::new(BasicState::NotStarted),
+            BasicState::Election {
+                pledge, done, deck, ..
+            } => {
+                let v = deck
+                    .iter()
+                    .enumerate()
+                    .map(|(i, d)| if i == user { d.clone() } else { Vec::new() })
+                    .collect::<Vec<_>>();
+                Box::new(BasicState::Election {
+                    pledge: pledge.clone(),
+                    done: done.clone(),
+                    deck: v,
+                    left: Vec::new(),
+                })
+            }
+            BasicState::SelectFriend { .. } => Box::new(BasicState::NotStarted),
+            BasicState::InGame { .. } => Box::new(BasicState::NotStarted),
+            BasicState::GameEnded { .. } => Box::new(BasicState::NotStarted),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1068,7 +1093,11 @@ mod basic_tests {
             Ok(BasicCommand::SelectFriend(
                 1,
                 BasicFriendFunc::ByWinning(6),
+<<<<<<< HEAD
                 dropped.clone()
+=======
+                dropped
+>>>>>>> 55ef4c731baeda90ced1e83a31a68bccf16b4459
             ))
         );
 

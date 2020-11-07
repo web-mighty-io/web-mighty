@@ -990,33 +990,36 @@ mod basic_tests {
 
         assert_eq!(
             "s1jbjrs0ccn",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone()).to_string()
+            BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone()).to_string()
         );
 
         assert_eq!(
             "s1jbjrs0cccsb",
-                BasicCommand::SelectFriend(
-                    1,
-                    BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
-                    dropped.clone()
-                ).to_string()
+            BasicCommand::SelectFriend(
+                1,
+                BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
+                dropped.clone()
+            )
+            .to_string()
         );
         assert_eq!(
             "s1jbjrs0ccu4",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone()).to_string()
+            BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone()).to_string()
         );
         assert_eq!(
             "s1jbjrs0ccw6",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone()).to_string()
+            BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone())
+                .to_string()
         );
 
         assert_eq!(
             "g3s3b1",
-                BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true).to_string()
+            BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true)
+                .to_string()
         );
         assert_eq!(
             "g3jrs0",
-                BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false).to_string()
+            BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false).to_string()
         );
 
         assert_eq!("r0", BasicCommand::Random(0).to_string());

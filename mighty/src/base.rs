@@ -1,5 +1,5 @@
 use crate::basic::BasicState;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use parse_display::{Display, FromStr, ParseError};
 
 #[derive(PartialEq, Clone, Debug, Display, FromStr, Copy)]
@@ -190,7 +190,6 @@ pub trait MightyState {
 }
 
 pub struct MightyGame {
-    users: Vec<Option<u64>>,
     state: Vec<Box<dyn MightyState>>,
 }
 
@@ -202,83 +201,24 @@ impl Default for MightyGame {
 
 impl MightyGame {
     pub fn new() -> MightyGame {
-        MightyGame {
-            users: vec![None; 5],
-            state: Vec::new(),
-        }
+        MightyGame::with("basic")
     }
 
     // todo: implement when other rule is implemented
     pub fn with<S: AsRef<str>>(_: S) -> MightyGame {
         MightyGame {
-            users: vec![None; 5],
             state: vec![Box::new(BasicState::new())],
         }
     }
 
-    // todo: make thread-safe
-    pub fn add_user(&mut self, user: u64) -> bool {
-        if self.users.contains(&Some(user)) {
-            return false;
-        }
-
-        for i in self.users.iter_mut() {
-            if *i == None {
-                *i = Some(user);
-                return true;
-            }
-        }
-
-        false
-    }
-
-    // todo: make thread-safe
-    pub fn remove_user(&mut self, user: u64) -> bool {
-        for i in self.users.iter_mut() {
-            if let Some(u) = i {
-                if *u == user {
-                    *i = None;
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    pub fn len(&self) -> usize {
-        self.users
-            .iter()
-            .fold(0, |cnt, user| if *user == None { cnt } else { cnt + 1 })
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    // todo: make thread-safe
-    pub fn get_index(&self, user: u64) -> Option<usize> {
-        for (i, u) in self.users.iter().enumerate() {
-            if let Some(u) = u {
-                if *u == user {
-                    return Some(i);
-                }
-            }
-        }
-
-        None
-    }
-
-    pub fn get_user_list(&self) -> Vec<u64> {
-        self.users.iter().filter_map(|user| *user).collect()
-    }
-}
-
-impl MightyGame {
-    pub fn next(&mut self, cmd: String) -> std::result::Result<(), Error> {
+    pub fn next(&mut self, cmd: String) -> Result<()> {
         let next_state = self.state.last().unwrap().next(cmd)?;
         self.state.push(next_state);
         Ok(())
+    }
+
+    pub fn generate(&self, user: usize) -> Box<dyn MightyState> {
+        self.state.last().unwrap().generate(user)
     }
 }
 

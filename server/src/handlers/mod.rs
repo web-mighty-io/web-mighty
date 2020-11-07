@@ -9,6 +9,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(post::login)
         .service(post::logout)
         .service(post::register)
+        .service(get::websocket)
         .service(web::scope("/res").service(get::resource));
 }
 

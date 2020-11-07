@@ -170,13 +170,13 @@ impl std::fmt::Display for BasicCommand {
             BasicCommand::StartGame(p_num) => write!(f, "h{}", p_num),
             BasicCommand::Pledge(p_num, ctype, num) => match ctype {
                 None => {
-                    if num < &12 {
+                    if *num < 12 {
                         panic!("Invalid Pledge: {}", num);
                     }
                     write!(f, "p{}n{}", p_num, num - 12)
                 }
                 Some(n) => {
-                    if num < &13 {
+                    if *num < 13 {
                         panic!("Invalid Pledge: {}", num);
                     }
                     write!(f, "p{}{}{}", p_num, n.to_string(), num - 13)
@@ -974,11 +974,11 @@ mod basic_tests {
 
     #[test]
     fn str_from_command_test() {
-        assert_eq!("h2", format!("{}", BasicCommand::StartGame(2)));
-        assert_eq!("p1n3", format!("{}", BasicCommand::Pledge(1, None, 15)));
+        assert_eq!("h2", BasicCommand::StartGame(2).to_string());
+        assert_eq!("p1n3", BasicCommand::Pledge(1, None, 15).to_string());
         assert_eq!(
             "p1s4",
-            format!("{}", BasicCommand::Pledge(1, Some(CardType::Spade), 17))
+            BasicCommand::Pledge(1, Some(CardType::Spade), 17).to_string()
         );
 
         let dropped: Vec<Card> = vec![
@@ -990,55 +990,37 @@ mod basic_tests {
 
         assert_eq!(
             "s1jbjrs0ccn",
-            format!(
-                "{}",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone())
-            )
+                BasicCommand::SelectFriend(1, BasicFriendFunc::None, dropped.clone()).to_string()
         );
 
         assert_eq!(
             "s1jbjrs0cccsb",
-            format!(
-                "{}",
                 BasicCommand::SelectFriend(
                     1,
                     BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
                     dropped.clone()
-                )
-            )
+                ).to_string()
         );
         assert_eq!(
             "s1jbjrs0ccu4",
-            format!(
-                "{}",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone())
-            )
+                BasicCommand::SelectFriend(1, BasicFriendFunc::ByUser(4), dropped.clone()).to_string()
         );
         assert_eq!(
             "s1jbjrs0ccw6",
-            format!(
-                "{}",
-                BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone())
-            )
+                BasicCommand::SelectFriend(1, BasicFriendFunc::ByWinning(6), dropped.clone()).to_string()
         );
 
         assert_eq!(
             "g3s3b1",
-            format!(
-                "{}",
-                BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true)
-            )
+                BasicCommand::Go(3, Card::Normal(CardType::Spade, 3), RushType::Black, true).to_string()
         );
         assert_eq!(
             "g3jrs0",
-            format!(
-                "{}",
-                BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false)
-            )
+                BasicCommand::Go(3, Card::Joker(ColorType::Red), RushType::Spade, false).to_string()
         );
 
-        assert_eq!("r0", format!("{}", BasicCommand::Random(0)));
-        assert_eq!("r3", format!("{}", BasicCommand::Random(3)));
+        assert_eq!("r0", BasicCommand::Random(0).to_string());
+        assert_eq!("r3", BasicCommand::Random(3).to_string());
     }
 
     #[test]

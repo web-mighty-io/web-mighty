@@ -4,21 +4,24 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Message)]
 #[rtype = "usize"]
-pub struct Connect(Reciptent<session::Command>);
+pub struct Connect {
+    pub addr: Reciptent<session::Command>,
+    pub name: String,
+}
 
 #[derive(Clone, Message)]
 #[rtype = "()"]
-pub struct Disconnect(usize);
+pub struct Disconnect(String);
 
 #[derive(Clone, Message)]
 #[rtype = "()"]
-pub struct JoinRoom(usize, u64);
+pub struct JoinRoom(String, u64);
 
-pub struct GameServer {
+pub struct WsServer {
     rooms: HashMap<u64, Vec<usize>>,
     sessions: HashMap<usize, Recipient<session::Command>>,
 }
 
-impl Actor for GameServer {
+impl Actor for WsServer {
     type Context = Context<Self>;
 }

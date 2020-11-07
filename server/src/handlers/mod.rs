@@ -1,6 +1,5 @@
 mod get;
 mod post;
-mod websocket;
 
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
@@ -10,7 +9,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(post::login)
         .service(post::logout)
         .service(post::register)
-        .service(web::scope("/ws").service(websocket::index))
+        .service(get::websocket)
         .service(web::scope("/res").service(get::resource));
 }
 

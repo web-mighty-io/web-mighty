@@ -89,7 +89,7 @@ struct Opts {
     dotenv: Option<PathBuf>,
 }
 
-fn set_log(opts: &Opts) -> GlobalLoggerGuard {
+fn set_logger(opts: &Opts) -> GlobalLoggerGuard {
     let drain = if let Some(log_path) = &opts.log {
         let decorator = slog_term::PlainDecorator::new(
             OpenOptions::new()
@@ -161,7 +161,7 @@ fn load_dotenv(opts: &Opts) {
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
     load_dotenv(&opts);
-    let _guard = set_log(&opts);
+    let _guard = set_logger(&opts);
     let state = AppState::new(util::to_absolute_path(opts.static_files));
     let private_key = generate_private_key();
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -198,7 +198,7 @@ async fn main() -> std::io::Result<()> {
 async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
     load_dotenv(&opts);
-    let _guard = set_log(&opts);
+    let _guard = set_logger(&opts);
     let state = AppState::new(util::to_absolute_path(opts.static_files));
     let private_key = generate_private_key();
 

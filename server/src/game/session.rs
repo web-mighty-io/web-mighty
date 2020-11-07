@@ -1,12 +1,16 @@
 use crate::game::{server, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
 use actix::prelude::*;
 use actix_web_actors::ws;
-use actix_web_actors::ws::ProtocolError;
 use std::time::Instant;
+
+#[derive(Clone, Message)]
+#[rtype(result = "()")]
+pub struct Command;
 
 pub struct WsSession {
     id: usize,
     name: String,
+    #[allow(dead_code)]
     room: usize,
     hb: Instant,
     addr: Addr<server::WsServer>,
@@ -29,11 +33,10 @@ impl Actor for WsSession {
                     Ok(res) => act.id = res,
                     _ => ctx.stop(),
                 };
-                fut::ready(());
+                fut::ready(())
             })
             .wait(ctx);
     }
-
 }
 
 impl WsSession {
@@ -50,12 +53,20 @@ impl WsSession {
     fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                act.addr.do_send(server::Disconnect(self.name.clone()));
+                act.addr.do_send(server::Disconnect(act.name.clone()));
                 ctx.stop();
                 return;
             }
             ctx.ping(b"");
         });
+    }
+}
+
+impl Handler<Command> for WsSession {
+    type Result = ();
+
+    fn handle(&mut self, _: Command, _: &mut Self::Context) -> Self::Result {
+        // todo
     }
 }
 
@@ -76,7 +87,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
                 if msg.starts_with('/') {
                     let v = msg.splitn(2, ' ').collect::<Vec<_>>();
                     match v[0] {
-                        "" => {}
+                        "/join" => print!("join"),
+                        "/leave" => print!("leave"),
                         _ => {}
                     }
                 }

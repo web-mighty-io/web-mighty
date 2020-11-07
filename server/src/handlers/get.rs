@@ -41,7 +41,11 @@ pub async fn websocket(
     stream: web::Payload,
 ) -> impl Responder {
     if let Some(id) = id.identity() {
-        Either::A(ws::start(WsSession::new(id, data.server.clone()), &req, stream))
+        Either::A(ws::start(
+            WsSession::new(id, data.server.clone()),
+            &req,
+            stream,
+        ))
     } else {
         Either::B(HttpResponse::NotFound())
     }

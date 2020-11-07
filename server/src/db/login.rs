@@ -25,9 +25,7 @@ impl From<tokio_postgres::Error> for LoginError {
 impl ResponseError for LoginError {
     fn error_response(&self) -> HttpResponse {
         match *self {
-            LoginError::PoolError(ref err) => {
-                HttpResponse::InternalServerError().body(err.to_string())
-            }
+            LoginError::PoolError(ref err) => HttpResponse::InternalServerError().body(err.to_string()),
             LoginError::NoUser => HttpResponse::Unauthorized().body("no user found"),
             LoginError::WrongPassword => HttpResponse::Unauthorized().body("incorrect password"),
         }
@@ -37,9 +35,7 @@ impl ResponseError for LoginError {
 // todo: change sql
 pub async fn login(form: &LoginForm, pool: &Pool) -> Result<(), LoginError> {
     let client = pool.get().await?;
-    let stmt = client
-        .prepare("SELECT password FROM user WHERE id=$1")
-        .await?;
+    let stmt = client.prepare("SELECT password FROM user WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.username]).await?;
     if res.is_empty() {
         return Err(LoginError::NoUser);

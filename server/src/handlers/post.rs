@@ -5,11 +5,7 @@ use actix_web::{http, post, web, Error, HttpResponse, Responder};
 use deadpool_postgres::Pool;
 
 #[post("/login")]
-pub async fn login(
-    id: Identity,
-    form: web::Form<LoginForm>,
-    db_pool: web::Data<Pool>,
-) -> Result<HttpResponse, Error> {
+pub async fn login(id: Identity, form: web::Form<LoginForm>, db_pool: web::Data<Pool>) -> Result<HttpResponse, Error> {
     let _ = db::login(&form, &db_pool).await?;
     id.remember(form.username.clone());
     Ok(HttpResponse::Found()

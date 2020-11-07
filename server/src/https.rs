@@ -10,10 +10,7 @@ pub struct RedirectHttps {
 
 impl RedirectHttps {
     pub fn new(http_port: u16, https_port: u16) -> RedirectHttps {
-        RedirectHttps {
-            http_port,
-            https_port,
-        }
+        RedirectHttps { http_port, https_port }
     }
 }
 

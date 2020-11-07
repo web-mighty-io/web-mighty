@@ -20,12 +20,7 @@ use {
 #[derive(Clap)]
 #[clap(version = "1.0.0-dev", about = "The Mighty Mighty Card Game Server")]
 struct Opts {
-    #[clap(
-        short = 'i',
-        long = "host",
-        default_value = "0.0.0.0",
-        about = "host of this server"
-    )]
+    #[clap(short = 'i', long = "host", default_value = "0.0.0.0", about = "host of this server")]
     host: String,
     #[clap(
         short = 'p',
@@ -35,11 +30,7 @@ struct Opts {
     )]
     http_port: u16,
     #[cfg(feature = "https")]
-    #[clap(
-        long = "https-port",
-        default_value = "443",
-        about = "port to run https server"
-    )]
+    #[clap(long = "https-port", default_value = "443", about = "port to run https server")]
     https_port: u16,
     #[cfg(feature = "https")]
     #[clap(
@@ -132,8 +123,7 @@ struct Config {
 impl Config {
     fn new() -> Config {
         let mut cfg = config::Config::new();
-        cfg.merge(config::Environment::new().separator("__"))
-            .unwrap();
+        cfg.merge(config::Environment::new().separator("__")).unwrap();
         cfg.try_into().unwrap()
     }
 }
@@ -165,9 +155,7 @@ async fn main() -> std::io::Result<()> {
     let state = AppState::new(util::to_absolute_path(opts.static_files));
     let private_key = generate_private_key();
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder
-        .set_private_key_file(opts.https_key, SslFiletype::PEM)
-        .unwrap();
+    builder.set_private_key_file(opts.https_key, SslFiletype::PEM).unwrap();
     builder.set_certificate_chain_file(opts.https_cert).unwrap();
     let http_port = opts.http_port;
     let https_port = opts.https_port;

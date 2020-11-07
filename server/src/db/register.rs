@@ -26,16 +26,10 @@ impl From<tokio_postgres::Error> for RegisterError {
 impl ResponseError for RegisterError {
     fn error_response(&self) -> HttpResponse {
         match *self {
-            RegisterError::PoolError(ref err) => {
-                HttpResponse::InternalServerError().body(err.to_string())
-            }
-            RegisterError::InvalidUsername => {
-                HttpResponse::BadRequest().body("username not allowed")
-            }
+            RegisterError::PoolError(ref err) => HttpResponse::InternalServerError().body(err.to_string()),
+            RegisterError::InvalidUsername => HttpResponse::BadRequest().body("username not allowed"),
             RegisterError::UsernameExist => HttpResponse::Conflict().body("username exists"),
-            RegisterError::InvalidPassword => {
-                HttpResponse::BadRequest().body("password is not allowed")
-            }
+            RegisterError::InvalidPassword => HttpResponse::BadRequest().body("password is not allowed"),
         }
     }
 }
@@ -51,8 +45,6 @@ pub async fn register(form: &RegisterForm, pool: &Pool) -> Result<(), RegisterEr
 
     let client = pool.get().await?;
     let stmt = client.prepare("INSERT ...").await?;
-    let _ = client
-        .query(&stmt, &[&form.username, &form.password_hash])
-        .await?;
+    let _ = client.query(&stmt, &[&form.username, &form.password_hash]).await?;
     Ok(())
 }

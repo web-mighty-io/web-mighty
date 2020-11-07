@@ -1,27 +1,17 @@
-use crate::base::RushType;
-use parse_display::{Display, ParseError};
+use bincode::ErrorKind;
 
-#[derive(PartialEq, Clone, Debug, Display)]
+#[derive(PartialEq, Clone, Debug)]
+
 pub enum Error {
-    #[display("parse error")]
     ParseError,
-    #[display("invalid command, expected: {0}")]
     InvalidCommand(&'static str),
-    #[display("invalid pledge")]
     InvalidPledge(bool, u8),
-    #[display("expected user {0}")]
     InvalidUser(usize),
-    #[display("you are not the leader")]
     NotLeader,
-    #[display("you are not the president")]
     NotPresident,
-    #[display("the card is not in the deck")]
     NotInDeck,
-    #[display("your card is not {0}")]
-    WrongCardType(RushType),
-    #[display("internal error: {0}")]
+    WrongCardType,
     Internal(&'static str),
-    #[display("you can't place this card")]
     WrongCard,
 }
 
@@ -29,8 +19,25 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 impl std::error::Error for Error {}
 
-impl std::convert::From<ParseError> for Error {
-    fn from(_: ParseError) -> Self {
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::ParseError => write!(f, "parse error"),
+            Error::InvalidCommand(c) => write!(f, "invalid command, expected: {}", c),
+            Error::InvalidPledge(..) => write!(f, "invalid pledge"),
+            Error::InvalidUser(u) => write!(f, "expected user {}", u),
+            Error::NotLeader => write!(f, "you are not the leader"),
+            Error::NotPresident => write!(f, "you are not the president"),
+            Error::NotInDeck => write!(f, "the card is not in the deck"),
+            Error::WrongCardType => write!(f, "your card is not"),
+            Error::Internal(e) => write!(f, "internal error: {}", e),
+            Error::WrongCard => write!(f, "you can't place this card"),
+        }
+    }
+}
+
+impl From<Box<bincode::ErrorKind>> for Error {
+    fn from(_: Box<ErrorKind>) -> Self {
         Error::ParseError
     }
 }

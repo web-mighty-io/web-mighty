@@ -89,11 +89,7 @@ fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
     let path = path.as_ref();
     let mut handlebars = Handlebars::new();
 
-    for entry in WalkDir::new(path)
-        .follow_links(true)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
+    for entry in WalkDir::new(path).follow_links(true).into_iter().filter_map(|e| e.ok()) {
         if entry.file_name().to_string_lossy().ends_with(".hbs") {
             handlebars
                 .register_template_file(
@@ -129,11 +125,7 @@ fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, String> {
     {
         if let Ok(content) = fs::read_to_string(entry.path()) {
             resources.insert(
-                (&*entry
-                    .path()
-                    .strip_prefix(path.join("res"))
-                    .unwrap()
-                    .to_string_lossy())
+                (&*entry.path().strip_prefix(path.join("res")).unwrap().to_string_lossy())
                     .to_owned()
                     .replace(MAIN_SEPARATOR, "/"),
                 content,
@@ -159,10 +151,7 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                     if ext == "hbs" {
                         let mut handlebars = data.handlebars.lock().unwrap();
                         handlebars
-                            .register_template_file(
-                                &*stripped_path.replace(MAIN_SEPARATOR, "/"),
-                                &path,
-                            )
+                            .register_template_file(&*stripped_path.replace(MAIN_SEPARATOR, "/"), &path)
                             .unwrap();
                         drop(handlebars);
                         continue;

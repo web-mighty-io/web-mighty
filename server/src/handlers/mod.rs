@@ -1,6 +1,6 @@
+mod delete;
 mod get;
 mod post;
-mod delete;
 
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
@@ -28,7 +28,6 @@ pub struct LoginForm {
 
 #[derive(Deserialize)]
 pub struct DeleteUserForm {
-    pub user_id: String,
     pub password_hash: String,
 }
 

@@ -13,9 +13,11 @@ pub async fn delete_user(
     if let Some(user_id) = id.identity() {
         let _ = db::delete_user(&form, user_id, &db_pool).await?;
         id.forget();
+        Ok(HttpResponse::Found()
+            .header(http::header::LOCATION, "/")
+            .finish()
+            .into_body())
+    } else {
+        Ok(HttpResponse::Unauthorized().finish())
     }
-    Ok(HttpResponse::Found()
-        .header(http::header::LOCATION, "/")
-        .finish()
-        .into_body())
 }

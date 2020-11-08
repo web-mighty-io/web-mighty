@@ -762,71 +762,113 @@ impl MightyState for BasicState {
 mod test {
     use super::*;
 
-    // #[test]
-    // fn compare_cards_test() {
-    //     fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
-    //         BasicState::InGame {
-    //             president: 0,
-    //             friend_func: BasicFriendFunc::None,
-    //             friend: Option::None,
-    //             is_friend_known: false,
-    //             giruda: giruda.parse().ok(),
-    //             pledge: 0,
-    //             deck: vec![],
-    //             score_deck: vec![],
-    //             turn_count: 0,
-    //             placed_cards: vec![],
-    //             start_user: 0,
-    //             current_user: 0,
-    //             current_pattern: current_pattern.parse().unwrap(),
-    //             is_joker_called,
-    //         }
-    //     }
-    //
-    //     fn compare_cards(game: &BasicState, c1: &str, c2: &str) -> bool {
-    //         game.compare_cards(&c1.parse().unwrap(), &c2.parse().unwrap())
-    //     }
-    //
-    //     let g = make_game("s", "s", false);
-    //     assert_eq!(compare_cards(&g, "s1", "s0"), true);
-    //     assert_eq!(compare_cards(&g, "s0", "d0"), true);
-    //     assert_eq!(compare_cards(&g, "d0", "s0"), false);
-    //     assert_eq!(compare_cards(&g, "d1", "s0"), true);
-    //
-    //     let g = make_game("s", "d", false);
-    //     assert_eq!(compare_cards(&g, "h1", "h0"), true);
-    //     assert_eq!(compare_cards(&g, "h1", "d0"), true);
-    //     assert_eq!(compare_cards(&g, "d1", "s0"), true);
-    //     assert_eq!(compare_cards(&g, "d1", "jb"), false);
-    //     assert_eq!(compare_cards(&g, "jb", "d1"), true);
-    //     assert_eq!(compare_cards(&g, "d1", "jr"), true);
-    //     assert_eq!(compare_cards(&g, "jr", "d1"), false);
-    //     assert_eq!(compare_cards(&g, "jr", "s1"), true);
-    //     assert_eq!(compare_cards(&g, "s1", "jr"), false);
-    //
-    //     let g = make_game("d", "c", true);
-    //     assert_eq!(compare_cards(&g, "jb", "c1"), true);
-    //     assert_eq!(compare_cards(&g, "c1", "jb"), false);
-    //     assert_eq!(compare_cards(&g, "jb", "c3"), true);
-    //     assert_eq!(compare_cards(&g, "c3", "jb"), false);
-    //
-    //     let g = make_game("", "c", false);
-    //     assert_eq!(compare_cards(&g, "jb", "jr"), false);
-    //     assert_eq!(compare_cards(&g, "s0", "jb"), false);
-    //     assert_eq!(compare_cards(&g, "jb", "s0"), true);
-    //     assert_eq!(compare_cards(&g, "jb", "c0"), false);
-    //     assert_eq!(compare_cards(&g, "c0", "jb"), true);
-    //     assert_eq!(compare_cards(&g, "s1", "c1"), true);
-    //     assert_eq!(compare_cards(&g, "c1", "c0"), true);
-    //
-    //     let g = make_game("", "c", true);
-    //     assert_eq!(compare_cards(&g, "c1", "jb"), false);
-    //     assert_eq!(compare_cards(&g, "jb", "c1"), true);
-    //
-    //     let g = make_game("s", "c", false);
-    //     assert_eq!(compare_cards(&g, "jb", "s1"), false);
-    //     assert_eq!(compare_cards(&g, "s1", "jb"), true);
-    // }
+    #[test]
+    fn compare_cards_test() {
+        fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
+            BasicState::InGame {
+                president: 0,
+                friend_func: BasicFriendFunc::None,
+                friend: Option::None,
+                is_friend_known: false,
+                giruda: parse_to_card_type(giruda),
+                pledge: 0,
+                deck: vec![],
+                score_deck: vec![],
+                turn_count: 0,
+                placed_cards: vec![],
+                start_user: 0,
+                current_user: 0,
+                current_pattern: parse_to_rush_type(current_pattern).unwrap(),
+                is_joker_called,
+            }
+        }
+
+        fn parse_to_card_type(s: &str) -> Option<CardType> {
+            if s.is_empty() {
+                return None;
+            }
+            match s.get(0..1).unwrap() {
+                "s" => Some(CardType::Spade),
+                "d" => Some(CardType::Diamond),
+                "h" => Some(CardType::Heart),
+                "c" => Some(CardType::Clover),
+                _ => None,
+            }
+        }
+
+        fn parse_to_color_type(s: &str) -> Option<ColorType> {
+            if s.is_empty() {
+                return None;
+            }
+            match s.get(0..1).unwrap() {
+                "r" => Some(ColorType::Red),
+                "b" => Some(ColorType::Black),
+                _ => None,
+            }
+        }
+
+        fn parse_to_rush_type(s: &str) -> Option<RushType> {
+            parse_to_card_type(s)
+                .map(RushType::from)
+                .or_else(|| parse_to_color_type(s).map(RushType::from))
+        }
+
+        fn parse_to_card(s: &str) -> Option<Card> {
+            match s.get(0..1).unwrap() {
+                "s" | "d" | "h" | "c" => {
+                    let num = s.get(1..2).unwrap();
+                    let num = u8::from_str_radix(num, 13).unwrap();
+                    Some(Card::Normal(parse_to_card_type(s.get(0..1).unwrap()).unwrap(), num))
+                }
+                "j" => Some(Card::Joker(parse_to_color_type(s.get(1..).unwrap()).unwrap())),
+                _ => None,
+            }
+        }
+
+        fn compare_cards(game: &BasicState, c1: &str, c2: &str) -> bool {
+            game.compare_cards(&parse_to_card(c1).unwrap(), &parse_to_card(c2).unwrap())
+        }
+
+        let g = make_game("s", "s", false);
+        assert_eq!(compare_cards(&g, "s1", "s0"), true);
+        assert_eq!(compare_cards(&g, "s0", "d0"), true);
+        assert_eq!(compare_cards(&g, "d0", "s0"), false);
+        assert_eq!(compare_cards(&g, "d1", "s0"), true);
+
+        let g = make_game("s", "d", false);
+        assert_eq!(compare_cards(&g, "h1", "h0"), true);
+        assert_eq!(compare_cards(&g, "h1", "d0"), true);
+        assert_eq!(compare_cards(&g, "d1", "s0"), true);
+        assert_eq!(compare_cards(&g, "d1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "d1"), true);
+        assert_eq!(compare_cards(&g, "d1", "jr"), true);
+        assert_eq!(compare_cards(&g, "jr", "d1"), false);
+        assert_eq!(compare_cards(&g, "jr", "s1"), true);
+        assert_eq!(compare_cards(&g, "s1", "jr"), false);
+
+        let g = make_game("d", "c", true);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c3"), true);
+        assert_eq!(compare_cards(&g, "c3", "jb"), false);
+
+        let g = make_game("", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "jr"), false);
+        assert_eq!(compare_cards(&g, "s0", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "s0"), true);
+        assert_eq!(compare_cards(&g, "jb", "c0"), false);
+        assert_eq!(compare_cards(&g, "c0", "jb"), true);
+        assert_eq!(compare_cards(&g, "s1", "c1"), true);
+        assert_eq!(compare_cards(&g, "c1", "c0"), true);
+
+        let g = make_game("", "c", true);
+        assert_eq!(compare_cards(&g, "c1", "jb"), false);
+        assert_eq!(compare_cards(&g, "jb", "c1"), true);
+
+        let g = make_game("s", "c", false);
+        assert_eq!(compare_cards(&g, "jb", "s1"), false);
+        assert_eq!(compare_cards(&g, "s1", "jb"), true);
+    }
 
     #[test]
     fn process_test() {

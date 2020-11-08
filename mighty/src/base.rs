@@ -181,8 +181,8 @@ impl MightyGame {
         self.state.last().unwrap().generate(user)
     }
 
-    pub fn last(&self) -> &Box<dyn MightyState> {
-        self.state.last().unwrap()
+    pub fn last(&self) -> &dyn MightyState {
+        self.state.last().unwrap().as_ref()
     }
 }
 

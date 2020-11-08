@@ -748,7 +748,7 @@ mod test {
         }
 
         fn parse_to_card_type(s: &str) -> Option<CardType> {
-            if s.len() == 0 {
+            if s.is_empty() {
                 return None;
             }
             match s.get(0..1).unwrap() {
@@ -761,7 +761,7 @@ mod test {
         }
 
         fn parse_to_color_type(s: &str) -> Option<ColorType> {
-            if s.len() == 0 {
+            if s.is_empty() {
                 return None;
             }
             match s.get(0..1).unwrap() {
@@ -773,8 +773,8 @@ mod test {
 
         fn parse_to_rush_type(s: &str) -> Option<RushType> {
             parse_to_card_type(s)
-                .map(|x| RushType::from(x))
-                .or_else(|| parse_to_color_type(s).map(|x| RushType::from(x)))
+                .map(RushType::from)
+                .or_else(|| parse_to_color_type(s).map(RushType::from))
         }
 
         fn parse_to_card(s: &str) -> Option<Card> {

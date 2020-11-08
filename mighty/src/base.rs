@@ -171,40 +171,24 @@ impl MightyGame {
         }
     }
 
-    // pub fn next(&mut self, cmd: String) -> Result<()> {
-    //     let next_state = self.state.last().unwrap().next(cmd)?;
-    //     self.state.push(next_state);
-    //     Ok(())
-    // }
+    pub fn next(&mut self, cmd: Vec<u8>) -> Result<()> {
+        let next_state = self.state.last().unwrap().next(cmd)?;
+        self.state.push(next_state);
+        Ok(())
+    }
 
     pub fn generate(&self, user: usize) -> Box<dyn MightyState> {
         self.state.last().unwrap().generate(user)
+    }
+
+    pub fn last(&self) -> &dyn MightyState {
+        self.state.last().unwrap().as_ref()
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use bincode::{deserialize, serialize};
-
-    #[test]
-    fn card_type_serialize() {
-        assert_eq!(serialize(&CardType::Spade).unwrap(), vec![0, 0, 0, 0]);
-        assert_eq!(serialize(&CardType::Diamond).unwrap(), vec![1, 0, 0, 0]);
-        assert_eq!(serialize(&CardType::Heart).unwrap(), vec![2, 0, 0, 0]);
-        assert_eq!(serialize(&CardType::Clover).unwrap(), vec![3, 0, 0, 0]);
-    }
-
-    #[test]
-    fn card_type_deserialize() {
-        assert_eq!(deserialize::<CardType>(&[0, 0, 0, 0]).unwrap(), CardType::Spade);
-        assert_eq!(deserialize::<CardType>(&[1, 0, 0, 0]).unwrap(), CardType::Diamond);
-        assert_eq!(deserialize::<CardType>(&[2, 0, 0, 0]).unwrap(), CardType::Heart);
-        assert_eq!(deserialize::<CardType>(&[3, 0, 0, 0]).unwrap(), CardType::Clover);
-    }
-
-    // #[test]
-    // fn color_type_from_str() {}
 
     #[test]
     fn color_type_from() {
@@ -228,26 +212,8 @@ mod test {
         assert!(ColorType::Black.contains(&CardType::Clover));
     }
 
-    // #[test]
-    // fn color_type_display_test() {
-    //     assert_eq!(ColorType::Red.to_string(), "r");
-    //     assert_eq!(ColorType::Black.to_string(), "b");
-    // }
-    //
-    // #[test]
-    // fn rush_type_from_str_test() {
-    //     assert_eq!("s".parse(), Ok(RushType::Spade));
-    //     assert_eq!("d".parse(), Ok(RushType::Diamond));
-    //     assert_eq!("h".parse(), Ok(RushType::Heart));
-    //     assert_eq!("c".parse(), Ok(RushType::Clover));
-    //     assert_eq!("r".parse(), Ok(RushType::Red));
-    //     assert_eq!("b".parse(), Ok(RushType::Black));
-    //
-    //     assert_eq!("hello".parse::<RushType>(), Err(ParseError::new()));
-    // }
-
     #[test]
-    fn rush_type_from_test() {
+    fn rush_type_from() {
         assert_eq!(RushType::from(CardType::Spade), RushType::Spade);
         assert_eq!(RushType::from(CardType::Diamond), RushType::Diamond);
         assert_eq!(RushType::from(CardType::Heart), RushType::Heart);
@@ -265,7 +231,7 @@ mod test {
     }
 
     #[test]
-    fn rush_type_contains_test() {
+    fn rush_type_contains() {
         assert!(RushType::Spade.contains(&CardType::Spade));
         assert!(RushType::Diamond.contains(&CardType::Diamond));
         assert!(RushType::Heart.contains(&CardType::Heart));
@@ -277,35 +243,8 @@ mod test {
         assert!(RushType::Black.contains(&CardType::Clover));
     }
 
-    // #[test]
-    // fn rush_type_display_test() {
-    //     assert_eq!(RushType::Black.to_string(), "b");
-    //     assert_eq!(RushType::Red.to_string(), "r");
-    //     assert_eq!(RushType::Spade.to_string(), "s");
-    //     assert_eq!(RushType::Diamond.to_string(), "d");
-    //     assert_eq!(RushType::Heart.to_string(), "h");
-    //     assert_eq!(RushType::Clover.to_string(), "c");
-    // }
-    //
-    // #[test]
-    // fn card_from_str_test() {
-    //     assert_eq!("s0".parse(), Ok(Card::Normal(CardType::Spade, 0)));
-    //     assert_eq!("d4".parse(), Ok(Card::Normal(CardType::Diamond, 4)));
-    //     assert_eq!("h9".parse(), Ok(Card::Normal(CardType::Heart, 9)));
-    //     assert_eq!("cc".parse(), Ok(Card::Normal(CardType::Clover, 12)));
-    //     assert_eq!("jr".parse(), Ok(Card::Joker(ColorType::Red)));
-    //     assert_eq!("jb".parse(), Ok(Card::Joker(ColorType::Black)));
-    //
-    //     assert_eq!("t0".parse::<Card>(), Err(ParseError::new()));
-    //     assert_eq!("sd".parse::<Card>(), Err(ParseError::new()));
-    //     assert_eq!("p".parse::<Card>(), Err(ParseError::new()));
-    //     assert_eq!("".parse::<Card>(), Err(ParseError::new()));
-    //     assert_eq!("hello".parse::<Card>(), Err(ParseError::new()));
-    //     assert_eq!("ja".parse::<Card>(), Err(ParseError::new()));
-    // }
-
     #[test]
-    fn card_new_deck_test() {
+    fn card_new_deck() {
         let v = Card::new_deck();
         assert_eq!(v.len(), 54);
 
@@ -317,25 +256,15 @@ mod test {
     }
 
     #[test]
-    fn card_is_score_test() {
+    fn card_is_score() {
         assert_eq!(Card::Normal(CardType::Spade, 9).is_score(), true);
         assert_eq!(Card::Normal(CardType::Diamond, 8).is_score(), false);
         assert_eq!(Card::Joker(ColorType::Red).is_score(), false);
     }
 
     #[test]
-    fn card_is_joker_test() {
+    fn card_is_joker() {
         assert_eq!(Card::Joker(ColorType::Red).is_joker(), true);
         assert_eq!(Card::Normal(CardType::Spade, 5).is_joker(), false);
     }
-
-    // #[test]
-    // fn card_display_test() {
-    //     assert_eq!(Card::Normal(CardType::Spade, 0).to_string(), "s0");
-    //     assert_eq!(Card::Normal(CardType::Diamond, 5).to_string(), "d5");
-    //     assert_eq!(Card::Normal(CardType::Heart, 8).to_string(), "h8");
-    //     assert_eq!(Card::Normal(CardType::Clover, 12).to_string(), "cc");
-    //     assert_eq!(Card::Joker(ColorType::Red).to_string(), "jr");
-    //     assert_eq!(Card::Joker(ColorType::Black).to_string(), "jb");
-    // }
 }

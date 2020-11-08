@@ -115,15 +115,13 @@ fn generate_private_key() -> [u8; 32] {
 
 #[derive(Deserialize)]
 struct Config {
-    #[allow(dead_code)]
-    addr: String,
     pg: deadpool_postgres::Config,
 }
 
 impl Config {
     fn new() -> Config {
         let mut cfg = config::Config::new();
-        cfg.merge(config::Environment::new().separator("__")).unwrap();
+        cfg.merge(config::Environment::new().separator("_")).unwrap();
         cfg.try_into().unwrap()
     }
 }

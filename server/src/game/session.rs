@@ -3,17 +3,14 @@ use actix::prelude::*;
 use actix_web_actors::ws;
 use std::time::Instant;
 
-#[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct Command;
-
 pub struct WsSession {
-    id: usize,
+    session_id: usize,
+    #[allow(dead_code)]
     name: String,
     #[allow(dead_code)]
     room: usize,
     hb: Instant,
-    addr: Addr<server::WsServer>,
+    server: Addr<server::MainServer>,
 }
 
 impl Actor for WsSession {
@@ -22,15 +19,12 @@ impl Actor for WsSession {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
         let addr = ctx.address();
-        self.addr
-            .send(server::Connect {
-                addr: addr.recipient(),
-                name: self.name.clone(),
-            })
+        self.server
+            .send(server::Connect { addr })
             .into_actor(self)
             .then(|res, act, ctx| {
                 match res {
-                    Ok(res) => act.id = res,
+                    Ok(res) => act.session_id = res,
                     _ => ctx.stop(),
                 };
                 fut::ready(())
@@ -40,33 +34,27 @@ impl Actor for WsSession {
 }
 
 impl WsSession {
-    pub fn new(id: String, addr: Addr<server::WsServer>) -> WsSession {
+    pub fn new(id: String, addr: Addr<server::MainServer>) -> WsSession {
         WsSession {
-            id: 0,
+            session_id: 0,
             name: id,
             room: 0,
             hb: Instant::now(),
-            addr,
+            server: addr,
         }
     }
 
     fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                act.addr.do_send(server::Disconnect(act.name.clone()));
+                act.server.do_send(server::Disconnect {
+                    session_id: act.session_id,
+                });
                 ctx.stop();
                 return;
             }
             ctx.ping(b"");
         });
-    }
-}
-
-impl Handler<Command> for WsSession {
-    type Result = ();
-
-    fn handle(&mut self, _: Command, _: &mut Self::Context) -> Self::Result {
-        // todo
     }
 }
 

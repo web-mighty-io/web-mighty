@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+pub mod room;
 pub mod server;
 pub mod session;
 

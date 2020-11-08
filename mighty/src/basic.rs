@@ -693,12 +693,13 @@ impl BasicState {
 }
 
 impl MightyState for BasicState {
-    fn next(&self, cmd: Vec<u8>) -> Result<Box<dyn MightyState>> {
-        let cmd = bincode::deserialize(&*cmd)?;
+    fn next(&self, cmd: &str) -> Result<Box<dyn MightyState>> {
+        let cmd = serde_json::from_str(cmd)?;
         Ok(Box::new(self.process(cmd)?))
     }
 
     // todo: fill else
+    //       observer if user is 5
     fn generate(&self, user: usize) -> Box<dyn MightyState> {
         match self {
             BasicState::NotStarted => Box::new(BasicState::NotStarted),

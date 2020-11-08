@@ -1,7 +1,4 @@
-use bincode::ErrorKind;
-
 #[derive(PartialEq, Clone, Debug)]
-
 pub enum Error {
     ParseError,
     InvalidCommand(&'static str),
@@ -36,8 +33,8 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl From<Box<bincode::ErrorKind>> for Error {
-    fn from(_: Box<ErrorKind>) -> Self {
+impl From<serde_json::Error> for Error {
+    fn from(_: serde_json::Error) -> Self {
         Error::ParseError
     }
 }

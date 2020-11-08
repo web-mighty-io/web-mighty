@@ -35,7 +35,7 @@ impl ResponseError for DeleteUserError {
 // todo: change sql
 pub async fn delete_user(form: &DeleteUserForm, pool: &Pool) -> Result<(), DeleteUserError> {
     let client = pool.get().await?;
-    let stmt = client.prepare("SELECT password FROM user WHERE id=$1").await?;
+    let stmt = client.prepare("SELECT password FROM users WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if res.is_empty() {
         return Err(DeleteUserError::NoUser);
@@ -44,7 +44,7 @@ pub async fn delete_user(form: &DeleteUserForm, pool: &Pool) -> Result<(), Delet
     if password != form.password_hash {
         return Err(DeleteUserError::WrongPassword);
     }
-    let stmt = client.prepare("DELETE FROM user WHERE id=$1").await?;
+    let stmt = client.prepare("DELETE FROM users WHERE id=$1").await?;
     client.query(&stmt, &[&form.user_id]).await?;
     Ok(())
 }

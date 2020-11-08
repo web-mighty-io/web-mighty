@@ -35,7 +35,7 @@ impl ResponseError for LoginError {
 // todo: change sql
 pub async fn login(form: &LoginForm, pool: &Pool) -> Result<(), LoginError> {
     let client = pool.get().await?;
-    let stmt = client.prepare("SELECT password FROM user WHERE id=$1").await?;
+    let stmt = client.prepare("SELECT password FROM users WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if res.is_empty() {
         return Err(LoginError::NoUser);

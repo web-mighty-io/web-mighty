@@ -37,7 +37,7 @@ impl ResponseError for RegisterError {
 // todo: change sql
 pub async fn register(form: &RegisterForm, pool: &Pool) -> Result<(), RegisterError> {
     let client = pool.get().await?;
-    let stmt = client.prepare("SELECT id FROM user WHERE id=$1").await?;
+    let stmt = client.prepare("SELECT id FROM users WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if !res.is_empty() {
         return Err(RegisterError::UserIdExist);

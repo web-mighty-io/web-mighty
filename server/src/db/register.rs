@@ -7,7 +7,7 @@ use derive_more::Display;
 pub enum RegisterError {
     PoolError(PoolError),
     InvalidUsername,
-    UsernameExist,
+    UserIdExist,
     InvalidPassword,
 }
 
@@ -32,7 +32,7 @@ impl ResponseError for RegisterError {
             RegisterError::InvalidUsername => {
                 HttpResponse::BadRequest().body("username not allowed")
             }
-            RegisterError::UsernameExist => HttpResponse::Conflict().body("username exists"),
+            RegisterError::UserIdExist => HttpResponse::Conflict().body("userid exists"),
             RegisterError::InvalidPassword => {
                 HttpResponse::BadRequest().body("password is not allowed")
             }
@@ -44,15 +44,28 @@ impl ResponseError for RegisterError {
 pub async fn register(form: &RegisterForm, pool: &Pool) -> Result<(), RegisterError> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT id FROM user WHERE id=$1").await?;
-    let res = client.query(&stmt, &[&form.username]).await?;
+    let res = client.query(&stmt, &[&form.user_id]).await?;
     if !res.is_empty() {
-        return Err(RegisterError::UsernameExist);
+        return Err(RegisterError::UserIdExist);
     }
 
     let client = pool.get().await?;
-    let stmt = client.prepare("INSERT ...").await?;
+    let stmt = client
+        .prepare(
+            "INSERT INTO users (id, name, password, email)
+            VALUES ($1, $2, $3, $4);",
+        )
+        .await?;
     let _ = client
-        .query(&stmt, &[&form.username, &form.password_hash])
+        .query(
+            &stmt,
+            &[
+                &form.user_id,
+                &form.username,
+                &form.password_hash,
+                &form.email,
+            ],
+        )
         .await?;
     Ok(())
 }

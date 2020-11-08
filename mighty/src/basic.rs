@@ -25,6 +25,8 @@ pub enum BasicCommand {
     Pledge(usize, Option<CardType>, u8),
     // user-id, friend function type, dropped cards
     SelectFriend(usize, BasicFriendFunc, Vec<Card>),
+    // user-id, new pledge
+    ChangePledge(usize, Option<CardType>),
     // user-id, card to place, type to rush (if joker & first of turn), joker called (if right card)
     Go(usize, Card, RushType, bool),
     // user-id
@@ -603,6 +605,34 @@ impl BasicState {
                         is_joker_called: false,
                     })
                 }
+                BasicCommand::ChangePledge(user_id, new_giruda) => {
+                    if user_id != *president {
+                        return Err(Error::NotPresident);
+                    }
+
+                    let (giruda, pledge) = *pledge;
+                    if giruda == new_giruda {
+                        return Err(Error::SameGiruda);
+                    }
+
+                    let new_pledge = if matches!(giruda, None) {
+                        pledge + 3
+                    } else if matches!(new_giruda, None) {
+                        pledge + 1
+                    } else {
+                        pledge + 2
+                    };
+
+                    if new_pledge > 20 {
+                        return Err(Error::InvalidPledge(true, 20));
+                    }
+
+                    Ok(BasicState::SelectFriend {
+                        president: *president,
+                        pledge: (new_giruda, new_pledge),
+                        deck: deck.clone(),
+                    })
+                }
                 BasicCommand::Random(user_id) => self.process(BasicCommand::SelectFriend(
                     user_id,
                     BasicFriendFunc::ByUser(rand::thread_rng().gen_range(0, 5)),
@@ -800,6 +830,12 @@ impl BasicState {
                             if let Some(f) = friend {
                                 score += score_deck[f].len() as u8;
                                 winner += 1 << f;
+                            }
+                            if score == 20 {
+                                mul *= 2;
+                            }
+                            if score <= 10 {
+                                mul *= 2;
                             }
 
                             if score >= pledge {

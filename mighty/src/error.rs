@@ -19,6 +19,8 @@ pub enum Error {
     NotInDeck,
     #[display("your card is not {0}")]
     WrongCardType(RushType),
+    #[display("it is the same giruda")]
+    SameGiruda,
     #[display("internal error: {0}")]
     Internal(&'static str),
     #[display("you can't place this card")]

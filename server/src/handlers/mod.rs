@@ -10,6 +10,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(post::logout)
         .service(post::register)
         .service(post::delete_user)
+        .service(get::websocket)
         .service(web::scope("/res").service(get::resource));
 }
 

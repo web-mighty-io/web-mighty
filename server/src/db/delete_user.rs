@@ -1,4 +1,4 @@
-﻿use crate::handlers::DeleteUserForm;
+use crate::handlers::DeleteUserForm;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::{Pool, PoolError};
 use derive_more::Display;
@@ -25,13 +25,9 @@ impl From<tokio_postgres::Error> for DeleteUserError {
 impl ResponseError for DeleteUserError {
     fn error_response(&self) -> HttpResponse {
         match *self {
-            DeleteUserError::PoolError(ref err) => {
-                HttpResponse::InternalServerError().body(err.to_string())
-            }
+            DeleteUserError::PoolError(ref err) => HttpResponse::InternalServerError().body(err.to_string()),
             DeleteUserError::NoUser => HttpResponse::Unauthorized().body("no user found to delete"),
-            DeleteUserError::WrongPassword => {
-                HttpResponse::Unauthorized().body("incorrect password")
-            }
+            DeleteUserError::WrongPassword => HttpResponse::Unauthorized().body("incorrect password"),
         }
     }
 }
@@ -39,9 +35,7 @@ impl ResponseError for DeleteUserError {
 // todo: change sql
 pub async fn delete_user(form: &DeleteUserForm, pool: &Pool) -> Result<(), DeleteUserError> {
     let client = pool.get().await?;
-    let stmt = client
-        .prepare("SELECT password FROM user WHERE id=$1")
-        .await?;
+    let stmt = client.prepare("SELECT password FROM user WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if res.is_empty() {
         return Err(DeleteUserError::NoUser);

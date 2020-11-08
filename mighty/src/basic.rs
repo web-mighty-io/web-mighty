@@ -1,23 +1,19 @@
 use crate::base::*;
 use crate::error::{Error, Result};
-use parse_display::{Display, FromStr, ParseError};
 use rand::seq::SliceRandom;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 /// type of friend making
-#[derive(PartialEq, Clone, Debug, Display, FromStr)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub enum BasicFriendFunc {
-    #[display("n")]
     None,
-    #[display("c{0}")]
     ByCard(Card),
-    #[display("u{0}")]
     ByUser(usize),
-    #[display("w{0}")]
     ByWinning(u8),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub enum BasicCommand {
     // user-id
     StartGame(usize),
@@ -31,145 +27,6 @@ pub enum BasicCommand {
     Go(usize, Card, RushType, bool),
     // user-id
     Random(usize),
-}
-
-impl std::str::FromStr for BasicCommand {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        // todo
-
-        let p_num = s
-            .get(1..2)
-            .ok_or_else(ParseError::new)?
-            .parse::<usize>()
-            .unwrap();
-
-        match s.get(0..1).ok_or_else(ParseError::new)? {
-            "h" => Ok(Self::StartGame(p_num)),
-            "p" => match s.get(2..3).ok_or_else(ParseError::new)? {
-                "n" => {
-                    let num = s
-                        .get(3..4)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<u8>()
-                        .unwrap();
-                    Ok(Self::Pledge(p_num, None, num + 12))
-                }
-                "s" | "d" | "h" | "c" => {
-                    let num = s
-                        .get(3..4)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<u8>()
-                        .unwrap();
-                    Ok(Self::Pledge(
-                        p_num,
-                        Some(
-                            s.get(2..3)
-                                .ok_or_else(ParseError::new)?
-                                .parse::<CardType>()
-                                .unwrap(),
-                        ),
-                        num + 13,
-                    ))
-                }
-                _ => Err(ParseError::new()),
-            },
-
-            "s" => {
-                let dropped: Vec<Card> = vec![
-                    s.get(2..4)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<Card>()
-                        .unwrap(),
-                    s.get(4..6)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<Card>()
-                        .unwrap(),
-                    s.get(6..8)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<Card>()
-                        .unwrap(),
-                    s.get(8..10)
-                        .ok_or_else(ParseError::new)?
-                        .parse::<Card>()
-                        .unwrap(),
-                ];
-
-                match s.get(10..11).ok_or_else(ParseError::new)? {
-                    "n" => Ok(Self::SelectFriend(p_num, BasicFriendFunc::None, dropped)),
-                    "c" => Ok(Self::SelectFriend(
-                        p_num,
-                        BasicFriendFunc::ByCard(
-                            s.get(11..13)
-                                .ok_or_else(ParseError::new)?
-                                .parse::<Card>()
-                                .unwrap(),
-                        ),
-                        dropped,
-                    )),
-                    "u" => {
-                        let num = s
-                            .get(11..12)
-                            .ok_or_else(ParseError::new)?
-                            .parse::<usize>()
-                            .unwrap();
-                        Ok(Self::SelectFriend(
-                            p_num,
-                            BasicFriendFunc::ByUser(num),
-                            dropped,
-                        ))
-                    }
-                    "w" => {
-                        let num = s
-                            .get(11..12)
-                            .ok_or_else(ParseError::new)?
-                            .parse::<u8>()
-                            .unwrap();
-                        Ok(Self::SelectFriend(
-                            p_num,
-                            BasicFriendFunc::ByWinning(num),
-                            dropped,
-                        ))
-                    }
-                    _ => Err(ParseError::new()),
-                }
-            }
-
-            "g" => {
-                let p_card = s
-                    .get(2..4)
-                    .ok_or_else(ParseError::new)?
-                    .parse::<Card>()
-                    .unwrap();
-                let p_rushtype = s
-                    .get(4..5)
-                    .ok_or_else(ParseError::new)?
-                    .parse::<RushType>()
-                    .unwrap();
-                let joker_called = s.get(5..6).ok_or_else(ParseError::new)? == "1";
-                Ok(Self::Go(p_num, p_card, p_rushtype, joker_called))
-            }
-
-            "r" => {
-                let num = s
-                    .get(1..2)
-                    .ok_or_else(ParseError::new)?
-                    .parse::<usize>()
-                    .unwrap();
-                Ok(Self::Random(num))
-            }
-
-            _ => Err(ParseError::new()),
-        }
-    }
-}
-
-impl std::fmt::Display for BasicCommand {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // todo
-        unimplemented!()
-    }
 }
 
 impl BasicCommand {
@@ -263,10 +120,7 @@ impl BasicState {
     /// Check if joker called.
     /// **Valid output only in in-game.**
     fn is_joker_called(&self) -> bool {
-        if let BasicState::InGame {
-            is_joker_called, ..
-        } = self
-        {
+        if let BasicState::InGame { is_joker_called, .. } = self {
             *is_joker_called
         } else {
             false
@@ -277,9 +131,7 @@ impl BasicState {
     /// **Valid output only in in-game.**
     fn get_current_pattern(&self) -> RushType {
         match self {
-            BasicState::InGame {
-                current_pattern, ..
-            } => *current_pattern,
+            BasicState::InGame { current_pattern, .. } => *current_pattern,
             // don't need this value
             _ => RushType::Spade,
         }
@@ -509,8 +361,7 @@ impl BasicState {
                             }
 
                             let mut deck = deck.clone();
-                            let president =
-                                candidate.choose(&mut rand::thread_rng()).copied().unwrap();
+                            let president = candidate.choose(&mut rand::thread_rng()).copied().unwrap();
                             let mut pledge = pledge[president];
                             if last_max == 0 {
                                 let pledge_vec = vec![
@@ -520,8 +371,7 @@ impl BasicState {
                                     (Some(CardType::Heart), 13),
                                     (Some(CardType::Clover), 13),
                                 ];
-                                pledge =
-                                    pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap();
+                                pledge = pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap();
                             }
 
                             deck[president].append(&mut left.clone());
@@ -540,9 +390,7 @@ impl BasicState {
                         }
                     }
                 }
-                BasicCommand::Random(user_id) => {
-                    self.process(BasicCommand::Pledge(user_id, None, 0))
-                }
+                BasicCommand::Random(user_id) => self.process(BasicCommand::Pledge(user_id, None, 0)),
                 _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
             },
 
@@ -565,10 +413,7 @@ impl BasicState {
 
                     let mut deck = deck.clone();
                     for card in drop_card.iter() {
-                        let idx = deck[user_id]
-                            .iter()
-                            .position(|x| *x == *card)
-                            .ok_or(Error::NotInDeck)?;
+                        let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
                         deck[user_id].remove(idx);
                     }
 
@@ -585,8 +430,7 @@ impl BasicState {
                         BasicFriendFunc::ByWinning(_) => None,
                     };
 
-                    let is_friend_known =
-                        matches!(&friend_func, BasicFriendFunc::None | BasicFriendFunc::ByUser(_));
+                    let is_friend_known = matches!(&friend_func, BasicFriendFunc::None | BasicFriendFunc::ByUser(_));
 
                     Ok(BasicState::InGame {
                         president: *president,
@@ -683,19 +527,14 @@ impl BasicState {
                         _ => is_friend_known,
                     };
 
-                    let idx = deck[user_id]
-                        .iter()
-                        .position(|x| *x == card)
-                        .ok_or(Error::NotInDeck)?;
+                    let idx = deck[user_id].iter().position(|x| *x == card).ok_or(Error::NotInDeck)?;
 
                     if *current_user == start_user {
                         current_pattern = RushType::from(card.clone());
                         is_joker_called = false;
 
                         if !deck[user_id].iter().all(|x| match *x {
-                            Card::Normal(t, _) => {
-                                *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y)
-                            }
+                            Card::Normal(t, _) => *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y),
                             Card::Joker(_) => true,
                         }) && matches!(giruda, Some(y) if RushType::from(*y) == current_pattern)
                         {
@@ -741,15 +580,13 @@ impl BasicState {
                                 };
 
                                 if !containing {
-                                    return Err(Error::WrongCardType(current_pattern));
+                                    return Err(Error::WrongCardType);
                                 }
                             }
                         }
                     } else if self.get_mighty() == card {
                         deck[user_id].remove(idx);
-                    } else if !deck[user_id]
-                        .iter()
-                        .all(|x| !current_pattern.is_same_type(x))
+                    } else if !deck[user_id].iter().all(|x| !current_pattern.is_same_type(x))
                         && !current_pattern.is_same_type(&card)
                     {
                         return Err(Error::WrongCard);
@@ -790,14 +627,11 @@ impl BasicState {
                             };
                         }
 
-                        let winner = winner.ok_or(Error::Internal(
-                            "internal error occurred when calculating score",
-                        ))?;
+                        let winner = winner.ok_or(Error::Internal("internal error occurred when calculating score"))?;
 
                         if let BasicFriendFunc::ByWinning(j) = friend_func {
-                            friend = friend.or_else(|| {
-                                Some(winner).filter(|_| *j == turn_count && winner != *president)
-                            });
+                            friend =
+                                friend.or_else(|| Some(winner).filter(|_| *j == turn_count && winner != *president));
                             is_friend_known |= *j == turn_count;
                         }
 
@@ -895,8 +729,8 @@ impl BasicState {
 }
 
 impl MightyState for BasicState {
-    fn next(&self, cmd: String) -> Result<Box<dyn MightyState>> {
-        let cmd = cmd.parse::<BasicCommand>()?;
+    fn next(&self, cmd: Vec<u8>) -> Result<Box<dyn MightyState>> {
+        let cmd = bincode::deserialize(&*cmd)?;
         Ok(Box::new(self.process(cmd)?))
     }
 
@@ -904,9 +738,7 @@ impl MightyState for BasicState {
     fn generate(&self, user: usize) -> Box<dyn MightyState> {
         match self {
             BasicState::NotStarted => Box::new(BasicState::NotStarted),
-            BasicState::Election {
-                pledge, done, deck, ..
-            } => {
+            BasicState::Election { pledge, done, deck, .. } => {
                 let v = deck
                     .iter()
                     .enumerate()
@@ -927,153 +759,74 @@ impl MightyState for BasicState {
 }
 
 #[cfg(test)]
-mod basic_tests {
+mod test {
     use super::*;
 
-    #[test]
-    fn command_from_str_test() {
-        assert_eq!("h0".parse(), Ok(BasicCommand::StartGame(0)));
-        assert_eq!("h2".parse(), Ok(BasicCommand::StartGame(2)));
-
-        assert_eq!("p2n0".parse(), Ok(BasicCommand::Pledge(2, None, 12)));
-        assert_eq!("p2n8".parse(), Ok(BasicCommand::Pledge(2, None, 20)));
-        assert_eq!(
-            "p2h0".parse(),
-            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 13))
-        );
-        assert_eq!(
-            "p2h7".parse(),
-            Ok(BasicCommand::Pledge(2, Some(CardType::Heart), 20))
-        );
-
-        let dropped: Vec<Card> = vec![
-            Card::Joker(ColorType::Black),
-            Card::Joker(ColorType::Red),
-            Card::Normal(CardType::Spade, 0),
-            Card::Normal(CardType::Clover, 12),
-        ];
-
-        assert_eq!(
-            "s1jbjrs0ccn".parse(),
-            Ok(BasicCommand::SelectFriend(
-                1,
-                BasicFriendFunc::None,
-                dropped.clone()
-            ))
-        );
-        assert_eq!(
-            "s1jbjrs0cccsb".parse(),
-            Ok(BasicCommand::SelectFriend(
-                1,
-                BasicFriendFunc::ByCard(Card::Normal(CardType::Spade, 11)),
-                dropped.clone()
-            ))
-        );
-        assert_eq!(
-            "s1jbjrs0ccu4".parse(),
-            Ok(BasicCommand::SelectFriend(
-                1,
-                BasicFriendFunc::ByUser(4),
-                dropped.clone()
-            ))
-        );
-        assert_eq!(
-            "s1jbjrs0ccw6".parse(),
-            Ok(BasicCommand::SelectFriend(
-                1,
-                BasicFriendFunc::ByWinning(6),
-                dropped
-            ))
-        );
-
-        assert_eq!(
-            "g3s3b1".parse(),
-            Ok(BasicCommand::Go(
-                3,
-                Card::Normal(CardType::Spade, 3),
-                RushType::Black,
-                true
-            ))
-        );
-        assert_eq!(
-            "g3jrs0".parse(),
-            Ok(BasicCommand::Go(
-                3,
-                Card::Joker(ColorType::Red),
-                RushType::Spade,
-                false
-            ))
-        );
-
-        assert_eq!("r0".parse(), Ok(BasicCommand::Random(0)));
-        assert_eq!("r3".parse(), Ok(BasicCommand::Random(3)));
-    }
-
-    #[test]
-    fn compare_cards_test() {
-        fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
-            BasicState::InGame {
-                president: 0,
-                friend_func: BasicFriendFunc::None,
-                friend: Option::None,
-                is_friend_known: false,
-                giruda: giruda.parse().ok(),
-                pledge: 0,
-                deck: vec![],
-                score_deck: vec![],
-                turn_count: 0,
-                placed_cards: vec![],
-                start_user: 0,
-                current_user: 0,
-                current_pattern: current_pattern.parse().unwrap(),
-                is_joker_called,
-            }
-        }
-
-        fn compare_cards(game: &BasicState, c1: &str, c2: &str) -> bool {
-            game.compare_cards(&c1.parse().unwrap(), &c2.parse().unwrap())
-        }
-
-        let g = make_game("s", "s", false);
-        assert_eq!(compare_cards(&g, "s1", "s0"), true);
-        assert_eq!(compare_cards(&g, "s0", "d0"), true);
-        assert_eq!(compare_cards(&g, "d0", "s0"), false);
-        assert_eq!(compare_cards(&g, "d1", "s0"), true);
-
-        let g = make_game("s", "d", false);
-        assert_eq!(compare_cards(&g, "h1", "h0"), true);
-        assert_eq!(compare_cards(&g, "h1", "d0"), true);
-        assert_eq!(compare_cards(&g, "d1", "s0"), true);
-        assert_eq!(compare_cards(&g, "d1", "jb"), false);
-        assert_eq!(compare_cards(&g, "jb", "d1"), true);
-        assert_eq!(compare_cards(&g, "d1", "jr"), true);
-        assert_eq!(compare_cards(&g, "jr", "d1"), false);
-        assert_eq!(compare_cards(&g, "jr", "s1"), true);
-        assert_eq!(compare_cards(&g, "s1", "jr"), false);
-
-        let g = make_game("d", "c", true);
-        assert_eq!(compare_cards(&g, "jb", "c1"), true);
-        assert_eq!(compare_cards(&g, "c1", "jb"), false);
-        assert_eq!(compare_cards(&g, "jb", "c3"), true);
-        assert_eq!(compare_cards(&g, "c3", "jb"), false);
-
-        let g = make_game("", "c", false);
-        assert_eq!(compare_cards(&g, "jb", "jr"), false);
-        assert_eq!(compare_cards(&g, "s0", "jb"), false);
-        assert_eq!(compare_cards(&g, "jb", "s0"), true);
-        assert_eq!(compare_cards(&g, "jb", "c0"), false);
-        assert_eq!(compare_cards(&g, "c0", "jb"), true);
-        assert_eq!(compare_cards(&g, "s1", "c1"), true);
-        assert_eq!(compare_cards(&g, "c1", "c0"), true);
-
-        let g = make_game("", "c", true);
-        assert_eq!(compare_cards(&g, "c1", "jb"), false);
-        assert_eq!(compare_cards(&g, "jb", "c1"), true);
-
-        let g = make_game("s", "c", false);
-        assert_eq!(compare_cards(&g, "jb", "s1"), false);
-        assert_eq!(compare_cards(&g, "s1", "jb"), true);
-    }
+    // #[test]
+    // fn compare_cards_test() {
+    //     fn make_game(giruda: &str, current_pattern: &str, is_joker_called: bool) -> BasicState {
+    //         BasicState::InGame {
+    //             president: 0,
+    //             friend_func: BasicFriendFunc::None,
+    //             friend: Option::None,
+    //             is_friend_known: false,
+    //             giruda: giruda.parse().ok(),
+    //             pledge: 0,
+    //             deck: vec![],
+    //             score_deck: vec![],
+    //             turn_count: 0,
+    //             placed_cards: vec![],
+    //             start_user: 0,
+    //             current_user: 0,
+    //             current_pattern: current_pattern.parse().unwrap(),
+    //             is_joker_called,
+    //         }
+    //     }
+    //
+    //     fn compare_cards(game: &BasicState, c1: &str, c2: &str) -> bool {
+    //         game.compare_cards(&c1.parse().unwrap(), &c2.parse().unwrap())
+    //     }
+    //
+    //     let g = make_game("s", "s", false);
+    //     assert_eq!(compare_cards(&g, "s1", "s0"), true);
+    //     assert_eq!(compare_cards(&g, "s0", "d0"), true);
+    //     assert_eq!(compare_cards(&g, "d0", "s0"), false);
+    //     assert_eq!(compare_cards(&g, "d1", "s0"), true);
+    //
+    //     let g = make_game("s", "d", false);
+    //     assert_eq!(compare_cards(&g, "h1", "h0"), true);
+    //     assert_eq!(compare_cards(&g, "h1", "d0"), true);
+    //     assert_eq!(compare_cards(&g, "d1", "s0"), true);
+    //     assert_eq!(compare_cards(&g, "d1", "jb"), false);
+    //     assert_eq!(compare_cards(&g, "jb", "d1"), true);
+    //     assert_eq!(compare_cards(&g, "d1", "jr"), true);
+    //     assert_eq!(compare_cards(&g, "jr", "d1"), false);
+    //     assert_eq!(compare_cards(&g, "jr", "s1"), true);
+    //     assert_eq!(compare_cards(&g, "s1", "jr"), false);
+    //
+    //     let g = make_game("d", "c", true);
+    //     assert_eq!(compare_cards(&g, "jb", "c1"), true);
+    //     assert_eq!(compare_cards(&g, "c1", "jb"), false);
+    //     assert_eq!(compare_cards(&g, "jb", "c3"), true);
+    //     assert_eq!(compare_cards(&g, "c3", "jb"), false);
+    //
+    //     let g = make_game("", "c", false);
+    //     assert_eq!(compare_cards(&g, "jb", "jr"), false);
+    //     assert_eq!(compare_cards(&g, "s0", "jb"), false);
+    //     assert_eq!(compare_cards(&g, "jb", "s0"), true);
+    //     assert_eq!(compare_cards(&g, "jb", "c0"), false);
+    //     assert_eq!(compare_cards(&g, "c0", "jb"), true);
+    //     assert_eq!(compare_cards(&g, "s1", "c1"), true);
+    //     assert_eq!(compare_cards(&g, "c1", "c0"), true);
+    //
+    //     let g = make_game("", "c", true);
+    //     assert_eq!(compare_cards(&g, "c1", "jb"), false);
+    //     assert_eq!(compare_cards(&g, "jb", "c1"), true);
+    //
+    //     let g = make_game("s", "c", false);
+    //     assert_eq!(compare_cards(&g, "jb", "s1"), false);
+    //     assert_eq!(compare_cards(&g, "s1", "jb"), true);
+    // }
 
     #[test]
     fn process_test() {
@@ -1090,10 +843,7 @@ mod basic_tests {
             .unwrap(),
             Error::InvalidCommand("BasicCommand::StartGame")
         );
-        assert_eq!(
-            g.process(BasicCommand::StartGame(1)).err().unwrap(),
-            Error::NotLeader
-        );
+        assert_eq!(g.process(BasicCommand::StartGame(1)).err().unwrap(), Error::NotLeader);
 
         g = g.process(BasicCommand::StartGame(0)).unwrap();
         assert_eq!(g.get_state(), "e");
@@ -1117,9 +867,7 @@ mod basic_tests {
             Error::InvalidPledge(false, 13)
         );
 
-        g = g
-            .process(BasicCommand::Pledge(2, Some(CardType::Spade), 14))
-            .unwrap();
+        g = g.process(BasicCommand::Pledge(2, Some(CardType::Spade), 14)).unwrap();
 
         assert_eq!(
             g.process(BasicCommand::Pledge(0, Some(CardType::Spade), 13))

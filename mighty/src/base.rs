@@ -4,15 +4,21 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Copy)]
 pub enum CardType {
+    #[serde(rename = "s")]
     Spade,
+    #[serde(rename = "d")]
     Diamond,
+    #[serde(rename = "h")]
     Heart,
+    #[serde(rename = "c")]
     Clover,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Copy)]
 pub enum ColorType {
+    #[serde(rename = "b")]
     Black,
+    #[serde(rename = "r")]
     Red,
 }
 
@@ -45,11 +51,17 @@ impl ColorType {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Copy)]
 pub enum RushType {
+    #[serde(rename = "s")]
     Spade,
+    #[serde(rename = "d")]
     Diamond,
+    #[serde(rename = "h")]
     Heart,
+    #[serde(rename = "c")]
     Clover,
+    #[serde(rename = "r")]
     Red,
+    #[serde(rename = "b")]
     Black,
 }
 
@@ -102,6 +114,7 @@ impl RushType {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[serde(untagged)]
 pub enum Card {
     Normal(CardType, u8),
     Joker(ColorType),
@@ -144,7 +157,7 @@ impl Card {
 }
 
 pub trait MightyState {
-    fn next(&self, cmd: Vec<u8>) -> Result<Box<dyn MightyState>>;
+    fn next(&self, cmd: &str) -> Result<Box<dyn MightyState>>;
 
     fn generate(&self, user: usize) -> Box<dyn MightyState>;
 }
@@ -171,7 +184,7 @@ impl MightyGame {
         }
     }
 
-    pub fn next(&mut self, cmd: Vec<u8>) -> Result<()> {
+    pub fn next(&mut self, cmd: &str) -> Result<()> {
         let next_state = self.state.last().unwrap().next(cmd)?;
         self.state.push(next_state);
         Ok(())

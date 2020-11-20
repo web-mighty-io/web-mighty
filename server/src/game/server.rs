@@ -1,17 +1,18 @@
-use crate::game::{room, session};
+use crate::game::{room, user, session};
 use actix::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Message)]
-#[rtype(result = "usize")]
+#[rtype(result = "Addr<user::User>")]
 pub struct Connect {
+    pub name: String,
     pub addr: Addr<session::WsSession>,
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct Disconnect {
-    pub session_id: usize,
+pub struct RemoveSession {
+    pub name: String,
 }
 
 #[derive(Clone, Message)]
@@ -32,9 +33,10 @@ pub struct RemoveRoom {
     pub room_id: usize,
 }
 
+// room number should be greater than 0
 pub struct MainServer {
-    rooms: HashMap<usize, Addr<room::Room>>,
-    sessions: HashMap<usize, Addr<session::WsSession>>,
+    room_addr: HashMap<usize, Addr<room::Room>>,
+    sessions: HashMap<String, Addr<user::User>>,
 }
 
 impl Default for MainServer {
@@ -48,21 +50,25 @@ impl Actor for MainServer {
 }
 
 impl Handler<Connect> for MainServer {
-    type Result = usize;
+    type Result = Addr<user::User>;
 
-    fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
-        // todo: generate unique id and return it
-        let session_id = rand::random();
-        self.sessions.insert(session_id, msg.addr);
-        session_id
+    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+        if let Some(addr) = self.sessions.get(&msg.name) {
+            addr.clone()
+        } else {
+            let session = user::User::new(ctx.address(), msg.addr).start();
+            session.do_send(user::Connect { name: msg.name.clone() });
+            self.sessions.insert(msg.name, session.clone());
+            session
+        }
     }
 }
 
-impl Handler<Disconnect> for MainServer {
+impl Handler<RemoveSession> for MainServer {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
-        self.sessions.remove(&msg.session_id);
+    fn handle(&mut self, msg: RemoveSession, _: &mut Self::Context) -> Self::Result {
+        self.sessions.remove(&msg.name);
     }
 }
 
@@ -70,7 +76,7 @@ impl Handler<GetRoom> for MainServer {
     type Result = Option<Addr<room::Room>>;
 
     fn handle(&mut self, msg: GetRoom, _: &mut Self::Context) -> Self::Result {
-        self.rooms.get(&msg.room_id).cloned()
+        self.room_addr.get(&msg.room_id).cloned()
     }
 }
 
@@ -82,7 +88,7 @@ impl Handler<MakeRoom> for MainServer {
         let room_id = rand::random();
         let room = room::Room::start_default();
         room.do_send(room::ChangeName { name: msg.name });
-        self.rooms.insert(room_id, room);
+        self.room_addr.insert(room_id, room);
         room_id
     }
 }
@@ -91,14 +97,14 @@ impl Handler<RemoveRoom> for MainServer {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveRoom, _: &mut Self::Context) -> Self::Result {
-        self.rooms.remove(&msg.room_id);
+        self.room_addr.remove(&msg.room_id);
     }
 }
 
 impl MainServer {
     pub fn new() -> Self {
         MainServer {
-            rooms: HashMap::new(),
+            room_addr: HashMap::new(),
             sessions: HashMap::new(),
         }
     }

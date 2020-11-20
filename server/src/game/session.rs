@@ -1,14 +1,11 @@
-use crate::game::{server, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
+use crate::game::{server, user, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
 use actix::prelude::*;
 use actix_web_actors::ws;
 use std::time::Instant;
 
 pub struct WsSession {
-    session_id: usize,
-    #[allow(dead_code)]
     name: String,
-    #[allow(dead_code)]
-    room: usize,
+    session: Option<Addr<user::User>>,
     hb: Instant,
     server: Addr<server::MainServer>,
 }
@@ -18,13 +15,15 @@ impl Actor for WsSession {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
-        let addr = ctx.address();
         self.server
-            .send(server::Connect { addr })
+            .send(server::Connect {
+                name: self.name.clone(),
+                addr: ctx.address(),
+            })
             .into_actor(self)
             .then(|res, act, ctx| {
                 match res {
-                    Ok(res) => act.session_id = res,
+                    Ok(res) => act.session = Some(res),
                     _ => ctx.stop(),
                 };
                 fut::ready(())
@@ -36,9 +35,8 @@ impl Actor for WsSession {
 impl WsSession {
     pub fn new(id: String, addr: Addr<server::MainServer>) -> WsSession {
         WsSession {
-            session_id: 0,
             name: id,
-            room: 0,
+            session: None,
             hb: Instant::now(),
             server: addr,
         }
@@ -47,9 +45,7 @@ impl WsSession {
     fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                act.server.do_send(server::Disconnect {
-                    session_id: act.session_id,
-                });
+                // act.server.do_send(server::Disconnect { name: act.user_id });
                 ctx.stop();
                 return;
             }

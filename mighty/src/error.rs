@@ -7,6 +7,7 @@ pub enum Error {
     NotLeader,
     NotPresident,
     NotInDeck,
+    SameGiruda,
     WrongCardType,
     Internal(&'static str),
     WrongCard,
@@ -27,6 +28,7 @@ impl std::fmt::Display for Error {
             Error::NotPresident => write!(f, "you are not the president"),
             Error::NotInDeck => write!(f, "the card is not in the deck"),
             Error::WrongCardType => write!(f, "your card is not"),
+            Error::SameGiruda => write!(f, "same giruda"),
             Error::Internal(e) => write!(f, "internal error: {}", e),
             Error::WrongCard => write!(f, "you can't place this card"),
         }

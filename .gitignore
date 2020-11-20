@@ -27,3 +27,5 @@ server/build
 
 **.env
 **/*.env
+
+.DS_Store

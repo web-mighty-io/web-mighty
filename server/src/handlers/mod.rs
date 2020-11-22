@@ -1,3 +1,4 @@
+mod delete;
 mod get;
 mod post;
 
@@ -9,6 +10,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(post::login)
         .service(post::logout)
         .service(post::register)
+        .service(delete::delete_user)
         .service(get::websocket)
         .service(web::scope("/res").service(get::resource));
 }
@@ -20,12 +22,19 @@ pub async fn p404() -> impl Responder {
 
 #[derive(Deserialize)]
 pub struct LoginForm {
-    pub username: String,
+    pub user_id: String,
+    pub password_hash: String,
+}
+
+#[derive(Deserialize)]
+pub struct DeleteUserForm {
     pub password_hash: String,
 }
 
 #[derive(Deserialize)]
 pub struct RegisterForm {
+    pub user_id: String,
     pub username: String,
     pub password_hash: String,
+    pub email: String,
 }

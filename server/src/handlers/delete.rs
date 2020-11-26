@@ -1,5 +1,5 @@
 use crate::db;
-use crate::handlers::DeleteUserForm;
+use crate::db::DeleteUserForm;
 use actix_identity::Identity;
 use actix_web::{delete, http, web, Error, HttpResponse};
 use deadpool_postgres::Pool;

@@ -1,18 +1,18 @@
-use crate::game::{room, user, session};
+use crate::game::{room, session, user};
 use actix::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Message)]
 #[rtype(result = "Addr<user::User>")]
 pub struct Connect {
-    pub name: String,
+    pub user_no: u32,
     pub addr: Addr<session::WsSession>,
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
 pub struct RemoveSession {
-    pub name: String,
+    pub user_no: u32,
 }
 
 #[derive(Clone, Message)]
@@ -36,7 +36,7 @@ pub struct RemoveRoom {
 // room number should be greater than 0
 pub struct MainServer {
     room_addr: HashMap<usize, Addr<room::Room>>,
-    sessions: HashMap<String, Addr<user::User>>,
+    sessions: HashMap<u32, Addr<user::User>>,
 }
 
 impl Default for MainServer {
@@ -53,12 +53,14 @@ impl Handler<Connect> for MainServer {
     type Result = Addr<user::User>;
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
-        if let Some(addr) = self.sessions.get(&msg.name) {
+        if let Some(addr) = self.sessions.get(&msg.user_no) {
             addr.clone()
         } else {
             let session = user::User::new(ctx.address(), msg.addr).start();
-            session.do_send(user::Connect { name: msg.name.clone() });
-            self.sessions.insert(msg.name, session.clone());
+            session.do_send(user::Connect {
+                user_no: msg.user_no,
+            });
+            self.sessions.insert(msg.user_no, session.clone());
             session
         }
     }
@@ -68,7 +70,7 @@ impl Handler<RemoveSession> for MainServer {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveSession, _: &mut Self::Context) -> Self::Result {
-        self.sessions.remove(&msg.name);
+        self.sessions.remove(&msg.user_no);
     }
 }
 
@@ -87,7 +89,10 @@ impl Handler<MakeRoom> for MainServer {
         // todo: generate unique id and return it
         let room_id = rand::random();
         let room = room::Room::start_default();
-        room.do_send(room::ChangeName { name: msg.name });
+        room.do_send(room::ChangeName {
+            user_no: 0,
+            name: msg.name,
+        });
         self.room_addr.insert(room_id, room);
         room_id
     }

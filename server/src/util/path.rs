@@ -34,7 +34,7 @@ pub fn to_absolute_path<P: AsRef<Path>>(from: P) -> PathBuf {
 }
 
 #[cfg(test)]
-mod path_test {
+mod test {
     use super::*;
 
     #[test]

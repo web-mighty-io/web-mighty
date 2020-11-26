@@ -25,6 +25,10 @@ python3 util/start_server.py
 
 1. convert `public/static/res/scss/style.scss` to `public/static/res/css/style.css` using `sass`
 
+1. [install](https://www.postgresql.org/download/) and start your postgresql server
+
+1. make `server/.env` file and fill with [environment values](https://github.com/buttercrab/web-mighty/blob/master/server/README.md)
+
 1. run `cd public && wasm-pack build --target web --release`
 
 1. build server
@@ -43,6 +47,6 @@ python3 util/start_server.py
    
       `./server/build/bin/server -p 8080 -s ./public/static/ --https-port 8443 --https-key PATH_TO_KEY.pem --https-cert PATH_TO_CERT.pem`
       
-   2) for http-only:
+   1) for http-only:
    
       `./server/build/bin/server -p 8080 -s ./public/static`

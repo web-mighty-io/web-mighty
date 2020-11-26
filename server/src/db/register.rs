@@ -1,7 +1,7 @@
-use crate::handlers::RegisterForm;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::{Pool, PoolError};
 use derive_more::Display;
+use serde::Deserialize;
 
 #[derive(Debug, Display)]
 pub enum RegisterError {
@@ -34,7 +34,14 @@ impl ResponseError for RegisterError {
     }
 }
 
-// todo: change sql
+#[derive(Deserialize)]
+pub struct RegisterForm {
+    pub user_id: String,
+    pub username: String,
+    pub password_hash: String,
+    pub email: String,
+}
+
 pub async fn register(form: &RegisterForm, pool: &Pool) -> Result<(), RegisterError> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT id FROM users WHERE id=$1").await?;

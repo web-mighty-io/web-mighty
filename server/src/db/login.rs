@@ -1,7 +1,7 @@
-use crate::handlers::LoginForm;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::{Pool, PoolError};
 use derive_more::Display;
+use serde::Deserialize;
 
 #[derive(Debug, Display)]
 pub enum LoginError {
@@ -32,17 +32,22 @@ impl ResponseError for LoginError {
     }
 }
 
-// todo: change sql
-pub async fn login(form: &LoginForm, pool: &Pool) -> Result<(), LoginError> {
+#[derive(Deserialize)]
+pub struct LoginForm {
+    pub user_id: String,
+    pub password_hash: String,
+}
+
+pub async fn login(form: &LoginForm, pool: &Pool) -> Result<u32, LoginError> {
     let client = pool.get().await?;
-    let stmt = client.prepare("SELECT password FROM users WHERE id=$1").await?;
+    let stmt = client.prepare("SELECT no, password FROM users WHERE id=$1").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if res.is_empty() {
         return Err(LoginError::NoUser);
     }
-    let password: String = res[0].get(0);
+    let password: String = res[0].get(1);
     if password != form.password_hash {
         return Err(LoginError::WrongPassword);
     }
-    Ok(())
+    Ok(res[0].get(0))
 }

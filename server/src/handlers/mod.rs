@@ -3,7 +3,6 @@ mod get;
 mod post;
 
 use actix_web::{web, HttpResponse, Responder};
-use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(get::index)
@@ -18,23 +17,4 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 // todo: make 404 file
 pub async fn p404() -> impl Responder {
     HttpResponse::NotFound()
-}
-
-#[derive(Deserialize)]
-pub struct LoginForm {
-    pub user_id: String,
-    pub password_hash: String,
-}
-
-#[derive(Deserialize)]
-pub struct DeleteUserForm {
-    pub password_hash: String,
-}
-
-#[derive(Deserialize)]
-pub struct RegisterForm {
-    pub user_id: String,
-    pub username: String,
-    pub password_hash: String,
-    pub email: String,
 }

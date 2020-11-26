@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::game::session::WsSession;
 use actix_identity::Identity;
-use actix_web::{get, web, Either, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, web, Either, Error, HttpRequest, HttpResponse, Responder};
 use actix_web_actors::ws;
 use serde_json::json;
 
@@ -34,10 +34,11 @@ pub async fn websocket(
     data: web::Data<AppState>,
     req: HttpRequest,
     stream: web::Payload,
-) -> impl Responder {
+) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        Either::A(ws::start(WsSession::new(id, data.server.clone()), &req, stream))
+        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        ws::start(WsSession::new(user_no, data.server.clone()), &req, stream)
     } else {
-        Either::B(HttpResponse::NotFound())
+        Ok(HttpResponse::NotFound().body(""))
     }
 }

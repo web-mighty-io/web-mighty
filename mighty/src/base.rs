@@ -157,9 +157,15 @@ impl Card {
 }
 
 pub trait MightyState {
-    fn next(&self, cmd: &str) -> Result<Box<dyn MightyState>>;
+    fn next(&self, user_id: usize, cmd: &str) -> Result<Box<dyn MightyState>>;
 
-    fn generate(&self, user: usize) -> Box<dyn MightyState>;
+    fn generate(&self, user_id: usize) -> Box<dyn MightyState>;
+
+    fn to_string(&self) -> String;
+
+    fn is_finished(&self) -> bool;
+
+    fn result(&self) -> (u8, Vec<usize>);
 }
 
 pub struct MightyGame {
@@ -184,14 +190,14 @@ impl MightyGame {
         }
     }
 
-    pub fn next(&mut self, cmd: &str) -> Result<()> {
-        let next_state = self.state.last().unwrap().next(cmd)?;
+    pub fn next(&mut self, user_id: usize, cmd: &str) -> Result<()> {
+        let next_state = self.state.last().unwrap().next(user_id, cmd)?;
         self.state.push(next_state);
         Ok(())
     }
 
-    pub fn generate(&self, user: usize) -> Box<dyn MightyState> {
-        self.state.last().unwrap().generate(user)
+    pub fn generate(&self, user_id: usize) -> Box<dyn MightyState> {
+        self.state.last().unwrap().generate(user_id)
     }
 
     pub fn last(&self) -> &dyn MightyState {

@@ -1,13 +1,13 @@
 use crate::db;
-use crate::handlers::{LoginForm, RegisterForm};
+use crate::db::{LoginForm, RegisterForm};
 use actix_identity::Identity;
 use actix_web::{http, post, web, Error, HttpResponse, Responder};
 use deadpool_postgres::Pool;
 
 #[post("/login")]
 pub async fn login(id: Identity, form: web::Form<LoginForm>, db_pool: web::Data<Pool>) -> Result<HttpResponse, Error> {
-    let _ = db::login(&form, &db_pool).await?;
-    id.remember(form.user_id.clone());
+    let user_no = db::login(&form, &db_pool).await?;
+    id.remember(user_no.to_string());
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")
         .finish()

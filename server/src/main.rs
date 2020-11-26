@@ -121,7 +121,7 @@ struct Config {
 impl Config {
     fn new() -> Config {
         let mut cfg = config::Config::new();
-        cfg.merge(config::Environment::new().separator("_")).unwrap();
+        cfg.merge(config::Environment::new().separator("__")).unwrap();
         cfg.try_into().unwrap()
     }
 }

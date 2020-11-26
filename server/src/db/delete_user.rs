@@ -1,7 +1,7 @@
-use crate::handlers::DeleteUserForm;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::{Pool, PoolError};
 use derive_more::Display;
+use serde::Deserialize;
 
 #[derive(Debug, Display)]
 pub enum DeleteUserError {
@@ -32,7 +32,11 @@ impl ResponseError for DeleteUserError {
     }
 }
 
-// todo: change sql
+#[derive(Deserialize)]
+pub struct DeleteUserForm {
+    pub password_hash: String,
+}
+
 pub async fn delete_user(form: &DeleteUserForm, user_id: String, pool: &Pool) -> Result<(), DeleteUserError> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT password FROM users WHERE id=$1").await?;

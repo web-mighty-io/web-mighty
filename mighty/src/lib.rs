@@ -5,3 +5,4 @@ mod error;
 pub use base::MightyGame;
 pub use base::MightyState;
 pub use error::Error;
+pub use error::Result;

@@ -3,6 +3,7 @@
 [![Github Action](https://img.shields.io/github/workflow/status/buttercrab/web-mighty/build?style=flat-square)](https://github.com/buttercrab/web-mighty/actions)
 [![Codecov](https://img.shields.io/codecov/c/github/buttercrab/web-mighty?style=flat-square)](https://codecov.io/gh/buttercrab/web-mighty)
 [![LICENSE](https://img.shields.io/github/license/buttercrab/web-mighty?style=flat-square)](https://github.com/buttercrab/web-mighty/blob/master/LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbuttercrab%2Fweb-mighty.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbuttercrab%2Fweb-mighty?ref=badge_shield)
 
 ## Run your own server (WIP)
 
@@ -46,3 +47,6 @@ python3 util/start_server.py
    2) for http-only:
    
       `./server/build/bin/server -p 8080 -s ./public/static`
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbuttercrab%2Fweb-mighty.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbuttercrab%2Fweb-mighty?ref=badge_large)

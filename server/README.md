@@ -29,6 +29,9 @@ PG__POOL__TIMEOUTS__WAIT__NANOS=0
 1. `/user/{user-id}`: user profile page
 1. `/setting`: profile/setting edit page
 1. `/mail/{token}`: mail verification
+1. `/login`
+1. `/register`
+1. `/admin`
 
 ---
 

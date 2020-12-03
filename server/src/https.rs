@@ -3,6 +3,34 @@ use actix_web::{http, HttpResponse};
 use futures::future::{ok, Either, Ready};
 use futures::task::{Context, Poll};
 
+/// Redirects to https when http request is incoming.
+///
+/// # Examples
+///
+/// ```no_run
+/// use actix_web::App;
+/// use actix_web::HttpServer;
+/// use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+/// use server::https::RedirectHttps;
+///
+/// #[get("/")]
+/// fn index() -> impl Response {
+///     "Hello, World!"
+/// }
+///
+/// #[actix_web::main]
+/// async fn main() -> std::io::Result<()> {
+///     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+///     builder.set_private_key_file("key.pem", SslFiletype::PEM).unwrap();
+///     builder.set_certificate_chain_file("cert.pem").unwrap();
+///
+///     HttpServer::new(move || App::new().wrap(RedirectHttps::new(8080, 8443)).service(index))
+///         .bind("0.0.0.0:8080")?
+///         .bind_openssl("0.0.0.0:8443", builder)
+///         .run()
+///         .await
+/// }
+/// ```
 pub struct RedirectHttps {
     http_port: u16,
     https_port: u16,
@@ -49,7 +77,6 @@ where
     type Request = S::Request;
     type Response = S::Response;
     type Error = S::Error;
-    #[allow(clippy::type_complexity)]
     type Future = Either<S::Future, Ready<Result<Self::Response, Self::Error>>>;
 
     fn poll_ready(&mut self, ctx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -64,7 +91,7 @@ where
                 .connection_info()
                 .host()
                 .to_owned()
-                .replace(&*self.http_port, &*self.https_port);
+                .replacen(&*self.http_port, &*self.https_port, 1);
             let uri = req.uri().to_owned();
             let url = format!("https://{}{}", host, uri);
             Either::Right(ok(req.into_response(

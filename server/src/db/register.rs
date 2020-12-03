@@ -34,6 +34,8 @@ impl ResponseError for RegisterError {
     }
 }
 
+impl std::error::Error for RegisterError {}
+
 #[derive(Deserialize)]
 pub struct RegisterForm {
     pub user_id: String,

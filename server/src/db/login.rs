@@ -32,6 +32,8 @@ impl ResponseError for LoginError {
     }
 }
 
+impl std::error::Error for LoginError {}
+
 #[derive(Deserialize)]
 pub struct LoginForm {
     pub user_id: String,

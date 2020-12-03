@@ -5,7 +5,7 @@ use deadpool_postgres::Pool;
 use rand::Rng;
 use serde::Deserialize;
 use server::app_state::AppState;
-use server::handlers::{config, p404};
+use server::service::{config, p404};
 use server::util;
 use slog::Drain;
 use slog_scope::GlobalLoggerGuard;

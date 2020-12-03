@@ -163,6 +163,8 @@ pub trait MightyState {
 
     fn to_string(&self) -> String;
 
+    fn rule(&self) -> &'static str;
+
     fn is_finished(&self) -> bool;
 
     fn result(&self) -> (u8, Vec<usize>);

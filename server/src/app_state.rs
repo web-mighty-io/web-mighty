@@ -1,4 +1,4 @@
-use crate::game;
+use crate::actor;
 use actix::prelude::*;
 use actix_web::web;
 use handlebars::Handlebars;
@@ -17,6 +17,12 @@ use {
     std::thread,
 };
 
+/// AppState of this server
+///
+/// 1. `handlebars`: Needs for rendering page. Can get from calling `get_handlebars()`.
+/// 2. `watcher`: Just to be alive whole time. (available in `watch-file` feature)
+/// 3. `resources`: Needs for resource files. All file except `.hbs` file is saved here. Can get from calling `get_resources()`.
+/// 4. `server`: Websocket main server address.
 pub struct AppState {
     #[cfg(not(feature = "watch-file"))]
     handlebars: Handlebars<'static>,
@@ -29,7 +35,7 @@ pub struct AppState {
     resources: HashMap<String, String>,
     #[cfg(feature = "watch-file")]
     resources: Mutex<HashMap<String, String>>,
-    pub server: Addr<game::server::MainServer>,
+    pub server: Addr<actor::Server>,
 }
 
 impl AppState {
@@ -38,7 +44,7 @@ impl AppState {
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            server: game::server::MainServer::start_default(),
+            server: actor::Server::start_default(),
         })
     }
 
@@ -54,7 +60,7 @@ impl AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
-            server: game::server::MainServer::start_default(),
+            server: actor::Server::start_default(),
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();

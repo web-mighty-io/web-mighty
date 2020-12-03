@@ -1,23 +1,33 @@
+# Rust build files
 **target
 **/Cargo.lock
 **/*.rs.bk
 
+# Wasm files
 public/bin
 public/pkg
 wasm-pack.log
 
+# minified files
 **/*.min.js
 **/*.min.css
 **/*.min.html
 
+# IDE files
 .idea
 .vscode
 
+# generated files
 **/bulma
 public/static/res/css
+
+# python virtual env files
 venv
+
+# server binary file
 server/build
 
+# ssl key files
 **/*.pem
 **/*.key
 **/*.csr
@@ -25,7 +35,12 @@ server/build
 **/*.srl
 **/*.ext
 
+# env files for postgres
 **.env
 **/*.env
 
+# MacOS files
 .DS_Store
+
+# log files
+**/*.log

@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
 
+from clint.textui import colored
+import json
 import os
+import platform
+from pyfiglet import Figlet
+from PyInquirer import prompt
+import requests
+import shutil
 import subprocess
 from typing import List
 
-import requests
-from PyInquirer import prompt
-from clint.textui import colored
-from pyfiglet import Figlet
-import json
-import shutil
-
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.chdir('../')
+
+
+def shell_output(command: str) -> str:
+    output = subprocess.run(command, shell=True, capture_output=True)
+    return output.stdout.decode('utf-8')
+
+
+def shell_output_code(command: str) -> int:
+    output = subprocess.run(command, shell=True, capture_output=True)
+    return output.returncode
 
 
 def check_command(command: str) -> str:
@@ -29,47 +39,6 @@ def print_error(msg: str) -> None:
 
 def print_info(msg: str) -> None:
     print(colored.blue('info') + ': ' + msg)
-
-
-def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
-    """
-    From [stack overflow](https://stackoverflow.com/a/59803793/9163028) answer
-    Searches all files with extensions below path
-    """
-    subfolders, files = [], []
-
-    for i in os.scandir(path):
-        if i.is_dir():
-            subfolders.append(i.path)
-        if i.is_file():
-            if os.path.splitext(i.name)[1].lower() in ext:
-                files.append(i.path)
-
-    for path in list(subfolders):
-        sf, i = run_fast_scandir(path, ext)
-        subfolders.extend(sf)
-        files.extend(i)
-    return subfolders, files
-
-
-def minify_file(path: str, url: str) -> bool:
-    data = {'input': open(path, 'rb').read()}
-    response = requests.post(url, data=data)
-    if response.status_code >= 400:
-        print_error('minify {} failed due to bad response to {}'.format(path, url))
-        return False
-
-    path = path.split('.')
-    extension = path[-1]
-    path = path[:-1]
-    path.extend(['min', extension])
-    path = '.'.join(path)
-
-    f = open(path, 'w')
-    f.write(response.text)
-
-    print_info('minified to {}'.format(path))
-    return True
 
 
 def install_cargo() -> str:
@@ -131,7 +100,17 @@ def install_sass() -> str:
 
         if install:
             print_info('installing sass')
-            # TODO
+            brew_path = check_command('brew')
+            if len(brew_path) == 0:
+                npm_path = check_command('npm')
+                if len(npm_path) == 0:
+                    print_error('Please install brew or npm')
+                    exit(1)
+                os.system('{} i -g sass'.format(npm_path))
+                return shell_output('npm bin -g').strip() + '/sass'
+            else:
+                os.system('{} install sass/sass/sass'.format(brew_path))
+                return shell_output('brew --prefix') + '/bin/sass'
         else:
             print_error('sass should be installed')
             exit(1)
@@ -152,12 +131,60 @@ def install_bulma() -> None:
     os.remove('bulma.zip')
 
 
-def minify_files() -> None:
-    # _, files = run_fast_scandir('public/static', ['.html'])
+def compile_sass_files(sass_path: str) -> None:
+    _, files = run_fast_scandir('public/static/res/scss', ['.scss'])
     success = True
-    # for i in files:
-    #     if 'min' not in i.split('.'):
-    #         success = success and minify_file(i, 'https://html-minifier.com/raw')
+    for i in files:
+        output = subprocess.run('{} {} {}'.format(sass_path, i, i.replace('scss', 'css')), shell=True)
+        success = success and output.returncode == 0
+
+    if not success:
+        exit(1)
+
+
+def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
+    """
+    From [stack overflow](https://stackoverflow.com/a/59803793/9163028) answer
+    Searches all files with extensions below path
+    """
+    subfolders, files = [], []
+
+    for i in os.scandir(path):
+        if i.is_dir():
+            subfolders.append(i.path)
+        if i.is_file():
+            if os.path.splitext(i.name)[1].lower() in ext:
+                files.append(i.path)
+
+    for path in list(subfolders):
+        sf, i = run_fast_scandir(path, ext)
+        subfolders.extend(sf)
+        files.extend(i)
+    return subfolders, files
+
+
+def minify_file(path: str, url: str) -> bool:
+    data = {'input': open(path, 'rb').read()}
+    response = requests.post(url, data=data)
+    if response.status_code >= 400:
+        print_error('minify {} failed due to bad response to {}'.format(path, url))
+        return False
+
+    path = path.split('.')
+    extension = path[-1]
+    path = path[:-1]
+    path.extend(['min', extension])
+    path = '.'.join(path)
+
+    f = open(path, 'w')
+    f.write(response.text)
+
+    print_info('minified to {}'.format(path))
+    return True
+
+
+def minify_files() -> None:
+    success = True
     _, files = run_fast_scandir('public/static', ['.css'])
     for i in files:
         if 'min' not in i.split('.'):
@@ -180,56 +207,77 @@ def minify_files() -> None:
             exit(1)
 
 
-def compile_sass_files(sass_path: str) -> None:
-    _, files = run_fast_scandir('public/static/res/scss', ['.scss'])
-    success = True
-    for i in files:
-        output = subprocess.run('{} {} {}'.format(sass_path, i, i.replace('scss', 'css')), shell=True)
-        success = success and output.returncode == 0
-
-    if not success:
+def init_postgres() -> None:
+    print_info('checking if postgresql is installed')
+    if len(check_command('pg_isready')) == 0:
+        print_error('postgresql is not installed')
+        print_info('install postgresql: https://www.postgresql.org/download/')
         exit(1)
+
+    if shell_output_code('pg_isready -q') != 0:
+        print_error('postgresql is not running')
+        print_info('run postgresql')
+        exit(1)
+
+    init = prompt([{
+        'name': 'init',
+        'type': 'confirm',
+        'message': 'Init database?',
+        'default': True,
+    }])
+
+    if init:
+        # TODO: make init command
+        pass
+
+    # TODO: make .env file
 
 
 def main() -> None:
     _, width = os.popen('stty size', 'r').read().split()
     f = Figlet(font='slant', width=int(width))
-    print(colored.yellow(f.renderText('     Mighty')))
-    print(colored.yellow(f.renderText('Card Game')))
+    print(colored.yellow(f.renderText('Web Mighty')))
     print('Mighty Card Game Web Server: version 1.0.0-dev\n\n')
 
-    platform = prompt([{
-        'name': 'platform',
-        'type': 'list',
-        'message': 'Select platform to run',
-        'choices': [
-            'docker',
-            'native',
-        ],
-    }])['platform']
+    cargo_path = install_cargo()
+    wasm_path = install_wasm()
+    sass_path = install_sass()
+    install_bulma()
+    compile_sass_files(sass_path)
 
-    if platform == 'docker':
-        # TODO: add docker configuration
-        pass
+    if not os.path.isfile('public/Cargo.toml') or not os.path.isfile('server/Cargo.toml'):
+        print_error('Wrong directory; please run this in root of project')
+        exit(1)
+
+    print_info('building wasm')
+    os.system('cd public && {} build --target web'.format(wasm_path))
+
+    https = prompt([{
+        'name': 'https',
+        'type': 'confirm',
+        'message': 'Enable https?',
+        'default': True,
+    }])
+    https_str = ' --features https' if https else ''
+
+    file_watch = prompt([{
+        'name': 'file_watch',
+        'type': 'confirm',
+        'message': 'Enable file watcher?',
+        'default': False,
+    }])
+    file_watch_str = ' --features watch-file' if file_watch else ''
+
+    print_info('building server')
+    os.system('cd server && {} install --root build --path .{}{}'.format(cargo_path, https_str, file_watch_str))
+    minify_files()
+    init_postgres()
+
+    if https:
+        os.system(
+            'cd server && nohup ./build/bin/server -p 8080 -s ../public/static/ -l server.log --https-port 8443 --https-cert localhost.pem --https-key localhost-key.pem > /dev/null &')
     else:
-        cargo_path = install_cargo()
-        wasm_path = install_wasm()
-        sass_path = install_sass()
-        install_bulma()
-        compile_sass_files(sass_path)
-
-        if not os.path.isfile('public/Cargo.toml') or not os.path.isfile('server/Cargo.toml'):
-            print_error('Wrong directory; please run this in root of project')
-            exit(1)
-
-        print_info('building wasm')
-        os.system('cd public && {} build --target web'.format(wasm_path))
-        print_info('building server')
-        os.system('cd server && {} install --root build --path .'.format(cargo_path))
-
-        minify_files()
-
-        # TODO: start server
+        os.system('cd server && nohup ./build/bin/server -p 8080 -s ../public/static/ -l server.log > /dev/null &')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,3 @@
-mod add_record;
-mod change_rating;
-mod delete_record;
 mod delete_user;
 mod login;
 mod register;
@@ -16,7 +13,7 @@ pub use register::register;
 pub use register::RegisterError;
 pub use register::RegisterForm;
 pub use user_info::user_info;
+pub use user_info::UserInfo;
 pub use user_info::UserInfoError;
 pub use user_info::UserInfoForm;
 pub use user_info::UserInfoOption;
-pub use user_info::UserInfo;

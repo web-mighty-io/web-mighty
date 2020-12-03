@@ -33,15 +33,14 @@ impl BasicCommand {
     }
 }
 
-/// State of basic mighty game.
+/// State of basic mighty actor.
 ///
-/// - `NotStarted`: When game is not started
+/// - `NotStarted`: When actor is not started
 /// - `Election`: After passing out cards,
 /// - `SelectFriend`: After election, president will select friend (or not)
 /// - `InGame`: After selecting friend, they will play 10 turns
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum BasicState {
-    NotStarted,
     Election {
         // Option for no giruda
         // giruda and count of pledge
@@ -53,7 +52,7 @@ pub enum BasicState {
         left: Vec<Card>,
     },
     SelectFriend {
-        // president in in-game user id
+        // president in in-actor user id
         president: usize,
         // pledge for president
         pledge: (Option<CardType>, u8),
@@ -61,16 +60,16 @@ pub enum BasicState {
         deck: Vec<Vec<Card>>,
     },
     InGame {
-        // president in in-game user id
+        // president in in-actor user id
         president: usize,
         // friend func executed every task when friend is not determined
-        // result is for person 0 to 4 (in-game user id)
+        // result is for person 0 to 4 (in-actor user id)
         friend_func: BasicFriendFunc,
-        // 0 to 4 for in-game user id
+        // 0 to 4 for in-actor user id
         friend: Option<usize>,
         // if friend is known to other people
         is_friend_known: bool,
-        // giruda of this game
+        // giruda of this actor
         giruda: Option<CardType>,
         // pledge score of ruling party
         pledge: u8,
@@ -95,7 +94,7 @@ pub enum BasicState {
         // bitmask of winners
         // ex) if 0 and 3 win: 0b01001
         winner: u8,
-        // below are game info
+        // below are actor info
         president: usize,
         friend: Option<usize>,
         score: u8,
@@ -112,11 +111,19 @@ impl Default for BasicState {
 
 impl BasicState {
     pub fn new() -> BasicState {
-        BasicState::NotStarted
+        let mut deck = BasicState::get_random_deck();
+        let left = deck.pop().unwrap();
+
+        BasicState::Election {
+            pledge: vec![(None, 0); 5],
+            done: vec![false; 5],
+            deck,
+            left,
+        }
     }
 
     /// Check if joker called.
-    /// **Valid output only in in-game.**
+    /// **Valid output only in in-actor.**
     fn is_joker_called(&self) -> bool {
         if let BasicState::InGame { is_joker_called, .. } = self {
             *is_joker_called
@@ -126,7 +133,7 @@ impl BasicState {
     }
 
     /// Get the current pattern of this turn.
-    /// **Valid output only in in-game.**
+    /// **Valid output only in in-actor.**
     fn get_current_pattern(&self) -> RushType {
         match self {
             BasicState::InGame { current_pattern, .. } => *current_pattern,
@@ -136,7 +143,7 @@ impl BasicState {
     }
 
     /// Get the giruda of this turn.
-    /// **Valid output only in in-game.**
+    /// **Valid output only in in-actor.**
     fn get_giruda(&self) -> Option<CardType> {
         match self {
             BasicState::InGame { giruda, .. } => *giruda,
@@ -145,8 +152,8 @@ impl BasicState {
         }
     }
 
-    /// Get the mighty card in game
-    /// **Valid output only in in-game.**
+    /// Get the mighty card in actor
+    /// **Valid output only in in-actor.**
     fn get_mighty(&self) -> Card {
         match self {
             BasicState::InGame { giruda, .. } => match giruda {
@@ -160,7 +167,6 @@ impl BasicState {
 
     pub fn get_state(&self) -> &str {
         match self {
-            BasicState::NotStarted => "n",
             BasicState::Election { .. } => "e",
             BasicState::SelectFriend { .. } => "f",
             BasicState::InGame { .. } => "g",
@@ -278,33 +284,14 @@ impl BasicState {
         }
     }
 
-    /// Process the given arguments and change the game state.
-    /// First argument has to be the *in-game user id*
+    /// Process the given arguments and change the actor state.
+    /// First argument has to be the *in-actor user id*
     /// who sent this command. **(always in bounds)**
-    /// Second argument has to be the state of the game
+    /// Second argument has to be the state of the actor
     /// for checking command
     /// Third and after is different for each state.
     fn process(&self, user_id: usize, cmd: BasicCommand) -> Result<BasicState> {
         match self {
-            BasicState::NotStarted => match cmd {
-                BasicCommand::StartGame => {
-                    if user_id != 0 {
-                        return Err(Error::NotLeader);
-                    }
-
-                    let mut deck = BasicState::get_random_deck();
-                    let left = deck.pop().unwrap();
-
-                    Ok(BasicState::Election {
-                        pledge: vec![(None, 0); 5],
-                        done: vec![false; 5],
-                        deck,
-                        left,
-                    })
-                }
-                _ => Err(Error::InvalidCommand("BasicCommand::StartGame")),
-            },
-
             BasicState::Election {
                 pledge,
                 done,
@@ -736,7 +723,6 @@ impl MightyState for BasicState {
     //       observer if user is 5
     fn generate(&self, user_id: usize) -> Box<dyn MightyState> {
         match self {
-            BasicState::NotStarted => Box::new(BasicState::NotStarted),
             BasicState::Election { pledge, done, deck, .. } => {
                 let v = deck
                     .iter()
@@ -750,14 +736,18 @@ impl MightyState for BasicState {
                     left: Vec::new(),
                 })
             }
-            BasicState::SelectFriend { .. } => Box::new(BasicState::NotStarted),
-            BasicState::InGame { .. } => Box::new(BasicState::NotStarted),
-            BasicState::GameEnded { .. } => Box::new(BasicState::NotStarted),
+            BasicState::SelectFriend { .. } => unimplemented!(),
+            BasicState::InGame { .. } => unimplemented!(),
+            BasicState::GameEnded { .. } => unimplemented!(),
         }
     }
 
     fn to_string(&self) -> String {
         serde_json::to_string(self).unwrap()
+    }
+
+    fn rule(&self) -> &'static str {
+        "basic"
     }
 
     // todo

@@ -1,20 +1,18 @@
 use crate::actor::server::{MakeGameId, RemoveRoom};
 use crate::actor::{observe_ss, server, user, GameId, RoomId, UserId};
 use actix::prelude::*;
-use mighty::{MightyGame, MightyState};
 use std::collections::{HashMap, HashSet};
-use std::time::Instant;
 
 pub struct Game {
     id: GameId,
-    game: MightyGame,
+    game: mighty::Game,
 }
 
 impl Game {
     pub fn new(id: GameId) -> Game {
         Game {
             id,
-            game: MightyGame::new(),
+            game: mighty::Game::new(),
         }
     }
 
@@ -150,7 +148,7 @@ impl Handler<StartGame> for Room {
 
 #[derive(Clone, Message)]
 #[rtype(result = "mighty::Result<()>")]
-pub struct Go(UserId, String);
+pub struct Go(UserId, mighty::Command);
 
 impl Handler<Go> for Room {
     type Result = mighty::Result<()>;
@@ -164,7 +162,11 @@ impl Handler<Go> for Room {
                 .filter_map(|(i, x)| if *x == msg.0 { Some(i) } else { None })
                 .next()
             {
-                game.game.next(user_id, &*msg.1)
+                game.game.next(user_id, msg.1).map(|finished| {
+                    if finished {
+                        // todo
+                    }
+                })
             } else {
                 Err(mighty::Error::InvalidUser(0))
             }

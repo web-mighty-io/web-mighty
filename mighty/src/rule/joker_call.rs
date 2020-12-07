@@ -23,4 +23,8 @@ impl JokerCall {
             has_power: false,
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.cards.len()
+    }
 }

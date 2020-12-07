@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, IdentFragment};
 use syn::{parse_macro_input, Data, DeriveInput, Field, Index};
 
+#[cfg(not(tarpaulin_include))]
 #[proc_macro_derive(Config)]
 pub fn make_config(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -31,6 +32,7 @@ pub fn make_config(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_fns<T>(f: &Field, name: &T) -> quote::__private::TokenStream
 where
     T: IdentFragment + quote::ToTokens,

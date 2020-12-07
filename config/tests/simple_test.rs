@@ -27,4 +27,11 @@ mod simple_test {
         assert_eq!(a.a, 1);
         assert_eq!(a.b, vec![2, 3]);
     }
+
+    #[test]
+    fn simple_mut_test() {
+        let a = A::new().mut_a(|x| *x += 1).mut_b(|b| b.push(2));
+        assert_eq!(a.a, 1);
+        assert_eq!(a.b, vec![2]);
+    }
 }

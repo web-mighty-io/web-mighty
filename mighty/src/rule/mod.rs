@@ -20,6 +20,9 @@ use friend::Friend;
 use missed_deal::MissedDeal;
 use serde::{Deserialize, Serialize};
 
+/// Temporary Presets
+///
+/// After complete implementing server, this goes to database.
 #[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Preset {
     // 기본 5마
@@ -176,6 +179,7 @@ impl Rule {
             && self.card_cnt_per_user > 0
             && self.user_cnt * self.card_cnt_per_user <= self.deck.len() as u8
             && self.pledge.valid()
+            && self.deck.iter().filter(|c| c.is_joker()).count() == self.joker_call.len()
             && {
                 let mut v = self.pattern_order.clone();
                 v.sort();

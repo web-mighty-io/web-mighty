@@ -8,3 +8,4 @@ pub mod db;
 pub mod https;
 pub mod service;
 pub mod util;
+pub mod mail;

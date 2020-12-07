@@ -15,7 +15,7 @@ pub enum CardPolicy {
 /// Card Policies
 ///
 /// All types of cards has two policies: First turn & Last turn
-#[derive(Debug,Clone, Config, Serialize, Deserialize, Eq)]
+#[derive(Debug, Clone, Config, Serialize, Deserialize, Eq)]
 pub struct Policy {
     mighty: (CardPolicy, CardPolicy),
     giruda: (CardPolicy, CardPolicy),

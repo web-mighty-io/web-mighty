@@ -2,8 +2,10 @@ pub mod api;
 pub mod ws;
 
 use crate::app_state::AppState;
+use crate::db;
 use actix_identity::Identity;
-use actix_web::{get, http, web, HttpResponse, Responder};
+use actix_web::{get, http, web, Error, HttpResponse, Responder};
+use deadpool_postgres::Pool;
 use serde_json::{json, Map};
 
 #[get("/admin")]
@@ -134,12 +136,24 @@ pub async fn setting(id: Identity, data: web::Data<AppState>) -> impl Responder 
 }
 
 #[get("/user/{user_id}")]
-pub async fn user(id: Identity, data: web::Data<AppState>, web::Path(user_id): web::Path<String>) -> impl Responder {
+pub async fn user(
+    id: Identity,
+    data: web::Data<AppState>,
+    web::Path(user_id): web::Path<String>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, Error> {
     let mut val = Map::new();
     if let Some(id) = id.identity() {
         val.insert("id".to_owned(), json!(id));
     }
+
+    let user_info = db::user::get_info(&db::user::GetInfoForm { user_id }, (**db_pool).clone()).await?;
+    val.insert("user_id".to_owned(), json!(user_info.user_id));
+    val.insert("name".to_owned(), json!(user_info.name));
+    val.insert("rating".to_owned(), json!(user_info.rating));
+    val.insert("is_admin".to_owned(), json!(user_info.is_admin));
+
     let handlebars = data.get_handlebars();
     let body = handlebars.render("user.hbs", &val).unwrap();
-    HttpResponse::Ok().body(body)
+    Ok(HttpResponse::Ok().body(body))
 }

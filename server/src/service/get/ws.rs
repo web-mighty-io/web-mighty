@@ -1,4 +1,4 @@
-use crate::actor::{ChatSession, ListSession, MainSession, ObserveSession, RoomSession, UserId};
+use crate::actor::{ChatSession, ListSession, MainSession, ObserveSession, RoomSession, UserNo};
 use crate::app_state::AppState;
 use actix_identity::Identity;
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
@@ -13,7 +13,7 @@ pub async fn chat(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        ws::start(ChatSession::new(UserId(user_no), data.server.clone()), &req, stream)
+        ws::start(ChatSession::new(UserNo(user_no), data.server.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -28,7 +28,7 @@ pub async fn list(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        ws::start(ListSession::new(UserId(user_no), data.server.clone()), &req, stream)
+        ws::start(ListSession::new(UserNo(user_no), data.server.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -43,7 +43,7 @@ pub async fn main(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        ws::start(MainSession::new(UserId(user_no), data.server.clone()), &req, stream)
+        ws::start(MainSession::new(UserNo(user_no), data.server.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -58,7 +58,7 @@ pub async fn observe(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        ws::start(ObserveSession::new(UserId(user_no), data.server.clone()), &req, stream)
+        ws::start(ObserveSession::new(UserNo(user_no), data.server.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -73,7 +73,7 @@ pub async fn room(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        ws::start(RoomSession::new(UserId(user_no), data.server.clone()), &req, stream)
+        ws::start(RoomSession::new(UserNo(user_no), data.server.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

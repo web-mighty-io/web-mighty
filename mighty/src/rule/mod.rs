@@ -49,7 +49,7 @@ pub enum Preset {
 ///
 /// Can make custom rule for regional mighty rules.
 /// Mighty Game is implemented based on this rule.
-#[derive(Clone, Serialize, Deserialize, Config, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Config, Hash, Eq, PartialEq)]
 pub struct Rule {
     pub user_cnt: u8,
     pub card_cnt_per_user: u8,

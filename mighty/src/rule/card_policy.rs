@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub enum CardPolicy {
     Valid,
     NoEffect,
@@ -15,7 +15,7 @@ pub enum CardPolicy {
 /// Card Policies
 ///
 /// All types of cards has two policies: First turn & Last turn
-#[derive(Clone, Config, Serialize, Deserialize, Eq)]
+#[derive(Debug,Clone, Config, Serialize, Deserialize, Eq)]
 pub struct Policy {
     mighty: (CardPolicy, CardPolicy),
     giruda: (CardPolicy, CardPolicy),

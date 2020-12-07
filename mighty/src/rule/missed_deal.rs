@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Serialize, Deserialize, Config, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Config, Eq)]
 pub struct MissedDeal {
     pub score: i8,
     pub joker: i8,

@@ -1,6 +1,6 @@
 use crate::db::{Error, Result, TOKEN_VALID_DURATION};
 use actix_web::http::StatusCode;
-use deadpool_postgres::{Pool, };
+use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
@@ -77,13 +77,13 @@ pub struct DeleteForm {
 pub async fn delete(user_no: u32, form: &DeleteForm, pool: &Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
-        .prepare("SELECT 1 number FROM users WHERE number=$1 AND password=$2;")
+        .prepare("SELECT 1 no FROM users WHERE no=$1 AND password=$2;")
         .await?;
     let res = client.query(&stmt, &[&user_no, &form.password_hash]).await?;
     if res.is_empty() {
         return Error::result(StatusCode::UNAUTHORIZED, "password doesn't match");
     }
-    let stmt = client.prepare("DELETE FROM users WHERE number=$1").await?;
+    let stmt = client.prepare("DELETE FROM users WHERE no=$1").await?;
     client.query(&stmt, &[&user_no]).await?;
     Ok(())
 }
@@ -97,7 +97,7 @@ pub struct LoginForm {
 pub async fn login(form: &LoginForm, pool: &Pool) -> Result<u32> {
     let client = pool.get().await?;
     let stmt = client
-        .prepare("SELECT 1 number FROM users WHERE id=$1 AND password=$2;")
+        .prepare("SELECT 1 no FROM users WHERE id=$1 AND password=$2;")
         .await?;
     let res = client.query(&stmt, &[&form.user_id, &form.password_hash]).await?;
     let row = res

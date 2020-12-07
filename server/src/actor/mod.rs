@@ -29,7 +29,9 @@ const MAX_CHAT_HISTORY: usize = 50;
 
 #[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
 pub struct RoomId(pub Uuid);
+
 #[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
 pub struct GameId(pub Uuid);
+
 #[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
 pub struct UserId(pub u32);

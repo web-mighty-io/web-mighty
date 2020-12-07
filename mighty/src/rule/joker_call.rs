@@ -2,7 +2,7 @@ use crate::card::{Card, Pattern};
 use config::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Deserialize, Serialize, Config, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, Config, Hash, Eq, PartialEq)]
 pub struct JokerCall {
     cards: Vec<(Card, Card)>,
     mighty_defense: bool,

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Dealer {
     Friend,
     Winner,

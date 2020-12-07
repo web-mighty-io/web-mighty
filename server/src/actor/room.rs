@@ -1,7 +1,11 @@
 use crate::actor::server::{MakeGameId, RemoveRoom};
 use crate::actor::{observe_ss, server, user, GameId, RoomId, UserId};
+use crate::db::game::{make_game, SaveGameForm};
 use actix::prelude::*;
+use deadpool_postgres::Pool;
+use mighty::rule::Rule;
 use std::collections::{HashMap, HashSet};
+use tokio_postgres::types::Json;
 
 pub struct Game {
     id: GameId,
@@ -25,11 +29,14 @@ pub struct Room {
     id: RoomId,
     name: String,
     game: Option<Game>,
+    rule: Rule,
+    is_rank: bool,
     head: UserId,
     user: Vec<UserId>,
     user_addr: HashMap<UserId, Addr<user::User>>,
     observe_addr: HashSet<Addr<observe_ss::ObserveSession>>,
     server: Addr<server::Server>,
+    pool: Pool,
 }
 
 impl Actor for Room {
@@ -137,6 +144,20 @@ impl Handler<StartGame> for Room {
                 .then(|res, act, ctx| {
                     if let Ok(res) = res {
                         act.game = Some(Game::new(res));
+                        make_game(
+                            SaveGameForm {
+                                game_id: res.0,
+                                room_id: act.id.0,
+                                room_name: act.name.clone(),
+                                users: act.user.iter().map(|u| u.0).collect(),
+                                is_rank: act.is_rank,
+                                rule: Json(act.rule.clone()),
+                            },
+                            act.pool.clone(),
+                        )
+                        .into_actor(act)
+                        .then(|_, _, _| fut::ready(()))
+                        .wait(ctx);
                     }
 
                     fut::ready(())
@@ -177,16 +198,19 @@ impl Handler<Go> for Room {
 }
 
 impl Room {
-    pub fn new(id: RoomId, server: Addr<server::Server>) -> Room {
+    pub fn new(id: RoomId, server: Addr<server::Server>, pool: Pool) -> Room {
         Room {
             id,
             name: "".to_string(),
             game: None,
+            rule: Rule::new(),
+            is_rank: false,
             head: UserId(0),
             user: vec![UserId(0); 5],
             user_addr: HashMap::new(),
             observe_addr: HashSet::new(),
             server,
+            pool,
         }
     }
 

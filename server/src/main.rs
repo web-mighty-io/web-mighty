@@ -150,7 +150,8 @@ async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
     load_dotenv(&opts);
     let _guard = set_logger(&opts);
-    let state = AppState::new(util::to_absolute_path(opts.static_files));
+    let pool = make_db_pool();
+    let state = AppState::new(util::to_absolute_path(opts.static_files), pool.clone());
     let private_key = generate_private_key();
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     builder.set_private_key_file(opts.https_key, SslFiletype::PEM).unwrap();
@@ -168,7 +169,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(RedirectHttps::new(http_port, https_port))
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
-            .data(make_db_pool())
+            .data(pool.clone())
             .configure(config)
             .default_service(web::to(p404))
     })
@@ -185,7 +186,8 @@ async fn main() -> std::io::Result<()> {
     let opts: Opts = Opts::parse();
     load_dotenv(&opts);
     let _guard = set_logger(&opts);
-    let state = AppState::new(util::to_absolute_path(opts.static_files));
+    let pool = make_db_pool();
+    let state = AppState::new(util::to_absolute_path(opts.static_files), pool.clone());
     let private_key = generate_private_key();
 
     HttpServer::new(move || {
@@ -197,7 +199,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
-            .data(make_db_pool())
+            .data(pool.clone())
             .configure(config)
             .default_service(web::to(p404))
     })

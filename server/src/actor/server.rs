@@ -1,5 +1,6 @@
 use crate::actor::{room, user, GameId, RoomId, UserId};
 use actix::prelude::*;
+use deadpool_postgres::Pool;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -8,16 +9,11 @@ pub struct Server {
     room: HashMap<RoomId, Addr<room::Room>>,
     counter: u64,
     users: HashMap<UserId, Addr<user::User>>,
+    pool: Pool,
 }
 
 impl Actor for Server {
     type Context = Context<Self>;
-}
-
-impl Default for Server {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[derive(Clone, Message)]
@@ -41,8 +37,10 @@ impl Handler<MakeRoom> for Server {
 
     fn handle(&mut self, _: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
         let room_id = RoomId(self.generate_uuid("room"));
-        self.room
-            .insert(room_id, room::Room::new(room_id, ctx.address()).start());
+        self.room.insert(
+            room_id,
+            room::Room::new(room_id, ctx.address(), self.pool.clone()).start(),
+        );
         room_id
     }
 }
@@ -108,11 +106,12 @@ impl Handler<MakeGameId> for Server {
 }
 
 impl Server {
-    pub fn new() -> Server {
+    pub fn new(pool: Pool) -> Server {
         Server {
             room: HashMap::new(),
             counter: 0,
             users: HashMap::new(),
+            pool,
         }
     }
 

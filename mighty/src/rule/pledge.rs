@@ -1,7 +1,7 @@
 use config::Config;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize, Config, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Config, Hash, Eq, PartialEq)]
 pub struct Pledge {
     min: u8,
     max: u8,

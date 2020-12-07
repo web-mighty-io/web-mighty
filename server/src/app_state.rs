@@ -1,6 +1,7 @@
 use crate::actor;
 use actix::prelude::*;
 use actix_web::web;
+use deadpool_postgres::Pool;
 use handlebars::Handlebars;
 use ignore::WalkBuilder;
 use std::collections::HashMap;
@@ -40,16 +41,16 @@ pub struct AppState {
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new<P: AsRef<Path>>(path: P) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, pool: Pool) -> web::Data<AppState> {
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            server: actor::Server::start_default(),
+            server: actor::Server::new(pool).start(),
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new<P: AsRef<Path>>(path: P) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, pool: Pool) -> web::Data<AppState> {
         let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
@@ -60,7 +61,7 @@ impl AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
-            server: actor::Server::start_default(),
+            server: actor::Server::new(pool).start(),
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();

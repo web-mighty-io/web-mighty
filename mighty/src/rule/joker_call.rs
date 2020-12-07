@@ -24,6 +24,10 @@ impl JokerCall {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.cards.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.cards.len()
     }

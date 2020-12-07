@@ -115,7 +115,7 @@ pub async fn room(id: Identity, data: web::Data<AppState>, web::Path(room_id): w
         HttpResponse::Ok().body(body)
     } else {
         HttpResponse::Found()
-            .header(http::header::LOCATION, format!("/login?back=room_{}", room_id,))
+            .header(http::header::LOCATION, format!("/login?back=room_{}", room_id))
             .finish()
     }
 }
@@ -128,7 +128,7 @@ pub async fn setting(id: Identity, data: web::Data<AppState>) -> impl Responder 
         HttpResponse::Ok().body(body)
     } else {
         HttpResponse::Found()
-            .header(http::header::LOCATION, format!("/login?back=setting"))
+            .header(http::header::LOCATION, "/login?back=setting".to_owned())
             .finish()
     }
 }

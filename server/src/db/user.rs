@@ -1,9 +1,7 @@
 use crate::db::{Error, Result, TOKEN_VALID_DURATION};
 use actix_web::http::StatusCode;
-use actix_web::{HttpResponse, ResponseError};
-use deadpool_postgres::{Pool, PoolError};
-use derive_more::Display;
-use serde::Deserialize;
+use deadpool_postgres::{Pool, };
+use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 
@@ -25,8 +23,8 @@ pub async fn add_user(form: &AddUserForm, pool: &Pool) -> Result<()> {
         .first()
         .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED, "login failed"))?;
     let time: SystemTime = row.get(0);
-    if time.elapsed().unwrap_or_else(|| Duration::from_secs(0)) >= TOKEN_VALID_DURATION {
-        return Error::new(StatusCode::UNAUTHORIZED, "token expired");
+    if time.elapsed().unwrap_or_else(|_| Duration::from_secs(0)) >= TOKEN_VALID_DURATION {
+        return Error::result(StatusCode::UNAUTHORIZED, "token expired");
     }
     let email: String = row.get(1);
 
@@ -83,7 +81,7 @@ pub async fn delete(user_no: u32, form: &DeleteForm, pool: &Pool) -> Result<()> 
         .await?;
     let res = client.query(&stmt, &[&user_no, &form.password_hash]).await?;
     if res.is_empty() {
-        return Error::new(StatusCode::UNAUTHORIZED, "password doesn't match");
+        return Error::result(StatusCode::UNAUTHORIZED, "password doesn't match");
     }
     let stmt = client.prepare("DELETE FROM users WHERE number=$1").await?;
     client.query(&stmt, &[&user_no]).await?;
@@ -137,7 +135,7 @@ pub async fn register(form: &RegisterForm, pool: &Pool) -> Result<()> {
         .await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
     if !res.is_empty() {
-        return Error::new(StatusCode::UNAUTHORIZED, "username already in use");
+        return Error::result(StatusCode::UNAUTHORIZED, "username already in use");
     }
 
     let client = pool.get().await?;

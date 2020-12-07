@@ -92,7 +92,7 @@ impl Handler<Leave> for Room {
                     }
                 }
 
-                if self.user_addr.len() == 0 {
+                if self.user_addr.is_empty() {
                     self.remove(ctx);
                     return;
                 }

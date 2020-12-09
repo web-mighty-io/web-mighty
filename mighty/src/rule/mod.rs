@@ -93,12 +93,12 @@ impl From<Preset> for Rule {
             }),
             Preset::GSHS5 => Rule::new()
                 .set_deck(deck::Preset::FullDeck.to_vec())
-                .set_election(Election::empty())
+                .set_election(Election::NO_GIRUDA_EXIST)
                 .map_missed_deal(|m| {
                     m.set_score(2)
                         .set_joker(-1)
                         .mut_card(|m| {
-                            m.insert(Card::Normal(Pattern::Spade, 0), -1);
+                            m.insert(Card::Normal(Pattern::Spade, 0), -2);
                         })
                         .set_limit(1)
                 })

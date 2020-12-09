@@ -1,5 +1,5 @@
 use crate::actor::server::{MakeGameId, RemoveRoom};
-use crate::actor::{observe_ss, server, user, GameId, RoomId, UserId};
+use crate::actor::{observe_ss, server, user, GameId, RoomId, UserNo};
 use crate::db::game::{make_game, SaveGameForm};
 use actix::prelude::*;
 use deadpool_postgres::Pool;
@@ -31,9 +31,9 @@ pub struct Room {
     game: Option<Game>,
     rule: Rule,
     is_rank: bool,
-    head: UserId,
-    user: Vec<UserId>,
-    user_addr: HashMap<UserId, Addr<user::User>>,
+    head: UserNo,
+    user: Vec<UserNo>,
+    user_addr: HashMap<UserNo, Addr<user::User>>,
     observe_addr: HashSet<Addr<observe_ss::ObserveSession>>,
     server: Addr<server::Server>,
     pool: Pool,
@@ -46,7 +46,7 @@ impl Actor for Room {
 #[derive(Clone, Message)]
 #[rtype(result = "bool")]
 pub enum Join {
-    User(UserId, Addr<user::User>),
+    User(UserNo, Addr<user::User>),
     Observe(Addr<observe_ss::ObserveSession>),
 }
 
@@ -77,7 +77,7 @@ impl Handler<Join> for Room {
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
 pub enum Leave {
-    User(UserId),
+    User(UserNo),
     Observe(Addr<observe_ss::ObserveSession>),
 }
 
@@ -117,7 +117,7 @@ impl Handler<Leave> for Room {
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct ChangeName(UserId, String);
+pub struct ChangeName(UserNo, String);
 
 impl Handler<ChangeName> for Room {
     type Result = ();
@@ -131,7 +131,7 @@ impl Handler<ChangeName> for Room {
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct StartGame(UserId);
+pub struct StartGame(UserNo);
 
 impl Handler<StartGame> for Room {
     type Result = ();
@@ -169,7 +169,7 @@ impl Handler<StartGame> for Room {
 
 #[derive(Clone, Message)]
 #[rtype(result = "mighty::Result<()>")]
-pub struct Go(UserId, mighty::Command);
+pub struct Go(UserNo, mighty::Command);
 
 impl Handler<Go> for Room {
     type Result = mighty::Result<()>;
@@ -205,8 +205,8 @@ impl Room {
             game: None,
             rule: Rule::new(),
             is_rank: false,
-            head: UserId(0),
-            user: vec![UserId(0); 5],
+            head: UserNo(0),
+            user: vec![UserNo(0); 5],
             user_addr: HashMap::new(),
             observe_addr: HashSet::new(),
             server,

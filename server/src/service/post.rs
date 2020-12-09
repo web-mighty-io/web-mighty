@@ -6,7 +6,7 @@ use deadpool_postgres::Pool;
 
 #[post("/login")]
 pub async fn login(id: Identity, form: web::Form<LoginForm>, db_pool: web::Data<Pool>) -> Result<HttpResponse, Error> {
-    let user_no = db::user::login(&form, &db_pool).await?;
+    let user_no = db::user::login(&form, (**db_pool).clone()).await?;
     id.remember(user_no.to_string());
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")
@@ -26,7 +26,7 @@ pub async fn register(
     form: web::Form<RegisterForm>,
     db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, Error> {
-    let _ = db::user::register(&form, &db_pool).await?;
+    let _ = db::user::register(&form, (**db_pool).clone()).await?;
     id.remember(form.user_id.clone());
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")

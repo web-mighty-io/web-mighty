@@ -34,4 +34,4 @@ pub struct RoomId(pub Uuid);
 pub struct GameId(pub Uuid);
 
 #[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
-pub struct UserId(pub u32);
+pub struct UserNo(pub u32);

@@ -1,4 +1,4 @@
-use crate::actor::{room, user, GameId, RoomId, UserId};
+use crate::actor::{room, user, GameId, RoomId, UserNo};
 use actix::prelude::*;
 use deadpool_postgres::Pool;
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub struct Server {
     room: HashMap<RoomId, Addr<room::Room>>,
     counter: u64,
-    users: HashMap<UserId, Addr<user::User>>,
+    users: HashMap<UserNo, Addr<user::User>>,
     pool: Pool,
 }
 
@@ -58,20 +58,24 @@ impl Handler<RemoveRoom> for Server {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct Connect(pub UserId, pub Addr<user::User>);
+#[rtype(result = "Addr<user::User>")]
+pub struct Connect(pub UserNo);
 
 impl Handler<Connect> for Server {
-    type Result = ();
+    type Result = Addr<user::User>;
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
-        self.users.insert(msg.0, msg.1);
+        if let Some(addr) = self.users.get(&msg.0) {
+            addr.clone()
+        } else {
+            unimplemented!()
+        }
     }
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "Option<Addr<user::User>>")]
-pub struct GetUser(pub UserId);
+pub struct GetUser(pub UserNo);
 
 impl Handler<GetUser> for Server {
     type Result = Option<Addr<user::User>>;
@@ -83,7 +87,7 @@ impl Handler<GetUser> for Server {
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct Disconnect(pub UserId);
+pub struct Disconnect(pub UserNo);
 
 impl Handler<Disconnect> for Server {
     type Result = ();

@@ -7,17 +7,15 @@ use rand::seq::SliceRandom;
 
 #[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub enum State {
-    NotStarted,
     Election {
         // Option<Pattern> for no giruda.
         // Outer option for not going out.
         pledge: Vec<Option<(Option<Pattern>, u8)>>,
         done: Vec<bool>,
-        deck: Vec<Vec<Card>>,
-        // leftover cards
-        left: Vec<Card>,
         // current user
         curr_user: usize,
+        // start user
+        start_user: Option<usize>,
     },
     SelectFriend {
         president: usize,
@@ -32,12 +30,12 @@ pub enum State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::new()
+        Self::new(&Rule::new())
     }
 }
 
 impl State {
-    fn get_random_deck(rule : &Rule) -> Vec<Vec<Card>> {
+    fn get_random_deck(rule: &Rule) -> Vec<Vec<Card>> {
         loop {
             let mut deck = rule.deck.clone();
             deck.shuffle(&mut rand::thread_rng());
@@ -62,48 +60,29 @@ impl State {
 }
 
 impl State {
-    pub fn new() -> State {
-        unimplemented!()
+    pub fn new(rule: &Rule) -> State {
+        let curr_user = if rule.election.contains(election::Election::PASS_FIRST) { 1 } else { 0 };
+        State::Election {
+            pledge: vec![None; 5],
+            done: vec![false; 5],
+            curr_user,
+            start_user: None,
+        }
     }
 
     pub fn next(&self, user_id: usize, cmd: Command, rule: &Rule) -> Result<Self> {
         match self {
-            State::NotStarted => match cmd {
-                Command::StartGame => {
-                    if user_id != 0 {
-                        return Err(Error::NotLeader);
-                    }
-
-                    let mut deck = State::get_random_deck(rule);
-                    let left = deck.pop().unwrap();
-                    let mut curr_user = 0;
-                    if rule.election.contains(election::Election::PASS_FIRST) {
-                        curr_user = 1;
-                    }
-
-                    Ok(State::Election {
-                        pledge: vec![None; 5],
-                        done: vec![false; 5],
-                        deck,
-                        left,
-                        curr_user,
-                    })
-                }
-                _ => Err(Error::InvalidCommand("BasicCommand::StartGame")),
-            }
-            
             State::Election {
                 pledge,
                 done,
-                deck,
-                left,
                 curr_user,
+                start_user,
             } => match cmd {
                 Command::Pledge(x) => {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
-
-                    if *curr_user != user_id && rule.election.contains(election::Election::ORDERED) {
+                    let is_ordered = rule.election.contains(election::Election::ORDERED);
+                    if *curr_user != user_id && is_ordered {
                         return Err(Error::InvalidUser(*curr_user));
                     } 
 
@@ -118,7 +97,7 @@ impl State {
                             if done[user_id] {
                                 return Err(Error::InvalidPledge(true, 0));
                             }
-
+                            let start_user = if matches!(*start_user, None) { user_id } else { start_user.unwrap() };
                             done[user_id] = false;
                             let max_pledge = pledge.iter().map(|j| 
                                 match *j  {
@@ -128,7 +107,7 @@ impl State {
                             ).max().unwrap();
                             let max_pledge = std::cmp::max(max_pledge, rule.pledge.min);
                             let offset = if matches!(c, None) { rule.pledge.no_giruda_offset } else { 0 };
-                            let max_pledge = (max_pledge as i8 + offset) as u8;
+                            let max_pledge = if start_user == user_id { (max_pledge as i8 + offset + rule.pledge.first_offset) as u8 } else { (max_pledge as i8 + offset) as u8 };
                             if p < max_pledge {
                                 return Err(Error::InvalidPledge(false, max_pledge));
                             }
@@ -141,22 +120,81 @@ impl State {
                             Ok(State::Election {
                                 pledge,
                                 done,
-                                deck: deck.clone(),
-                                left: left.clone(),
-                                curr_user: (user_id + 1) % (rule.user_cnt as usize)
+                                curr_user: (user_id + 1) % (rule.user_cnt as usize),
+                                start_user: Some(start_user),
                             })
                         }
                         _ => {
                             done[user_id] = true;
-                            // not done
-                            Ok(State::Election {
-                                pledge,
-                                done,
-                                deck: deck.clone(),
-                                left: left.clone(),
-                                curr_user: (user_id + 1) % (rule.user_cnt as usize)
-                            })
-                            
+                            let mut candidate = Vec::new();
+                            let mut last_max = 0u8;
+                            let not_done :Vec<usize>= done.iter().enumerate().filter(|(_, &x)| !x).map(|(i, _)| i).collect();
+                            let mut is_election_done = false;
+                            if is_ordered && not_done.len() == 1{
+                                is_election_done = true;
+                                match pledge[not_done[0]] {
+                                    Some((_, c)) => {
+                                        last_max = c;
+                                        candidate = vec![not_done[0]];
+                                    }
+                                    _ => {
+                                        for i in 0..rule.user_cnt {
+                                            candidate.push(i as usize);
+                                        }
+                                    }
+                                } 
+                            } else if !is_ordered && not_done.len() == 0{
+                                is_election_done = true;
+                                for (i, p) in pledge.iter().enumerate() {
+                                    match p {
+                                        Some((_, c)) => {
+                                            match c.cmp(&last_max) {
+                                                std::cmp::Ordering::Greater => {
+                                                    candidate = vec![i];
+                                                    last_max = *c;
+                                                }
+                                                std::cmp::Ordering::Equal => {
+                                                    candidate.push(i);
+                                                }
+                                                _ => {}
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                            } 
+                            if is_election_done {
+                                let mut deck = State::get_random_deck(rule);
+                                let left = deck.pop().unwrap();
+                                let president = candidate.choose(&mut rand::thread_rng()).copied().unwrap();
+                                let mut pledge = pledge[president];
+                                if last_max == 0 {
+                                    let mut pledge_vec = vec![
+                                        (Some(Pattern::Spade), rule.pledge.min),
+                                        (Some(Pattern::Diamond), rule.pledge.min),
+                                        (Some(Pattern::Heart), rule.pledge.min),
+                                        (Some(Pattern::Clover), rule.pledge.min),
+                                    ];
+                                    if rule.election.contains(election::Election::NO_GIRUDA_EXIST) {
+                                        pledge_vec.push((None, (rule.pledge.min as i8 + rule.pledge.no_giruda_offset) as u8));
+                                    }
+                                    pledge = Some(pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap());
+                                }
+                                deck[president].append(&mut left.clone());
+                                Ok(State::SelectFriend {
+                                    president,
+                                    giruda : pledge.unwrap().0,
+                                    pledge : pledge.unwrap().1,
+                                    deck,
+                                })
+                            } else {
+                                Ok(State::Election {
+                                    pledge,
+                                    done,
+                                    curr_user: (user_id + 1) % (rule.user_cnt as usize),
+                                    start_user: *start_user,
+                                })
+                            }
                         }
                     } 
                 }

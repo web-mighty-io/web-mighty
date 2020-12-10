@@ -5,7 +5,7 @@ use crate::rule::{Rule, election};
 use serde::{Deserialize, Serialize};
 use rand::seq::SliceRandom;
 
-#[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub enum State {
     Election {
         // Option<Pattern> for no giruda.

@@ -1,6 +1,7 @@
 use crate::actor::{room, user, GameId, RoomId, UserNo};
 use actix::prelude::*;
 use deadpool_postgres::Pool;
+use mighty::rule::Rule;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -30,16 +31,16 @@ impl Handler<GetRoom> for Server {
 
 #[derive(Clone, Message)]
 #[rtype(result = "RoomId")]
-pub struct MakeRoom;
+pub struct MakeRoom(pub String, pub Rule);
 
 impl Handler<MakeRoom> for Server {
     type Result = RoomId;
 
-    fn handle(&mut self, _: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
         let room_id = RoomId(self.generate_uuid("room"));
         self.room.insert(
             room_id,
-            room::Room::new(room_id, ctx.address(), self.pool.clone()).start(),
+            room::Room::new(room_id, msg.0, msg.1, ctx.address(), self.pool.clone()).start(),
         );
         room_id
     }

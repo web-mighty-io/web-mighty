@@ -14,7 +14,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(rule: Rule) -> Game {
-        let state = State::new();
+        let state = State::new(&rule);
         let valid_users = state.valid_users(&rule);
         Game {
             rule,

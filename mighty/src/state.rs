@@ -83,7 +83,7 @@ impl State {
                     let mut pledge = pledge.clone();
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
                     if *curr_user != user_id && is_ordered {
-                        return Err(Error::InvalidUser(*curr_user));
+                        return Err(Error::InvalidUser);
                     } 
 
                     match x {

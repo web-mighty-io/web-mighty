@@ -4,7 +4,7 @@ use crate::error::Result;
 use crate::rule::Rule;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub enum State {
     Election {
         // Option<Pattern> for no giruda.

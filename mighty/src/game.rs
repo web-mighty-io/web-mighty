@@ -2,37 +2,46 @@ use crate::command::Command;
 use crate::error::Result;
 use crate::rule::Rule;
 use crate::state::State;
+use crate::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct Game {
-    rule_name: String,
     rule: Rule,
     state: State,
-}
-
-impl Default for Game {
-    fn default() -> Self {
-        Self::new()
-    }
+    valid_users: u8,
 }
 
 impl Game {
-    pub fn new() -> Game {
-        unimplemented!()
-    }
-
-    pub fn change_rule(&mut self, rule_name: String, rule: Rule) {
-        self.rule_name = rule_name;
-        self.rule = rule;
+    pub fn new(rule: Rule) -> Game {
+        let state = State::new();
+        let valid_users = state.valid_users(&rule);
+        Game {
+            rule,
+            state,
+            valid_users,
+        }
     }
 
     pub fn valid_users(&self) -> u8 {
-        self.state.valid_users(&self.rule)
+        self.valid_users
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.valid_users == 0
     }
 
     pub fn next(&mut self, user_id: usize, cmd: Command) -> Result<bool> {
-        self.state = self.state.next(user_id, cmd, &self.rule)?;
-        Ok(self.state.is_finished())
+        if self.valid_users & (1u8 << user_id) > 0 {
+            self.state = self.state.next(user_id, cmd, &self.rule)?;
+            self.valid_users = self.state.valid_users(&self.rule);
+            Ok(self.valid_users == 0)
+        } else {
+            Err(Error::InvalidUser)
+        }
+    }
+
+    pub fn get_state(&self) -> State {
+        self.state.clone()
     }
 }

@@ -31,12 +31,12 @@ DROP TABLE IF EXISTS rating;
 
 CREATE TABLE rating
 (
-    user_id INTEGER NOT NULL,
+    user_no INTEGER NOT NULL,
     game_id UUID    NOT NULL,
     diff    INTEGER NOT NULL,
     rating  INTEGER NOT NULL,
     time    TIMESTAMP DEFAULT now()
 );
 
-CREATE INDEX rating_user_id_index ON rating (user_id);
+CREATE INDEX rating_user_id_index ON rating (user_no);
 CREATE INDEX rating_game_id_index ON rating (game_id);

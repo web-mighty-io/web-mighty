@@ -1,5 +1,5 @@
 use crate::actor::hub::{MakeGameId, RemoveRoom};
-use crate::actor::{list_ss, observe_ss, hub, user, GameId, RoomId, UserNo};
+use crate::actor::{hub, list_ss, observe_ss, user, GameId, RoomId, UserNo};
 use crate::db;
 use actix::prelude::*;
 use deadpool_postgres::Pool;

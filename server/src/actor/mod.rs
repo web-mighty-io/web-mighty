@@ -1,18 +1,18 @@
 mod chat_ss;
+mod hub;
 mod list_ss;
 mod main_ss;
 mod observe_ss;
 mod room;
 mod room_ss;
-mod hub;
 mod user;
 
 pub use chat_ss::ChatSession;
+pub use hub::Hub;
 pub use list_ss::ListSession;
 pub use main_ss::MainSession;
 pub use observe_ss::ObserveSession;
 pub use room_ss::RoomSession;
-pub use hub::Hub;
 
 use actix::prelude::*;
 use std::time::Duration;

@@ -1,4 +1,4 @@
-use crate::actor::{self, room, room_ss, hub, RoomId};
+use crate::actor::{self, hub, room, room_ss, RoomId};
 use crate::util::ExAddr;
 use actix::prelude::*;
 use std::time::SystemTime;

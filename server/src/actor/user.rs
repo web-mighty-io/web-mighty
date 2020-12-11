@@ -1,7 +1,10 @@
-use crate::actor::{self, hub, room, room_ss, RoomId};
+use crate::actor::{self, hub, room, room_ss, Hub, RoomId};
+use crate::db::user::UserInfo;
 use crate::util::ExAddr;
 use actix::prelude::*;
+use deadpool_postgres::Pool;
 use std::time::SystemTime;
+use uuid::Uuid;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum UserStatus {
@@ -12,16 +15,15 @@ pub enum UserStatus {
 }
 
 pub struct User {
-    no: u32,
-    id: String,
-    name: String,
+    info: UserInfo,
     status: UserStatus,
     last_move: SystemTime,
     last_connected: SystemTime,
     room_session: ExAddr<room_ss::RoomSession>,
     room_id: RoomId,
     room: ExAddr<room::Room>,
-    server: Addr<hub::Hub>,
+    hub: Addr<hub::Hub>,
+    pool: Pool,
 }
 
 impl Actor for User {
@@ -88,6 +90,20 @@ impl Handler<Leave> for User {
 }
 
 impl User {
+    pub fn new(info: UserInfo, hub: Addr<Hub>, pool: Pool) -> User {
+        User {
+            info,
+            status: UserStatus::Online,
+            last_move: SystemTime::now(),
+            last_connected: SystemTime::now(),
+            room_session: ExAddr::new(),
+            room_id: RoomId(Uuid::nil()),
+            room: ExAddr::new(),
+            hub,
+            pool,
+        }
+    }
+
     pub fn get_status(&self) -> UserStatus {
         match self.status {
             UserStatus::Online => {

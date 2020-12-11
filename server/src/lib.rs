@@ -7,6 +7,5 @@ pub mod config;
 pub mod db;
 #[cfg(feature = "https")]
 pub mod https;
-pub mod mail;
 pub mod service;
 pub mod util;

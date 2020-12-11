@@ -155,32 +155,45 @@ pub async fn get_email(form: &GetEmailForm, pool: Pool) -> Result<String> {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct GetInfoForm {
-    pub user_id: String,
+pub enum GetInfoForm {
+    UserNo(u32),
+    UserId(String),
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct UserInfo {
+    pub user_no: u32,
     pub user_id: String,
     pub name: String,
     pub rating: u32,
     pub is_admin: bool,
 }
 
-pub async fn get_info(form: &GetInfoForm, pool: Pool) -> Result<UserInfo> {
+pub async fn get_info(form: GetInfoForm, pool: Pool) -> Result<UserInfo> {
     let client = pool.get().await?;
-    let stmt = client
-        .prepare("SELECT 1 name, rating, is_admin FROM users WHERE id=$1;")
-        .await?;
-    let res = client.query(&stmt, &[&form.user_id]).await?;
+    let res = match &form {
+        GetInfoForm::UserNo(no) => {
+            let stmt = client
+                .prepare("SELECT 1 no, id, name, rating, is_admin FROM users WHERE no=$1;")
+                .await?;
+            client.query(&stmt, &[no]).await?
+        }
+        GetInfoForm::UserId(id) => {
+            let stmt = client
+                .prepare("SELECT 1 no, id, name, rating, is_admin FROM users WHERE id=$1;")
+                .await?;
+            client.query(&stmt, &[id]).await?
+        }
+    };
     let row = res
         .first()
         .ok_or_else(|| Error::new(StatusCode::NOT_FOUND, "no user"))?;
     Ok(UserInfo {
-        user_id: form.user_id.clone(),
-        name: row.get(0),
-        rating: row.get(1),
-        is_admin: row.get(2),
+        user_no: row.get(0),
+        user_id: row.get(1),
+        name: row.get(2),
+        rating: row.get(3),
+        is_admin: row.get(4),
     })
 }
 

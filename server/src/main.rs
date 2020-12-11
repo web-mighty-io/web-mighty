@@ -1,4 +1,5 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_web::middleware::Logger;
 use actix_web::{middleware, web, App, HttpServer};
 use clap::Clap;
 use server::app_state::AppState;
@@ -47,7 +48,7 @@ async fn main() -> std::io::Result<()> {
                     .secure(true),
             ))
             .wrap(RedirectHttps::new(http_port, https_port))
-            .wrap(middleware::Logger::default())
+            .wrap(Logger::default())
             .app_data(state.clone())
             .data(pool.clone())
             .configure(config)

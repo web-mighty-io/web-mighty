@@ -12,6 +12,7 @@ secret = "xxxx"
 # path to files to serve
 public = "public/static"
 
+# remove this part if you are not using https
 [server.https]
 # port of https server
 port = 443

@@ -1,11 +1,11 @@
-use crate::actor::{server, UserNo};
+use crate::actor::{hub, UserNo};
 use actix::prelude::*;
 use actix_web_actors::ws;
 use actix_web_actors::ws::WebsocketContext;
 
 pub struct ListSession {
     user_no: UserNo,
-    server: Addr<server::Server>,
+    server: Addr<hub::Hub>,
 }
 
 impl Actor for ListSession {
@@ -19,7 +19,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ListSession {
 }
 
 impl ListSession {
-    pub fn new(user_no: UserNo, server: Addr<server::Server>) -> ListSession {
+    pub fn new(user_no: UserNo, server: Addr<hub::Hub>) -> ListSession {
         ListSession { user_no, server }
     }
 }

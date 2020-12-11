@@ -9,7 +9,7 @@ use actix::prelude::*;
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use actix::prelude::*;
 /// use server::util::ExAddr;
 ///

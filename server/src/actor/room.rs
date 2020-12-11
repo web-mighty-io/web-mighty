@@ -1,5 +1,5 @@
-use crate::actor::server::{MakeGameId, RemoveRoom};
-use crate::actor::{list_ss, observe_ss, server, user, GameId, RoomId, UserNo};
+use crate::actor::hub::{MakeGameId, RemoveRoom};
+use crate::actor::{list_ss, observe_ss, hub, user, GameId, RoomId, UserNo};
 use crate::db;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
@@ -21,7 +21,7 @@ pub struct Room {
     user_addr: HashMap<UserNo, Addr<user::User>>,
     observe_addr: HashSet<Addr<observe_ss::ObserveSession>>,
     list_addr: HashSet<Addr<list_ss::ListSession>>,
-    server: Addr<server::Server>,
+    server: Addr<hub::Hub>,
     pool: Pool,
 }
 
@@ -189,7 +189,7 @@ impl Handler<Go> for Room {
 }
 
 impl Room {
-    pub fn new(id: RoomId, name: String, rule: Rule, server: Addr<server::Server>, pool: Pool) -> Room {
+    pub fn new(id: RoomId, name: String, rule: Rule, server: Addr<hub::Hub>, pool: Pool) -> Room {
         Room {
             id,
             name,

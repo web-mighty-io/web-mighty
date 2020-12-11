@@ -1,4 +1,4 @@
-use crate::actor::{self, room, room_ss, server, RoomId};
+use crate::actor::{self, room, room_ss, hub, RoomId};
 use crate::util::ExAddr;
 use actix::prelude::*;
 use std::time::SystemTime;
@@ -21,7 +21,7 @@ pub struct User {
     room_session: ExAddr<room_ss::RoomSession>,
     room_id: RoomId,
     room: ExAddr<room::Room>,
-    server: Addr<server::Server>,
+    server: Addr<hub::Hub>,
 }
 
 impl Actor for User {

@@ -4,7 +4,7 @@ mod main_ss;
 mod observe_ss;
 mod room;
 mod room_ss;
-mod server;
+mod hub;
 mod user;
 
 pub use chat_ss::ChatSession;
@@ -12,7 +12,7 @@ pub use list_ss::ListSession;
 pub use main_ss::MainSession;
 pub use observe_ss::ObserveSession;
 pub use room_ss::RoomSession;
-pub use server::Server;
+pub use hub::Hub;
 
 use actix::prelude::*;
 use std::time::Duration;

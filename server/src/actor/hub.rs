@@ -6,14 +6,14 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-pub struct Server {
+pub struct Hub {
     room: HashMap<RoomId, Addr<room::Room>>,
     counter: u64,
     users: HashMap<UserNo, Addr<user::User>>,
     pool: Pool,
 }
 
-impl Actor for Server {
+impl Actor for Hub {
     type Context = Context<Self>;
 }
 
@@ -21,7 +21,7 @@ impl Actor for Server {
 #[rtype(result = "Option<Addr<room::Room>>")]
 pub struct GetRoom(pub RoomId);
 
-impl Handler<GetRoom> for Server {
+impl Handler<GetRoom> for Hub {
     type Result = Option<Addr<room::Room>>;
 
     fn handle(&mut self, msg: GetRoom, _: &mut Self::Context) -> Self::Result {
@@ -33,7 +33,7 @@ impl Handler<GetRoom> for Server {
 #[rtype(result = "RoomId")]
 pub struct MakeRoom(pub String, pub Rule);
 
-impl Handler<MakeRoom> for Server {
+impl Handler<MakeRoom> for Hub {
     type Result = RoomId;
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
@@ -50,7 +50,7 @@ impl Handler<MakeRoom> for Server {
 #[rtype(result = "()")]
 pub struct RemoveRoom(pub RoomId);
 
-impl Handler<RemoveRoom> for Server {
+impl Handler<RemoveRoom> for Hub {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveRoom, _: &mut Self::Context) -> Self::Result {
@@ -62,7 +62,7 @@ impl Handler<RemoveRoom> for Server {
 #[rtype(result = "Addr<user::User>")]
 pub struct Connect(pub UserNo);
 
-impl Handler<Connect> for Server {
+impl Handler<Connect> for Hub {
     type Result = Addr<user::User>;
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
@@ -78,7 +78,7 @@ impl Handler<Connect> for Server {
 #[rtype(result = "Option<Addr<user::User>>")]
 pub struct GetUser(pub UserNo);
 
-impl Handler<GetUser> for Server {
+impl Handler<GetUser> for Hub {
     type Result = Option<Addr<user::User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
@@ -90,7 +90,7 @@ impl Handler<GetUser> for Server {
 #[rtype(result = "()")]
 pub struct Disconnect(pub UserNo);
 
-impl Handler<Disconnect> for Server {
+impl Handler<Disconnect> for Hub {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
@@ -102,7 +102,7 @@ impl Handler<Disconnect> for Server {
 #[rtype(result = "GameId")]
 pub struct MakeGameId;
 
-impl Handler<MakeGameId> for Server {
+impl Handler<MakeGameId> for Hub {
     type Result = GameId;
 
     fn handle(&mut self, _: MakeGameId, _: &mut Self::Context) -> Self::Result {
@@ -110,9 +110,9 @@ impl Handler<MakeGameId> for Server {
     }
 }
 
-impl Server {
-    pub fn new(pool: Pool) -> Server {
-        Server {
+impl Hub {
+    pub fn new(pool: Pool) -> Hub {
+        Hub {
             room: HashMap::new(),
             counter: 0,
             users: HashMap::new(),

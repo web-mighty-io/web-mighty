@@ -1,11 +1,11 @@
-use crate::actor::{server, UserNo};
+use crate::actor::{hub, UserNo};
 use actix::prelude::*;
 use actix_web_actors::ws;
 use actix_web_actors::ws::WebsocketContext;
 
 pub struct RoomSession {
     user_no: UserNo,
-    server: Addr<server::Server>,
+    server: Addr<hub::Hub>,
 }
 
 impl Actor for RoomSession {
@@ -19,7 +19,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for RoomSession {
 }
 
 impl RoomSession {
-    pub fn new(user_no: UserNo, server: Addr<server::Server>) -> RoomSession {
+    pub fn new(user_no: UserNo, server: Addr<hub::Hub>) -> RoomSession {
         RoomSession { user_no, server }
     }
 }

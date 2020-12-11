@@ -36,7 +36,7 @@ pub struct AppState {
     resources: HashMap<String, String>,
     #[cfg(feature = "watch-file")]
     resources: Mutex<HashMap<String, String>>,
-    pub server: Addr<actor::Server>,
+    pub server: Addr<actor::Hub>,
 }
 
 impl AppState {
@@ -45,7 +45,7 @@ impl AppState {
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            server: actor::Server::new(pool).start(),
+            server: actor::Hub::new(pool).start(),
         })
     }
 
@@ -61,7 +61,7 @@ impl AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
-            server: actor::Server::new(pool).start(),
+            server: actor::Hub::new(pool).start(),
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();

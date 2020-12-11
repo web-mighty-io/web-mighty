@@ -8,16 +8,16 @@ use futures::task::{Context, Poll};
 /// # Examples
 ///
 /// ```no_run
-/// use actix_web::App;
-/// use actix_web::HttpServer;
+/// use actix_web::{get, App, HttpServer, Responder};
 /// use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 /// use server::https::RedirectHttps;
 ///
 /// #[get("/")]
-/// fn index() -> impl Response {
-///     "Hello, World!"
+/// async fn index() -> impl Responder {
+///     format!("Hello, World!")
 /// }
 ///
+/// #[cfg(feature = "https")]
 /// #[actix_web::main]
 /// async fn main() -> std::io::Result<()> {
 ///     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -26,7 +26,7 @@ use futures::task::{Context, Poll};
 ///
 ///     HttpServer::new(move || App::new().wrap(RedirectHttps::new(8080, 8443)).service(index))
 ///         .bind("0.0.0.0:8080")?
-///         .bind_openssl("0.0.0.0:8443", builder)
+///         .bind_openssl("0.0.0.0:8443", builder)?
 ///         .run()
 ///         .await
 /// }

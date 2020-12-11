@@ -1,21 +1,5 @@
 # Web Mighty Server
 
-## Server Configuration
-
-This server uses postgresql as database.
-
-**Example**
-
-```dotenv
-PG__HOST=pg.example.com
-PG__USER=jaeyong_sung
-PG__PASSWORD=topsecret
-PG__DBNAME=example
-PG__POOL__MAX_SIZE=16
-PG__POOL__TIMEOUTS__WAIT__SECS=5
-PG__POOL__TIMEOUTS__WAIT__NANOS=0
-```
-
 ## URL
 
 ### GET

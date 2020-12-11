@@ -3,6 +3,7 @@
 
 pub mod actor;
 pub mod app_state;
+pub mod config;
 pub mod db;
 #[cfg(feature = "https")]
 pub mod https;

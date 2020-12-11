@@ -27,9 +27,6 @@ python3 util/start_server.py
 
 1. [install](https://www.postgresql.org/download/) and start your postgresql server
 
-1. make `server/.env` file and fill
-   with [environment values](https://github.com/buttercrab/web-mighty/blob/master/server/README.md)
-
 1. run `cd public && wasm-pack build --target web --release`
 
 1. build server

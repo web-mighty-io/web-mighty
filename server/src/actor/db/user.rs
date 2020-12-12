@@ -1,11 +1,14 @@
-use crate::db::{Error, Result, TOKEN_VALID_DURATION};
+use crate::actor::db::TOKEN_VALID_DURATION;
+use crate::actor::error::{Error, Result};
+use actix::prelude::*;
 use actix_web::http::StatusCode;
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct AddUserForm {
     pub user_id: String,
     pub name: String,
@@ -13,7 +16,7 @@ pub struct AddUserForm {
     pub token: Uuid,
 }
 
-pub async fn add_user(form: &AddUserForm, pool: Pool) -> Result<()> {
+pub async fn add_user(form: AddUserForm, pool: Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 gen_time, email FROM pre_users WHERE id=$1 AND token=$2;")
@@ -43,7 +46,8 @@ pub async fn add_user(form: &AddUserForm, pool: Pool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct ChangeInfoForm {
     pub user_no: u32,
     pub name: Option<String>,
@@ -52,7 +56,7 @@ pub struct ChangeInfoForm {
     pub new_password: Option<String>,
 }
 
-pub async fn change_info(form: &ChangeInfoForm, pool: Pool) -> Result<()> {
+pub async fn change_info(form: ChangeInfoForm, pool: Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 name, email FROM users WHERE no=$1 AND password=$2;")
@@ -76,12 +80,13 @@ pub async fn change_info(form: &ChangeInfoForm, pool: Pool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<bool>")]
 pub struct CheckIdForm {
     pub user_id: String,
 }
 
-pub async fn check_id(form: &CheckIdForm, pool: Pool) -> Result<bool> {
+pub async fn check_id(form: CheckIdForm, pool: Pool) -> Result<bool> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")
@@ -90,24 +95,26 @@ pub async fn check_id(form: &CheckIdForm, pool: Pool) -> Result<bool> {
     Ok(!res.is_empty())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<bool>")]
 pub struct CheckEmailForm {
     pub email: String,
 }
 
-pub async fn check_email(form: &CheckEmailForm, pool: Pool) -> Result<bool> {
+pub async fn check_email(form: CheckEmailForm, pool: Pool) -> Result<bool> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT 1 no FROM users WHERE email=$1;").await?;
     let res = client.query(&stmt, &[&form.email]).await?;
     Ok(!res.is_empty())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct DeleteForm {
     pub password: String,
 }
 
-pub async fn delete(user_no: u32, form: &DeleteForm, pool: Pool) -> Result<()> {
+pub async fn delete(user_no: u32, form: DeleteForm, pool: Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 no FROM users WHERE no=$1 AND password=$2;")
@@ -121,13 +128,14 @@ pub async fn delete(user_no: u32, form: &DeleteForm, pool: Pool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<u32>")]
 pub struct LoginForm {
     pub user_id: String,
     pub password: String,
 }
 
-pub async fn login(form: &LoginForm, pool: Pool) -> Result<u32> {
+pub async fn login(form: LoginForm, pool: Pool) -> Result<u32> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 no FROM users WHERE id=$1 AND password=$2;")
@@ -139,12 +147,13 @@ pub async fn login(form: &LoginForm, pool: Pool) -> Result<u32> {
     Ok(row.get(0))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<String>")]
 pub struct GetEmailForm {
     pub user_id: String,
 }
 
-pub async fn get_email(form: &GetEmailForm, pool: Pool) -> Result<String> {
+pub async fn get_email(form: GetEmailForm, pool: Pool) -> Result<String> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT email FROM users WHERE id=$1;").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
@@ -154,13 +163,14 @@ pub async fn get_email(form: &GetEmailForm, pool: Pool) -> Result<String> {
     Ok(row.get(0))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<UserInfo>")]
 pub enum GetInfoForm {
     UserNo(u32),
     UserId(String),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, MessageResponse)]
 pub struct UserInfo {
     pub user_no: u32,
     pub user_id: String,
@@ -197,13 +207,14 @@ pub async fn get_info(form: GetInfoForm, pool: Pool) -> Result<UserInfo> {
     })
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<Uuid>")]
 pub struct RegenerateTokenForm {
     pub user_id: String,
     pub email: String,
 }
 
-pub async fn regenerate_token(form: &RegenerateTokenForm, pool: Pool) -> Result<Uuid> {
+pub async fn regenerate_token(form: RegenerateTokenForm, pool: Pool) -> Result<Uuid> {
     let client = pool.get().await?;
     let stmt = client.prepare("UPDATE pre_users SET token = UUID_GENERATE_V4(), gen_time = NOW() WHERE id=$1 AND email=$2 RETURNING token;").await?;
     let res = client.query(&stmt, &[&form.user_id, &form.email]).await?;
@@ -213,13 +224,14 @@ pub async fn regenerate_token(form: &RegenerateTokenForm, pool: Pool) -> Result<
     Ok(row.get(0))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct RegisterForm {
     pub user_id: String,
     pub email: String,
 }
 
-pub async fn register(form: &RegisterForm, pool: Pool) -> Result<()> {
+pub async fn register(form: RegisterForm, pool: Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")

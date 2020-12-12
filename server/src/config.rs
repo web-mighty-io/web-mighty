@@ -13,6 +13,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub postgres: deadpool_postgres::Config,
     pub server: Server,
+    pub mail: Mail,
 }
 
 #[derive(Deserialize)]
@@ -38,6 +39,13 @@ pub struct Https {
 pub struct Log {
     pub path: Option<String>,
     pub verbose: Option<usize>,
+}
+
+#[derive(Deserialize)]
+pub struct Mail {
+    pub username: String,
+    pub password: String,
+    pub host: String,
 }
 
 impl Config {

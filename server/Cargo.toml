@@ -19,6 +19,7 @@ deadpool-postgres = "0.6"
 derive_more = "0.99"
 handlebars = "3.5"
 ignore = "0.4"
+lettre = "0.10.0-alpha.4"
 log = "0.4"
 rand = "0.7"
 serde = { version = "1", features = ["derive"] }

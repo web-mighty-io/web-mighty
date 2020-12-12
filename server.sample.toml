@@ -33,3 +33,9 @@ verbose = 4
 dbname = "postgres"
 user = "username"
 password = "secret"
+
+# mail server smtp relay using lettre crate
+[mail]
+username = "admin"
+password = "secret"
+host = "localhost"

@@ -1,5 +1,6 @@
-use crate::actor::{ChatSession, ListSession, MainSession, ObserveSession, RoomSession, UserNo};
+use crate::actor::UserNo;
 use crate::app_state::AppState;
+use crate::session::{ChatSession, ListSession, MainSession, ObserveSession, RoomSession};
 use actix_identity::Identity;
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;

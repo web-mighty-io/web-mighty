@@ -1,4 +1,5 @@
-use crate::db::Result;
+use crate::actor::error::Result;
+use actix::prelude::*;
 use deadpool_postgres::Pool;
 use mighty::rule::Rule;
 use mighty::State;
@@ -7,7 +8,8 @@ use std::time::SystemTime;
 use tokio_postgres::types::Json;
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct ChangeRatingForm {
     pub user_no: u32,
     pub game_id: Uuid,
@@ -30,14 +32,15 @@ pub async fn change_rating(form: ChangeRatingForm, pool: Pool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<Vec<Rating>>")]
 pub struct GetRatingForm {
     pub user_no: u32,
     pub start: SystemTime,
     pub end: SystemTime,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, MessageResponse)]
 pub struct Rating {
     pub game_id: Uuid,
     pub diff: u32,
@@ -62,8 +65,9 @@ pub async fn get_rating(form: GetRatingForm, pool: Pool) -> Result<Vec<Rating>> 
         .collect())
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct SaveGameForm {
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct MakeGameForm {
     pub game_id: Uuid,
     pub room_id: Uuid,
     pub room_name: String,
@@ -72,7 +76,7 @@ pub struct SaveGameForm {
     pub rule: Rule,
 }
 
-pub async fn make_game(form: SaveGameForm, pool: Pool) -> Result<()> {
+pub async fn make_game(form: MakeGameForm, pool: Pool) -> Result<()> {
     let client = pool.get().await?;
     let stmt = client
         .prepare("INSERT INTO game (id, room_id, room_name, users, is_rank, rule) VALUES ($1, $2, $3, $4, $5, $6);")
@@ -93,7 +97,8 @@ pub async fn make_game(form: SaveGameForm, pool: Pool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Message)]
+#[rtype(result = "Result<()>")]
 pub struct SaveStateForm {
     pub game_id: Uuid,
     pub room_id: Uuid,

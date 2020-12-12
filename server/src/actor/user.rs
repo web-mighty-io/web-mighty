@@ -1,8 +1,8 @@
-use crate::actor::{self, hub, room, room_ss, Hub, RoomId};
-use crate::db::user::UserInfo;
+use crate::actor::db::UserInfo;
+use crate::actor::{self, Database, Hub, Room, RoomId};
+use crate::session::RoomSession;
 use crate::util::ExAddr;
 use actix::prelude::*;
-use deadpool_postgres::Pool;
 use std::time::SystemTime;
 use uuid::Uuid;
 
@@ -19,11 +19,11 @@ pub struct User {
     status: UserStatus,
     last_move: SystemTime,
     last_connected: SystemTime,
-    room_session: ExAddr<room_ss::RoomSession>,
+    room_session: ExAddr<RoomSession>,
     room_id: RoomId,
-    room: ExAddr<room::Room>,
-    hub: Addr<hub::Hub>,
-    pool: Pool,
+    room: ExAddr<Room>,
+    hub: Addr<Hub>,
+    db: Addr<Database>,
 }
 
 impl Actor for User {
@@ -33,7 +33,7 @@ impl Actor for User {
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
 pub enum Connect {
-    Game(Addr<room_ss::RoomSession>, RoomId),
+    Game(Addr<RoomSession>, RoomId),
 }
 
 impl Handler<Connect> for User {
@@ -90,7 +90,7 @@ impl Handler<Leave> for User {
 }
 
 impl User {
-    pub fn new(info: UserInfo, hub: Addr<Hub>, pool: Pool) -> User {
+    pub fn new(info: UserInfo, hub: Addr<Hub>, db: Addr<Database>) -> User {
         User {
             info,
             status: UserStatus::Online,
@@ -100,7 +100,7 @@ impl User {
             room_id: RoomId(Uuid::nil()),
             room: ExAddr::new(),
             hub,
-            pool,
+            db,
         }
     }
 

@@ -1,9 +1,8 @@
+use crate::actor::db::GetInfoForm;
 use crate::actor::room::Room;
 use crate::actor::user::User;
-use crate::actor::{GameId, RoomId, UserNo};
-use crate::db::user::{get_info, GetInfoForm};
+use crate::actor::{Database, GameId, RoomId, UserNo};
 use actix::prelude::*;
-use deadpool_postgres::Pool;
 use mighty::rule::Rule;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,7 +12,7 @@ pub struct Hub {
     room: HashMap<RoomId, Addr<Room>>,
     counter: u64,
     users: HashMap<UserNo, Addr<User>>,
-    pool: Pool,
+    db: Addr<Database>,
 }
 
 impl Actor for Hub {
@@ -43,7 +42,7 @@ impl Handler<MakeRoom> for Hub {
         let room_id = RoomId(self.generate_uuid("room"));
         self.room.insert(
             room_id,
-            Room::new(room_id, msg.0, msg.1, ctx.address(), self.pool.clone()).start(),
+            Room::new(room_id, msg.0, msg.1, ctx.address(), self.db.clone()).start(),
         );
         room_id
     }
@@ -73,10 +72,11 @@ impl Handler<Connect> for Hub {
             addr.clone()
         } else {
             let user_no = msg.0;
-            get_info(GetInfoForm::UserNo(msg.0 .0), self.pool.clone())
+            self.db
+                .send(GetInfoForm::UserNo(msg.0 .0))
                 .into_actor(self)
                 .then(move |res, act, ctx| {
-                    let user = User::new(res.unwrap(), ctx.address(), act.pool.clone()).start();
+                    let user = User::new(res.unwrap().unwrap(), ctx.address(), act.db.clone()).start();
                     act.users.insert(user_no, user);
 
                     fut::ready(())
@@ -125,12 +125,12 @@ impl Handler<MakeGameId> for Hub {
 }
 
 impl Hub {
-    pub fn new(pool: Pool) -> Hub {
+    pub fn new(db: Addr<Database>) -> Hub {
         Hub {
             room: HashMap::new(),
             counter: 0,
             users: HashMap::new(),
-            pool,
+            db,
         }
     }
 

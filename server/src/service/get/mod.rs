@@ -1,20 +1,23 @@
 pub mod api;
 pub mod ws;
 
+use crate::actor::db::GetInfoForm;
 use crate::app_state::AppState;
-use crate::db;
-use crate::db::user::{get_info, GetInfoForm};
 use actix_identity::Identity;
 use actix_web::{get, http, web, Error, HttpResponse, Responder};
-use deadpool_postgres::Pool;
 use serde_json::{json, Map};
+use std::future::IntoFuture;
 
 #[get("/admin")]
-pub async fn admin(id: Identity, data: web::Data<AppState>, db_pool: web::Data<Pool>) -> Result<HttpResponse, Error> {
+pub async fn admin(id: Identity, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        if db::user::get_info(db::user::GetInfoForm::UserNo(user_no), (**db_pool).clone())
-            .await?
+        if data
+            .db
+            .send(GetInfoForm::UserNo(user_no))
+            .into_future()
+            .await
+            .unwrap()?
             .is_admin
         {
             let handlebars = data.get_handlebars();
@@ -155,14 +158,19 @@ pub async fn user(
     id: Identity,
     data: web::Data<AppState>,
     web::Path(user_id): web::Path<String>,
-    db_pool: web::Data<Pool>,
+    state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let mut val = Map::new();
     if let Some(id) = id.identity() {
         val.insert("id".to_owned(), json!(id));
     }
 
-    let user_info = get_info(GetInfoForm::UserId(user_id), (**db_pool).clone()).await?;
+    let user_info = state
+        .db
+        .send(GetInfoForm::UserId(user_id))
+        .into_future()
+        .await
+        .unwrap()?;
     val.insert("user_id".to_owned(), json!(user_info.user_id));
     val.insert("name".to_owned(), json!(user_info.name));
     val.insert("rating".to_owned(), json!(user_info.rating));

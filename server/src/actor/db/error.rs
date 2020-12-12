@@ -2,12 +2,6 @@ use actix_web::dev::HttpResponseBuilder;
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use deadpool_postgres::PoolError;
-use std::time::Duration;
-
-pub mod game;
-pub mod user;
-
-const TOKEN_VALID_DURATION: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[derive(Debug)]
 pub enum Error {

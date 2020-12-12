@@ -1,6 +1,6 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::middleware::Logger;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{web, App, HttpServer};
 use clap::Clap;
 use server::app_state::AppState;
 use server::config::Config;
@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()> {
     let https_port = conf.server.https.port;
     let builder = conf.ssl_builder();
 
-    let state = AppState::new(util::to_absolute_path(public), pool.clone());
+    let state = AppState::new(util::to_absolute_path(public), pool);
 
     HttpServer::new(move || {
         App::new()
@@ -49,8 +49,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(RedirectHttps::new(http_port, https_port))
             .wrap(Logger::default())
-            .app_data(state.clone())
-            .data(pool.clone())
+            .data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })
@@ -73,7 +72,7 @@ async fn main() -> std::io::Result<()> {
     let host = conf.server.host.clone();
     let http_port = conf.server.port;
 
-    let state = AppState::new(util::to_absolute_path(public), pool.clone());
+    let state = AppState::new(util::to_absolute_path(public), pool);
 
     HttpServer::new(move || {
         App::new()
@@ -82,9 +81,8 @@ async fn main() -> std::io::Result<()> {
                     .name("web-mighty-auth")
                     .secure(true),
             ))
-            .wrap(middleware::Logger::default())
-            .app_data(state.clone())
-            .data(pool.clone())
+            .wrap(Logger::default())
+            .data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })

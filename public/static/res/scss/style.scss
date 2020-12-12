@@ -17,4 +17,8 @@ $light: hsl(0, 0%, 80%);
 $grey-light: $beige;
 $footer-background-color: $light;
 
+.is-horizontal-center {
+  justify-content: center;
+}
+
 @import "../bulma/bulma.sass";

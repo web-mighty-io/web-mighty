@@ -26,6 +26,7 @@ venv
 
 # server binary file
 server/build
+build
 
 # ssl key files
 **/*.pem
@@ -44,3 +45,6 @@ server/build
 
 # log files
 **/*.log
+
+# configuration file
+server.toml

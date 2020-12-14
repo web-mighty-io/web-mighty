@@ -1,11 +1,14 @@
-use crate::actor::server::{MakeGameId, RemoveRoom};
-use crate::actor::{list_ss, observe_ss, server, user, GameId, RoomId, UserNo};
-use crate::db;
+use crate::actor::db::{MakeGameForm, SaveStateForm};
+use crate::actor::error::Result;
+use crate::actor::hub::{MakeGameId, RemoveRoom};
+use crate::actor::user::User;
+use crate::actor::{hub, Database, GameId, Hub, RoomId, UserNo};
+use crate::session::{ListSession, ObserveSession};
 use actix::prelude::*;
-use deadpool_postgres::Pool;
 use mighty::rule::Rule;
 use mighty::Game;
 use std::collections::{HashMap, HashSet};
+use std::future::IntoFuture;
 use uuid::Uuid;
 
 pub struct Room {
@@ -18,11 +21,11 @@ pub struct Room {
     game: Option<Game>,
     head: UserNo,
     user: Vec<UserNo>,
-    user_addr: HashMap<UserNo, Addr<user::User>>,
-    observe_addr: HashSet<Addr<observe_ss::ObserveSession>>,
-    list_addr: HashSet<Addr<list_ss::ListSession>>,
-    server: Addr<server::Server>,
-    pool: Pool,
+    user_addr: HashMap<UserNo, Addr<User>>,
+    observe_addr: HashSet<Addr<ObserveSession>>,
+    list_addr: HashSet<Addr<ListSession>>,
+    server: Addr<Hub>,
+    db: Addr<Database>,
 }
 
 impl Actor for Room {
@@ -32,9 +35,9 @@ impl Actor for Room {
 #[derive(Clone, Message)]
 #[rtype(result = "bool")]
 pub enum Join {
-    User(UserNo, Addr<user::User>),
-    Observe(Addr<observe_ss::ObserveSession>),
-    List(Addr<list_ss::ListSession>),
+    User(UserNo, Addr<User>),
+    Observe(Addr<ObserveSession>),
+    List(Addr<ListSession>),
 }
 
 impl Handler<Join> for Room {
@@ -67,8 +70,8 @@ impl Handler<Join> for Room {
 #[rtype(result = "()")]
 pub enum Leave {
     User(UserNo),
-    Observe(Addr<observe_ss::ObserveSession>),
-    List(Addr<list_ss::ListSession>),
+    Observe(Addr<ObserveSession>),
+    List(Addr<ListSession>),
 }
 
 impl Handler<Leave> for Room {
@@ -140,20 +143,18 @@ impl Handler<StartGame> for Room {
                 .then(|res, act, ctx| {
                     if let Ok(res) = res {
                         act.game = Some(Game::new(act.rule.clone()));
-                        db::game::make_game(
-                            db::game::SaveGameForm {
+                        act.db
+                            .send(MakeGameForm {
                                 game_id: res.0,
                                 room_id: act.id.0,
                                 room_name: act.name.clone(),
                                 users: act.user.iter().map(|u| u.0).collect(),
                                 is_rank: act.is_rank,
                                 rule: act.rule.clone(),
-                            },
-                            act.pool.clone(),
-                        )
-                        .into_actor(act)
-                        .then(|_, _, _| fut::ready(()))
-                        .wait(ctx);
+                            })
+                            .into_actor(act)
+                            .then(|_, _, _| fut::ready(()))
+                            .wait(ctx);
                     }
 
                     fut::ready(())
@@ -189,7 +190,7 @@ impl Handler<Go> for Room {
 }
 
 impl Room {
-    pub fn new(id: RoomId, name: String, rule: Rule, server: Addr<server::Server>, pool: Pool) -> Room {
+    pub fn new(id: RoomId, name: String, rule: Rule, server: Addr<hub::Hub>, db: Addr<Database>) -> Room {
         Room {
             id,
             name,
@@ -204,7 +205,7 @@ impl Room {
             observe_addr: HashSet::new(),
             list_addr: HashSet::new(),
             server,
-            pool,
+            db,
         }
     }
 
@@ -221,18 +222,18 @@ impl Room {
         }
     }
 
-    async fn save_state(&self) -> db::Result<()> {
+    async fn save_state(&self) -> Result<()> {
         if let Some(game) = &self.game {
-            db::game::save_state(
-                db::game::SaveStateForm {
+            self.db
+                .send(SaveStateForm {
                     game_id: self.game_id.0,
                     room_id: self.id.0,
                     number: self.game_no,
                     state: game.get_state(),
-                },
-                self.pool.clone(),
-            )
-            .await
+                })
+                .into_future()
+                .await
+                .unwrap()
         } else {
             Ok(())
         }

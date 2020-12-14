@@ -50,7 +50,7 @@ pub fn compress<P: AsRef<Path>>(from: P) -> PathBuf {
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use server::util::to_absolute_path;
 /// use std::env;
 /// use std::path::PathBuf;

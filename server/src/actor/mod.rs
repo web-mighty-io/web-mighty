@@ -1,18 +1,15 @@
-mod chat_ss;
-mod list_ss;
-mod main_ss;
-mod observe_ss;
+pub mod db;
+mod hub;
+mod mail;
 mod room;
-mod room_ss;
-mod server;
 mod user;
 
-pub use chat_ss::ChatSession;
-pub use list_ss::ListSession;
-pub use main_ss::MainSession;
-pub use observe_ss::ObserveSession;
-pub use room_ss::RoomSession;
-pub use server::Server;
+pub use db::error;
+pub use db::Database;
+pub use hub::Hub;
+pub use mail::Mail;
+pub use room::Room;
+pub use user::User;
 
 use actix::prelude::*;
 use std::time::Duration;
@@ -35,3 +32,6 @@ pub struct GameId(pub Uuid);
 
 #[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
 pub struct UserNo(pub u32);
+
+#[derive(Clone, Copy, MessageResponse, Eq, PartialEq, Hash)]
+pub struct Token(pub Uuid);

@@ -1,28 +1,30 @@
-use crate::actor::{room, user, GameId, RoomId, UserNo};
+use crate::actor::db::GetInfoForm;
+use crate::actor::room::Room;
+use crate::actor::user::User;
+use crate::actor::{Database, GameId, RoomId, UserNo};
 use actix::prelude::*;
-use deadpool_postgres::Pool;
 use mighty::rule::Rule;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-pub struct Server {
-    room: HashMap<RoomId, Addr<room::Room>>,
+pub struct Hub {
+    room: HashMap<RoomId, Addr<Room>>,
     counter: u64,
-    users: HashMap<UserNo, Addr<user::User>>,
-    pool: Pool,
+    users: HashMap<UserNo, Addr<User>>,
+    db: Addr<Database>,
 }
 
-impl Actor for Server {
+impl Actor for Hub {
     type Context = Context<Self>;
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Option<Addr<room::Room>>")]
+#[rtype(result = "Option<Addr<Room>>")]
 pub struct GetRoom(pub RoomId);
 
-impl Handler<GetRoom> for Server {
-    type Result = Option<Addr<room::Room>>;
+impl Handler<GetRoom> for Hub {
+    type Result = Option<Addr<Room>>;
 
     fn handle(&mut self, msg: GetRoom, _: &mut Self::Context) -> Self::Result {
         self.room.get(&msg.0).cloned()
@@ -33,14 +35,14 @@ impl Handler<GetRoom> for Server {
 #[rtype(result = "RoomId")]
 pub struct MakeRoom(pub String, pub Rule);
 
-impl Handler<MakeRoom> for Server {
+impl Handler<MakeRoom> for Hub {
     type Result = RoomId;
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
         let room_id = RoomId(self.generate_uuid("room"));
         self.room.insert(
             room_id,
-            room::Room::new(room_id, msg.0, msg.1, ctx.address(), self.pool.clone()).start(),
+            Room::new(room_id, msg.0, msg.1, ctx.address(), self.db.clone()).start(),
         );
         room_id
     }
@@ -50,7 +52,7 @@ impl Handler<MakeRoom> for Server {
 #[rtype(result = "()")]
 pub struct RemoveRoom(pub RoomId);
 
-impl Handler<RemoveRoom> for Server {
+impl Handler<RemoveRoom> for Hub {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveRoom, _: &mut Self::Context) -> Self::Result {
@@ -59,27 +61,39 @@ impl Handler<RemoveRoom> for Server {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Addr<user::User>")]
+#[rtype(result = "Addr<User>")]
 pub struct Connect(pub UserNo);
 
-impl Handler<Connect> for Server {
-    type Result = Addr<user::User>;
+impl Handler<Connect> for Hub {
+    type Result = Addr<User>;
 
-    fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
         if let Some(addr) = self.users.get(&msg.0) {
             addr.clone()
         } else {
-            unimplemented!()
+            let user_no = msg.0;
+            self.db
+                .send(GetInfoForm::UserNo(msg.0 .0))
+                .into_actor(self)
+                .then(move |res, act, ctx| {
+                    let user = User::new(res.unwrap().unwrap(), ctx.address(), act.db.clone()).start();
+                    act.users.insert(user_no, user);
+
+                    fut::ready(())
+                })
+                .wait(ctx);
+
+            self.users.get(&user_no).unwrap().clone()
         }
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Option<Addr<user::User>>")]
+#[rtype(result = "Option<Addr<User>>")]
 pub struct GetUser(pub UserNo);
 
-impl Handler<GetUser> for Server {
-    type Result = Option<Addr<user::User>>;
+impl Handler<GetUser> for Hub {
+    type Result = Option<Addr<User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
         self.users.get(&msg.0).cloned()
@@ -90,7 +104,7 @@ impl Handler<GetUser> for Server {
 #[rtype(result = "()")]
 pub struct Disconnect(pub UserNo);
 
-impl Handler<Disconnect> for Server {
+impl Handler<Disconnect> for Hub {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
@@ -102,7 +116,7 @@ impl Handler<Disconnect> for Server {
 #[rtype(result = "GameId")]
 pub struct MakeGameId;
 
-impl Handler<MakeGameId> for Server {
+impl Handler<MakeGameId> for Hub {
     type Result = GameId;
 
     fn handle(&mut self, _: MakeGameId, _: &mut Self::Context) -> Self::Result {
@@ -110,13 +124,13 @@ impl Handler<MakeGameId> for Server {
     }
 }
 
-impl Server {
-    pub fn new(pool: Pool) -> Server {
-        Server {
+impl Hub {
+    pub fn new(db: Addr<Database>) -> Hub {
+        Hub {
             room: HashMap::new(),
             counter: 0,
             users: HashMap::new(),
-            pool,
+            db,
         }
     }
 

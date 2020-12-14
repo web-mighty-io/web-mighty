@@ -3,7 +3,6 @@
 from clint.textui import colored
 import json
 import os
-import platform
 from pyfiglet import Figlet
 from PyInquirer import prompt
 import requests
@@ -229,8 +228,6 @@ def init_postgres() -> None:
     if init:
         # TODO: make init command
         pass
-
-    # TODO: make .env file
 
 
 def main() -> None:

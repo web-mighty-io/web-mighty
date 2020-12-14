@@ -1,4 +1,5 @@
 use crate::actor;
+use crate::actor::{Database, Hub};
 use actix::prelude::*;
 use actix_web::web;
 use deadpool_postgres::Pool;
@@ -23,7 +24,7 @@ use {
 /// 1. `handlebars`: Needs for rendering page. Can get from calling `get_handlebars()`.
 /// 2. `watcher`: Just to be alive whole time. (available in `watch-file` feature)
 /// 3. `resources`: Needs for resource files. All file except `.hbs` file is saved here. Can get from calling `get_resources()`.
-/// 4. `server`: Websocket main server address.
+/// 4. `hub`: Websocket main server address.
 pub struct AppState {
     #[cfg(not(feature = "watch-file"))]
     handlebars: Handlebars<'static>,
@@ -36,16 +37,19 @@ pub struct AppState {
     resources: HashMap<String, String>,
     #[cfg(feature = "watch-file")]
     resources: Mutex<HashMap<String, String>>,
-    pub server: Addr<actor::Server>,
+    pub hub: Addr<Hub>,
+    pub db: Addr<Database>,
 }
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
     pub fn new<P: AsRef<Path>>(path: P, pool: Pool) -> web::Data<AppState> {
+        let db = actor::Database::new(pool).start();
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            server: actor::Server::new(pool).start(),
+            hub: actor::Hub::new(db.clone()).start(),
+            db,
         })
     }
 
@@ -57,11 +61,13 @@ impl AppState {
 
         watcher.watch(path, RecursiveMode::Recursive).unwrap();
 
+        let db = actor::Database::new(pool).start();
         let state = web::Data::new(AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
-            server: actor::Server::new(pool).start(),
+            hub: actor::Hub::new(db.clone()).start(),
+            db,
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();

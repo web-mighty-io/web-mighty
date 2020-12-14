@@ -67,7 +67,7 @@ impl Handler<Disconnect> for User {
                 self.set_status(UserStatus::Disconnected);
                 self.last_connected = SystemTime::now();
                 let last = self.last_connected;
-                ctx.run_later(actor::RECONNECTION_TIME, move |act, ctx| {
+                ctx.run_later(actor::RECONNECTION_TIME, move |act, _| {
                     if act.last_connected == last && !act.room_session.is_set() {
                         act.set_status(UserStatus::Offline);
                     }

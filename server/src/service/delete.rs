@@ -1,6 +1,5 @@
 use crate::actor::db::{Delete, DeleteForm};
 use crate::app_state::AppState;
-use actix::prelude::*;
 use actix_identity::Identity;
 use actix_web::{delete, http, web, Error, HttpResponse};
 use std::future::IntoFuture;

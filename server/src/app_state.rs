@@ -1,5 +1,5 @@
 use crate::actor;
-use crate::actor::{Database, Hub};
+use crate::actor::{Database, Hub, Mail};
 use actix::prelude::*;
 use actix_web::web;
 use deadpool_postgres::Pool;
@@ -39,22 +39,24 @@ pub struct AppState {
     resources: Mutex<HashMap<String, String>>,
     pub hub: Addr<Hub>,
     pub db: Addr<Database>,
+    pub mail: Addr<Mail>,
 }
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new<P: AsRef<Path>>(path: P, pool: Pool) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, pool: Pool, mail: Mail) -> web::Data<AppState> {
         let db = actor::Database::new(pool).start();
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            hub: actor::Hub::new(db.clone()).start(),
+            hub: Hub::new(db.clone()).start(),
             db,
+            mail: mail.start(),
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new<P: AsRef<Path>>(path: P, pool: Pool) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, pool: Pool, mail: Mail) -> web::Data<AppState> {
         let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
@@ -68,6 +70,7 @@ impl AppState {
             resources: Mutex::new(get_resources(&path)),
             hub: actor::Hub::new(db.clone()).start(),
             db,
+            mail: mail.start(),
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();

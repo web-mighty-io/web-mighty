@@ -21,4 +21,8 @@ $footer-background-color: $light;
   justify-content: center;
 }
 
+.box-is-primary {
+  $box-background-color: primary;
+}
+
 @import "../bulma/bulma.sass";

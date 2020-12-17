@@ -1,4 +1,5 @@
 mod address;
+mod connection;
 mod path;
 
 pub use address::ExAddr;

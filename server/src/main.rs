@@ -50,7 +50,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(RedirectHttps::new(http_port, https_port))
             .wrap(Logger::default())
-            .data(state.clone())
+            .app_data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })
@@ -84,7 +84,7 @@ async fn main() -> std::io::Result<()> {
                     .secure(true),
             ))
             .wrap(Logger::default())
-            .data(state.clone())
+            .app_data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })

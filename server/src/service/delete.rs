@@ -2,7 +2,7 @@ use crate::actor::db::{Delete, DeleteForm};
 use crate::app_state::AppState;
 use actix_identity::Identity;
 use actix_web::{delete, http, web, Error, HttpResponse};
-use std::future::IntoFuture;
+use futures::TryFutureExt;
 
 #[delete("/delete_user")]
 pub async fn delete_user(

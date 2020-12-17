@@ -1,7 +1,8 @@
 use crate::actor::db::UserInfo;
-use crate::actor::{self, Database, Hub, Room, RoomId};
+use crate::actor::{Database, Hub, Room, RoomId};
 use crate::session::RoomSession;
 use crate::util::ExAddr;
+use crate::RECONNECTION_TIME;
 use actix::prelude::*;
 use std::time::SystemTime;
 use uuid::Uuid;
@@ -67,7 +68,7 @@ impl Handler<Disconnect> for User {
                 self.set_status(UserStatus::Disconnected);
                 self.last_connected = SystemTime::now();
                 let last = self.last_connected;
-                ctx.run_later(actor::RECONNECTION_TIME, move |act, _| {
+                ctx.run_later(RECONNECTION_TIME, move |act, _| {
                     if act.last_connected == last && !act.room_session.is_set() {
                         act.set_status(UserStatus::Offline);
                     }
@@ -107,7 +108,7 @@ impl User {
     pub fn get_status(&self) -> UserStatus {
         match self.status {
             UserStatus::Online => {
-                if self.last_move.elapsed().unwrap() >= actor::RECONNECTION_TIME {
+                if self.last_move.elapsed().unwrap() >= RECONNECTION_TIME {
                     UserStatus::Absent
                 } else {
                     UserStatus::Online

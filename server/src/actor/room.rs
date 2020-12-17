@@ -5,10 +5,10 @@ use crate::actor::user::User;
 use crate::actor::{hub, Database, GameId, Hub, RoomId, UserNo};
 use crate::session::{ListSession, ObserveSession};
 use actix::prelude::*;
+use futures::TryFutureExt;
 use mighty::rule::Rule;
 use mighty::Game;
 use std::collections::{HashMap, HashSet};
-use std::future::IntoFuture;
 use uuid::Uuid;
 
 pub struct Room {

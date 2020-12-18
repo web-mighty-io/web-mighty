@@ -49,19 +49,20 @@
                             <div class="field">
                                 <label class="label">Username</label>
                                 <div class="control">
-                                    <input type="text" class="input">
+                                    <input type="text" class="input" id="id-login">
                                 </div>
                             </div>
                             <div class="field">
                                 <label class="label">Password</label>
                                 <div class="control">
-                                    <input type="password" class="input">
+                                    <input type="password" class="input" id="pw-login">
                                 </div>
+                                <p class="help is-danger" id="login-false"></p>
                             </div>
                             <div class="level">
                                 <div class="control level-left">
                                     <div class="level-item">
-                                        <button class="button is-link">Log in</button>
+                                        <button class="button is-link" id="login-btn">Log in</button>
                                     </div>
                                 </div>
                                 <div class="control level-right">
@@ -129,5 +130,6 @@
             </div>
         </div>
     </section>
+    <script src="res/js/index.js" type="text/javascript"></script>
 </body>
 </html>

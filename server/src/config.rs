@@ -1,3 +1,4 @@
+use crate::actor;
 use deadpool_postgres::Pool;
 #[cfg(feature = "https")]
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
@@ -94,6 +95,14 @@ impl Config {
 
     pub fn db_pool(&self) -> Pool {
         self.postgres.create_pool(tokio_postgres::NoTls).unwrap()
+    }
+
+    pub fn get_mail(&self) -> actor::Mail {
+        actor::Mail::new(
+            self.mail.username.clone(),
+            self.mail.password.clone(),
+            self.mail.host.clone(),
+        )
     }
 
     #[cfg(feature = "https")]

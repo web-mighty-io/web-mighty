@@ -37,8 +37,9 @@ async fn main() -> std::io::Result<()> {
     let http_port = conf.server.port;
     let https_port = conf.server.https.port;
     let builder = conf.ssl_builder();
+    let mail = conf.get_mail();
 
-    let state = AppState::new(util::to_absolute_path(public), pool);
+    let state = AppState::new(util::to_absolute_path(public), pool, mail);
 
     HttpServer::new(move || {
         App::new()
@@ -49,7 +50,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(RedirectHttps::new(http_port, https_port))
             .wrap(Logger::default())
-            .data(state.clone())
+            .app_data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })
@@ -71,8 +72,9 @@ async fn main() -> std::io::Result<()> {
     let public = conf.server.public.clone();
     let host = conf.server.host.clone();
     let http_port = conf.server.port;
+    let mail = conf.get_mail();
 
-    let state = AppState::new(util::to_absolute_path(public), pool);
+    let state = AppState::new(util::to_absolute_path(public), pool, mail);
 
     HttpServer::new(move || {
         App::new()
@@ -82,7 +84,7 @@ async fn main() -> std::io::Result<()> {
                     .secure(true),
             ))
             .wrap(Logger::default())
-            .data(state.clone())
+            .app_data(state.clone())
             .configure(config)
             .default_service(web::to(p404))
     })

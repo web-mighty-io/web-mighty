@@ -5,8 +5,8 @@ use crate::actor::db::GetInfoForm;
 use crate::app_state::AppState;
 use actix_identity::Identity;
 use actix_web::{get, http, web, Error, HttpResponse, Responder};
+use futures::TryFutureExt;
 use serde_json::{json, Map};
-use std::future::IntoFuture;
 
 #[get("/admin")]
 pub async fn admin(id: Identity, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
@@ -121,7 +121,7 @@ pub async fn register(id: Identity, data: web::Data<AppState>) -> impl Responder
 pub async fn resource(data: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
     let resources = data.get_resources();
     if let Some(body) = resources.get(&file) {
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok().body(body.clone())
     } else {
         HttpResponse::NotFound().finish()
     }

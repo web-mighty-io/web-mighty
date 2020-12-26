@@ -1,6 +1,6 @@
 use actix::prelude::*;
 use lettre::transport::smtp::authentication::Credentials;
-use lettre::SmtpTransport;
+use lettre::{SmtpTransport, Transport};
 
 pub struct Mail {
     pub smtp: SmtpTransport,
@@ -8,6 +8,19 @@ pub struct Mail {
 
 impl Actor for Mail {
     type Context = Context<Self>;
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<(), lettre::transport::smtp::Error>")]
+pub struct Send(lettre::Message);
+
+impl Handler<Send> for Mail {
+    type Result = Result<(), lettre::transport::smtp::Error>;
+
+    fn handle(&mut self, msg: Send, _: &mut Self::Context) -> Self::Result {
+        self.smtp.send(&msg.0)?;
+        Ok(())
+    }
 }
 
 impl Mail {

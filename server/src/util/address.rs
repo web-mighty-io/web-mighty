@@ -10,28 +10,28 @@ use actix::prelude::*;
 /// # Examples
 ///
 /// ```no_run
-/// use actix::prelude::*;
-/// use server::util::ExAddr;
+/// # use actix::prelude::*;
+/// # use server::util::ExAddr;
 ///
-/// pub struct Counter {
-///     counter: u32,
-/// }
+/// # pub struct Counter {
+/// #     counter: u32,
+/// # }
 ///
-/// impl Actor for Counter {
-///     type Context = Context<Self>;
-/// }
+/// # impl Actor for Counter {
+/// #     type Context = Context<Self>;
+/// # }
 ///
-/// #[derive(Clone, Message)]
-/// #[rtype(result = "()")]
-/// pub struct AddOne;
+/// # #[derive(Clone, Message)]
+/// # #[rtype(result = "()")]
+/// # pub struct AddOne;
 ///
-/// impl Handler<AddOne> for Counter {
-///     type Result = ();
+/// # impl Handler<AddOne> for Counter {
+/// #     type Result = ();
 ///
-///     fn handle(&mut self, msg: AddOne, _: &mut Self::Context) -> Self::Result {
-///         self.counter += 1;
-///     }
-/// }
+/// #     fn handle(&mut self, msg: AddOne, _: &mut Self::Context) -> Self::Result {
+/// #         self.counter += 1
+/// #     }
+/// # }
 ///
 /// let mut addr = ExAddr::new();
 /// let counter = Counter { counter: 0 }.start();

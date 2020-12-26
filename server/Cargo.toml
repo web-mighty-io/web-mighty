@@ -17,6 +17,7 @@ bitflags = "1.2"
 clap = "3.0.0-beta.2"
 deadpool-postgres = "0.6"
 derive_more = "0.99"
+futures = "0.3"
 handlebars = "3.5"
 ignore = "0.4"
 lettre = "0.10.0-alpha.4"
@@ -35,11 +36,10 @@ toml = "0.5"
 uuid = { version = "0.8", features = ["serde", "v5"] }
 walkdir = "2"
 
-futures = { version = "0.3", optional = true }
 notify = { version = "4.0.15", optional = true }
 openssl = { version = "0.10", optional = true }
 
 [features]
 default = []
 watch-file = ["notify"]
-https = ["openssl", "actix-web/openssl", "futures"]
+https = ["openssl", "actix-web/openssl"]

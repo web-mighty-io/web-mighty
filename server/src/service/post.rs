@@ -2,7 +2,7 @@ use crate::actor::db::{LoginForm, RegisterForm};
 use crate::app_state::AppState;
 use actix_identity::Identity;
 use actix_web::{http, post, web, Error, HttpResponse, Responder};
-use std::future::IntoFuture;
+use futures::TryFutureExt;
 
 #[post("/login")]
 pub async fn login(

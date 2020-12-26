@@ -1,7 +1,7 @@
 use crate::card::{Card, Pattern};
 use crate::command::Command;
 use crate::error::{Error, Result};
-use crate::rule::{election, Rule};
+use crate::rule::{election, friend, Rule};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +26,35 @@ pub enum State {
         deck: Vec<Vec<Card>>,
     },
     InGame {
+        // president in in-game user id
         president: usize,
+        // friend func executed every task when friend is not determined
+        // result is for person 0 to 4 (in-game user id)
+        friend_func: friend::FriendFunc,
+        // 0 to 4 for in-game user id
+        friend: Option<usize>,
+        // if friend is known to other people
+        is_friend_known: bool,
+        // giruda of this game
+        giruda: Option<Pattern>,
+        // pledge score of ruling party
+        pledge: u8,
+        // deck for each user (len of 5)
+        deck: Vec<Vec<Card>>,
+        // score cards
+        score_deck: Vec<Vec<Card>>,
+        // turn count 0 to 9
+        turn_count: u8,
+        // placed cards in front of users
+        placed_cards: Vec<Card>,
+        // start user of this turn
+        start_user: usize,
+        // current user of this turn
+        current_user: usize,
+        // current pattern of this turn
+        current_pattern: Pattern,
+        // is joker called (user can decide)
+        is_joker_called: bool,
     },
 }
 
@@ -226,7 +254,101 @@ impl State {
                     }
                 }
                 Command::Random => self.next(user_id, Command::Pledge(None), rule),
-                _ => Err(Error::InvalidCommand("BasicCommand::Pledge")),
+                _ => Err(Error::InvalidCommand("Command::Pledge")),
+            },
+            State::SelectFriend {
+                president,
+                giruda,
+                pledge,
+                deck,
+            } => match cmd {
+                Command::SelectFriend(drop_card, friend_func) => {
+                    if user_id != *president {
+                        return Err(Error::NotPresident);
+                    }
+
+                    let mut deck = deck.clone();
+                    for card in drop_card.iter() {
+                        let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
+                        deck[user_id].remove(idx);
+                    }
+                    let friend = match &friend_func {
+                        friend::FriendFunc::ByCard(c) => {
+                            if !rule.friend.contains(friend::Friend::CARD) {
+                                return Err(Error::InvalidFriendFunc);
+                            }
+                            let temp = deck
+                                .iter()
+                                .enumerate()
+                                .filter(|(i, d)| d.contains(c))
+                                .map(|(i, _)| i)
+                                .next();
+                            if temp.unwrap() == *president && !rule.friend.contains(friend::Friend::FAKE) {
+                                return Err(Error::InvalidFriendFunc);
+                            }
+                            temp
+                        }
+                        friend::FriendFunc::ByUser(u) => Some(*u).filter(|_| *u != *president),
+                        _ => None,
+                    };
+                    let is_friend_known =
+                        matches!(&friend_func, friend::FriendFunc::None | friend::FriendFunc::ByUser(_));
+                    Ok(State::InGame {
+                        president: *president,
+                        friend_func,
+                        friend,
+                        is_friend_known,
+                        giruda: *giruda,
+                        pledge: *pledge,
+                        deck,
+                        score_deck: Vec::new(),
+                        turn_count: 0,
+                        placed_cards: vec![Card::Normal(Pattern::Spade, 0); 5],
+                        start_user: *president,
+                        current_user: *president,
+                        current_pattern: Pattern::Spade,
+                        is_joker_called: false,
+                    })
+                }
+                Command::ChangePledge(new_giruda) => {
+                    if user_id != *president {
+                        return Err(Error::NotPresident);
+                    }
+                    if *giruda == new_giruda {
+                        return Err(Error::SameGiruda);
+                    }
+
+                    let new_pledge = if matches!(giruda, None) {
+                        ((*pledge) as i8 - rule.pledge.first_offset + rule.pledge.change_cost as i8) as u8
+                    } else if matches!(new_giruda, None) {
+                        ((*pledge) as i8 - rule.pledge.first_offset) as u8
+                    } else {
+                        ((*pledge) as i8 + rule.pledge.change_cost as i8) as u8
+                    };
+
+                    if new_pledge > rule.pledge.max {
+                        return Err(Error::InvalidPledge(true, rule.pledge.max));
+                    }
+
+                    Ok(State::SelectFriend {
+                        president: *president,
+                        giruda: new_giruda,
+                        pledge: new_pledge,
+                        deck: deck.clone(),
+                    })
+                }
+                Command::Random => self.next(
+                    user_id,
+                    Command::SelectFriend(
+                        deck[user_id]
+                            .choose_multiple(&mut rand::thread_rng(), 4)
+                            .cloned()
+                            .collect(),
+                        friend::FriendFunc::None,
+                    ),
+                    rule,
+                ),
+                _ => Err(Error::InvalidCommand("Command::Pledge")),
             },
             _ => Ok(self.clone()),
         }

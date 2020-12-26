@@ -16,6 +16,8 @@ pub enum State {
         curr_user: usize,
         // start user
         start_user: Option<usize>,
+        deck: Vec<Vec<Card>>,
+        left: Vec<Card>,
     },
     SelectFriend {
         president: usize,
@@ -64,16 +66,15 @@ impl State {
 
 impl State {
     pub fn new(rule: &Rule) -> State {
-        let curr_user = if rule.election.contains(election::Election::PASS_FIRST) {
-            1
-        } else {
-            0
-        };
+        let mut deck = State::get_random_deck(rule);
+        let left = deck.pop().unwrap();
         State::Election {
             pledge: vec![None; 5],
             done: vec![false; 5],
-            curr_user,
+            curr_user: 0,
             start_user: None,
+            deck,
+            left,
         }
     }
 
@@ -84,6 +85,8 @@ impl State {
                 done,
                 curr_user,
                 start_user,
+                deck,
+                left,
             } => match cmd {
                 Command::Pledge(x) => {
                     let mut done = done.clone();
@@ -91,20 +94,20 @@ impl State {
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
                     if *curr_user != user_id && is_ordered {
                         return Err(Error::InvalidUser);
-                    }
+                    } //vaild users 함수 만들고 바꾸기
 
                     match x {
                         Some((c, p)) => {
                             if p > rule.pledge.max {
                                 return Err(Error::InvalidPledge(true, rule.pledge.max));
                             }
-                            if matches!(c, None) && !rule.election.contains(election::Election::NO_GIRUDA_EXIST) {
+                            if c == None && !rule.election.contains(election::Election::NO_GIRUDA_EXIST) {
                                 return Err(Error::InvalidPledge(true, 0));
                             }
                             if done[user_id] {
                                 return Err(Error::InvalidPledge(true, 0));
                             }
-                            let start_user = if matches!(*start_user, None) {
+                            let start_user = if *start_user == None {
                                 user_id
                             } else {
                                 start_user.unwrap()
@@ -119,11 +122,7 @@ impl State {
                                 .max()
                                 .unwrap();
                             let max_pledge = std::cmp::max(max_pledge, rule.pledge.min);
-                            let offset = if matches!(c, None) {
-                                rule.pledge.no_giruda_offset
-                            } else {
-                                0
-                            };
+                            let offset = if c == None { rule.pledge.no_giruda_offset } else { 0 };
                             let max_pledge = if start_user == user_id {
                                 (max_pledge as i8 + offset + rule.pledge.first_offset) as u8
                             } else {
@@ -143,9 +142,14 @@ impl State {
                                 done,
                                 curr_user: (user_id + 1) % (rule.user_cnt as usize),
                                 start_user: Some(start_user),
+                                deck: deck.clone(),
+                                left: left.clone(),
                             })
                         }
                         _ => {
+                            if !rule.election.contains(election::Election::PASS_FIRST) && *start_user == None {
+                                return Err(Error::PassFirst);
+                            }
                             done[user_id] = true;
                             let mut candidate = Vec::new();
                             let mut last_max = 0u8;
@@ -184,8 +188,8 @@ impl State {
                                 }
                             }
                             if is_election_done {
-                                let mut deck = State::get_random_deck(rule);
-                                let left = deck.pop().unwrap();
+                                let mut deck = deck.clone();
+                                let left = left.clone();
                                 let president = candidate.choose(&mut rand::thread_rng()).copied().unwrap();
                                 let mut pledge = pledge[president];
                                 if last_max == 0 {
@@ -214,6 +218,8 @@ impl State {
                                     done,
                                     curr_user: (user_id + 1) % (rule.user_cnt as usize),
                                     start_user: *start_user,
+                                    deck: deck.clone(),
+                                    left: left.clone(),
                                 })
                             }
                         }

@@ -11,6 +11,7 @@ pub enum Error {
     WrongCardType,
     Internal(&'static str),
     WrongCard,
+    PassFirst,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -31,6 +32,7 @@ impl std::fmt::Display for Error {
             Error::SameGiruda => write!(f, "same giruda"),
             Error::Internal(e) => write!(f, "internal error: {}", e),
             Error::WrongCard => write!(f, "you can't place this card"),
+            Error::PassFirst => write!(f, "dealer should run at first turn"),
         }
     }
 }

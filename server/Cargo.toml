@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mighty = { path = "../mighty", default-features = false, features = ["server"] }
+mighty = { path = "../mighty" }
 
 actix = "0.10"
 actix-identity = "0.3"
@@ -22,7 +22,7 @@ handlebars = "3.5"
 ignore = "0.4"
 lettre = "0.10.0-alpha.4"
 log = "0.4"
-rand = "0.7"
+rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.9"

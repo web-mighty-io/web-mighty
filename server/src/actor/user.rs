@@ -1,40 +1,65 @@
 use crate::actor::db::UserInfo;
 use crate::actor::{Database, Hub, Room, RoomId};
-use crate::session::RoomSession;
-use crate::util::ExAddr;
-use crate::RECONNECTION_TIME;
+use crate::session::{ListSession, MainSession, ObserveSession, RoomSession};
+use crate::util::{self, AddListener, Connection, ExAddr, Status};
 use actix::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
-use uuid::Uuid;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UserStatus {
+    InGame,
+    InRoom,
     Online,
     Absent,
     Disconnected,
     Offline,
 }
 
+pub struct RoomInfo {
+    room_id: RoomId,
+    room: ExAddr<Room>,
+    session: Addr<RoomSession>,
+    time: SystemTime,
+}
+
 pub struct User {
     info: UserInfo,
     status: UserStatus,
-    last_move: SystemTime,
-    last_connected: SystemTime,
-    room_session: ExAddr<RoomSession>,
-    room_id: RoomId,
-    room: ExAddr<Room>,
+    room: Option<RoomInfo>,
+    list_session: Addr<Connection<ListSession>>,
+    list_status: Status,
+    main_session: Addr<Connection<MainSession>>,
+    main_status: Status,
+    observe_session: Addr<Connection<ObserveSession>>,
+    observe_status: Status,
     hub: Addr<Hub>,
     db: Addr<Database>,
 }
 
 impl Actor for User {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        let addr = ctx.address();
+        self.list_session
+            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::List(status))));
+        let addr = ctx.address();
+        self.main_session
+            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::Main(status))));
+        let addr = ctx.address();
+        self.observe_session
+            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::Observe(status))));
+    }
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
 pub enum Connect {
     Game(Addr<RoomSession>, RoomId),
+    List(Addr<ListSession>),
+    Main(Addr<MainSession>),
+    Observe(Addr<ObserveSession>),
 }
 
 impl Handler<Connect> for User {
@@ -42,11 +67,15 @@ impl Handler<Connect> for User {
 
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
         match msg {
-            Connect::Game(addr, room_id) => {
-                self.room_session.set_addr(addr);
-                self.room_id = room_id;
-                self.status = UserStatus::Online;
-                self.last_move = SystemTime::now();
+            Connect::Game(addr, room_id) => {}
+            Connect::List(addr) => {
+                self.list_session.do_send(util::Connect(addr));
+            }
+            Connect::Main(addr) => {
+                self.main_session.do_send(util::Connect(addr));
+            }
+            Connect::Observe(addr) => {
+                self.observe_session.do_send(util::Connect(addr));
             }
         }
     }
@@ -56,6 +85,9 @@ impl Handler<Connect> for User {
 #[rtype(result = "()")]
 pub enum Disconnect {
     Game,
+    List(Addr<ListSession>),
+    Main(Addr<MainSession>),
+    Observe(Addr<ObserveSession>),
 }
 
 impl Handler<Disconnect> for User {
@@ -63,16 +95,15 @@ impl Handler<Disconnect> for User {
 
     fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            Disconnect::Game => {
-                self.room_session.unset_addr();
-                self.set_status(UserStatus::Disconnected);
-                self.last_connected = SystemTime::now();
-                let last = self.last_connected;
-                ctx.run_later(RECONNECTION_TIME, move |act, _| {
-                    if act.last_connected == last && !act.room_session.is_set() {
-                        act.set_status(UserStatus::Offline);
-                    }
-                });
+            Disconnect::Game => {}
+            Disconnect::List(addr) => {
+                self.list_session.do_send(util::Disconnect(addr));
+            }
+            Disconnect::Main(addr) => {
+                self.main_session.do_send(util::Disconnect(addr));
+            }
+            Disconnect::Observe(addr) => {
+                self.observe_session.do_send(util::Disconnect(addr));
             }
         }
     }
@@ -90,35 +121,46 @@ impl Handler<Leave> for User {
     }
 }
 
+#[derive(Clone, Message)]
+#[rtype(result = "()")]
+pub enum ChangeStatus {
+    List(Status),
+    Main(Status),
+    Observe(Status),
+}
+
+impl Handler<ChangeStatus> for User {
+    type Result = ();
+
+    fn handle(&mut self, msg: ChangeStatus, _: &mut Self::Context) -> Self::Result {
+        match msg {
+            ChangeStatus::List(s) => {
+                self.list_status = s;
+            }
+            ChangeStatus::Main(s) => {
+                self.main_status = s;
+            }
+            ChangeStatus::Observe(s) => {
+                self.observe_status = s;
+            }
+        }
+    }
+}
+
 impl User {
     pub fn new(info: UserInfo, hub: Addr<Hub>, db: Addr<Database>) -> User {
         User {
             info,
             status: UserStatus::Online,
-            last_move: SystemTime::now(),
-            last_connected: SystemTime::now(),
-            room_session: ExAddr::new(),
-            room_id: RoomId(Uuid::nil()),
-            room: ExAddr::new(),
+            room: None,
+            list_session: Connection::start_default(),
+            list_status: Status::Offline,
+            main_session: Connection::start_default(),
+            main_status: Status::Offline,
+            observe_session: Connection::start_default(),
+            observe_status: Status::Offline,
             hub,
             db,
         }
-    }
-
-    pub fn get_status(&self) -> UserStatus {
-        match self.status {
-            UserStatus::Online => {
-                if self.last_move.elapsed().unwrap() >= RECONNECTION_TIME {
-                    UserStatus::Absent
-                } else {
-                    UserStatus::Online
-                }
-            }
-            x => x,
-        }
-    }
-
-    fn set_status(&mut self, status: UserStatus) {
-        self.status = status;
     }
 }

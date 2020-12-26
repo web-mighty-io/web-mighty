@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
-mighty = { path = "../mighty", default-features = false, features = ["server"] }
+mighty = { path = "../mighty" }
 
 [dependencies.web-sys]
 version = "0.3.4"

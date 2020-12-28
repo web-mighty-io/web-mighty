@@ -29,7 +29,7 @@ slog-term = "2.6"
 slog-async = "2.5"
 slog-scope = "4.3"
 slog-stdlog = "4.1"
-tokio-postgres = "0.6"
+tokio-postgres = "0.7"
 walkdir = "2"
 
 futures = { version = "0.3", optional = true }

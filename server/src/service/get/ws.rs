@@ -13,7 +13,7 @@ pub async fn chat(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        let user_no = id.parse().unwrap();
         ws::start(ChatSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
@@ -28,7 +28,7 @@ pub async fn list(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        let user_no = id.parse().unwrap();
         ws::start(ListSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
@@ -43,7 +43,7 @@ pub async fn main(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        let user_no = id.parse().unwrap();
         ws::start(MainSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
@@ -58,7 +58,7 @@ pub async fn observe(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        let user_no = id.parse().unwrap();
         ws::start(ObserveSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
@@ -73,7 +73,7 @@ pub async fn room(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
+        let user_no = id.parse().unwrap();
         ws::start(RoomSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())

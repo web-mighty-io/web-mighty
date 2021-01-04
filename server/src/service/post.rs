@@ -1,7 +1,8 @@
 use crate::actor::db::{LoginForm, RegisterForm};
 use crate::app_state::AppState;
+use crate::prelude::*;
 use actix_identity::Identity;
-use actix_web::{http, post, web, Error, HttpResponse, Responder};
+use actix_web::{http, post, web, HttpResponse, Responder};
 use futures::TryFutureExt;
 
 #[post("/login")]
@@ -10,7 +11,7 @@ pub async fn login(
     form: web::Form<LoginForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let user_no = state.db.send((*form).clone()).into_future().await.unwrap()?;
+    let user_no = state.db.send((*form).clone()).into_future().await??;
     id.remember(user_no.to_string());
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")
@@ -30,7 +31,7 @@ pub async fn register(
     form: web::Form<RegisterForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let _ = state.db.send((*form).clone()).into_future().await.unwrap()?;
+    let _ = state.db.send((*form).clone()).into_future().await??;
     id.remember(form.user_id.clone());
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")

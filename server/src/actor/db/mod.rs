@@ -1,26 +1,22 @@
-use crate::actor::db::game::{change_rating, get_rating, make_game, save_state};
-pub use crate::actor::db::game::{ChangeRatingForm, GetRatingForm, MakeGameForm, Rating, SaveStateForm};
-use crate::actor::db::user::{
-    add_user, change_info, check_email, check_id, delete, get_email, get_info, login, regenerate_token, register,
-};
-pub use crate::actor::db::user::{
-    AddUserForm, ChangeInfoForm, CheckEmailForm, CheckIdForm, DeleteForm, GetEmailForm, GetInfoForm, LoginForm,
-    RegenerateTokenForm, RegisterForm, UserInfo,
-};
+use crate::prelude::*;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
-use error::Result;
+use game::{change_rating, get_rating, make_game, save_state};
+pub use game::{ChangeRatingForm, GetRatingForm, MakeGameForm, Rating, SaveStateForm};
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::time::Duration;
+use user::{
+    add_user, change_info, check_email, check_id, delete, get_email, get_info, login, regenerate_token, register,
+};
+pub use user::{
+    AddUserForm, ChangeInfoForm, CheckEmailForm, CheckIdForm, DeleteForm, GetEmailForm, GetInfoForm, LoginForm,
+    RegenerateTokenForm, RegisterForm, UserInfo,
+};
 use uuid::Uuid;
 
-pub mod error;
 mod game;
 mod user;
-
-const TOKEN_VALID_DURATION: Duration = Duration::from_secs(24 * 60 * 60);
 
 pub struct Database {
     pub pool: Pool,
@@ -36,7 +32,7 @@ macro_rules! impl_handler {
             type Result = $res;
 
             fn handle(&mut self, msg: $msg, ctx: &mut Self::Context) -> Self::Result {
-                let (tx, rx): (Sender<Self::Result>, Receiver<Self::Result>) = mpsc::channel();
+                let (tx, rx) = mpsc::channel();
                 $func(msg, self.pool.clone())
                     .into_actor(self)
                     .then(move |res, _, _| {

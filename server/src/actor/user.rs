@@ -1,40 +1,50 @@
 use crate::actor::db::UserInfo;
-use crate::actor::{Database, Hub, Room, RoomId};
-use crate::session::{ListSession, MainSession, ObserveSession, RoomSession};
-use crate::util::{self, AddListener, Connection, ExAddr, Status};
+use crate::actor::hub::GetRoom;
+use crate::actor::room::{self, GetInfo, RoomInfo, RoomJoin, RoomLeave};
+use crate::actor::{Hub, Room, RoomId};
+use crate::prelude::*;
+use crate::session::{MainSession, RoomSession};
 use actix::prelude::*;
+use bitflags::bitflags;
+use mighty::{Command, State};
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum UserStatus {
-    InGame,
-    InRoom,
-    Online,
-    Absent,
-    Disconnected,
-    Offline,
+bitflags! {
+    #[derive(Serialize, Deserialize)]
+    pub struct UserStatus: u8 {
+        const ROOM_MASK    = 0b1100;
+        const IN_GAME      = 0b1100;
+        const IN_ROOM      = 0b0100;
+        const ONLINE       = 0b0011;
+        const ABSENT       = 0b0010;
+        const DISCONNECTED = 0b0001;
+        const OFFLINE      = 0b0000;
+    }
 }
 
-pub struct RoomInfo {
-    room_id: RoomId,
-    room: ExAddr<Room>,
-    session: Addr<RoomSession>,
-    time: SystemTime,
+impl From<Status> for UserStatus {
+    fn from(s: Status) -> Self {
+        match s {
+            Status::Online => UserStatus::ONLINE,
+            Status::Absent => UserStatus::ABSENT,
+            Status::Disconnected => UserStatus::DISCONNECTED,
+            Status::Offline => UserStatus::OFFLINE,
+        }
+    }
+}
+
+pub struct JoinedRoom {
+    addr: Addr<Room>,
+    info: RoomInfo,
+    group: Addr<Group<RoomSession>>,
 }
 
 pub struct User {
     info: UserInfo,
     status: UserStatus,
-    room: Option<RoomInfo>,
-    list_session: Addr<Connection<ListSession>>,
-    list_status: Status,
-    main_session: Addr<Connection<MainSession>>,
-    main_status: Status,
-    observe_session: Addr<Connection<ObserveSession>>,
-    observe_status: Status,
+    room: Option<JoinedRoom>,
+    main: Addr<Connection<MainSession>>,
     hub: Addr<Hub>,
-    db: Addr<Database>,
 }
 
 impl Actor for User {
@@ -42,125 +52,183 @@ impl Actor for User {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         let addr = ctx.address();
-        self.list_session
-            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::List(status))));
-        let addr = ctx.address();
-        self.main_session
-            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::Main(status))));
-        let addr = ctx.address();
-        self.observe_session
-            .do_send(AddListener(move |status| addr.do_send(ChangeStatus::Observe(status))));
+        self.main
+            .do_send(AddListener(move |status| addr.do_send(ChangeStatus(status))));
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub enum Connect {
-    Game(Addr<RoomSession>, RoomId),
-    List(Addr<ListSession>),
+#[rtype(result = "Result<()>")]
+pub enum UserConnect {
+    Room(Addr<RoomSession>),
     Main(Addr<MainSession>),
-    Observe(Addr<ObserveSession>),
 }
 
-impl Handler<Connect> for User {
-    type Result = ();
+impl Handler<UserConnect> for User {
+    type Result = Result<()>;
 
-    fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: UserConnect, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            Connect::Game(addr, room_id) => {}
-            Connect::List(addr) => {
-                self.list_session.do_send(util::Connect(addr));
+            UserConnect::Room(addr) => {
+                ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "no joined room");
+                if let Some(room) = &self.room {
+                    let to = room.group.clone();
+                    send(self, ctx, to, Connect(addr))?;
+                }
             }
-            Connect::Main(addr) => {
-                self.main_session.do_send(util::Connect(addr));
-            }
-            Connect::Observe(addr) => {
-                self.observe_session.do_send(util::Connect(addr));
+            UserConnect::Main(addr) => {
+                send(self, ctx, self.main.clone(), Connect(addr))?;
             }
         }
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub enum Disconnect {
-    Game,
-    List(Addr<ListSession>),
+#[rtype(result = "Result<()>")]
+pub enum UserDisconnect {
+    Room(Addr<RoomSession>),
     Main(Addr<MainSession>),
-    Observe(Addr<ObserveSession>),
 }
 
-impl Handler<Disconnect> for User {
-    type Result = ();
+impl Handler<UserDisconnect> for User {
+    type Result = Result<()>;
 
-    fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: UserDisconnect, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            Disconnect::Game => {}
-            Disconnect::List(addr) => {
-                self.list_session.do_send(util::Disconnect(addr));
+            UserDisconnect::Room(addr) => {
+                ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
+                if let Some(room) = &self.room {
+                    let to = room.group.clone();
+                    send(self, ctx, to, Disconnect(addr))??;
+                }
             }
-            Disconnect::Main(addr) => {
-                self.main_session.do_send(util::Disconnect(addr));
-            }
-            Disconnect::Observe(addr) => {
-                self.observe_session.do_send(util::Disconnect(addr));
+            UserDisconnect::Main(addr) => {
+                send(self, ctx, self.main.clone(), Disconnect(addr))??;
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct UserJoin(pub RoomId);
+
+impl Handler<UserJoin> for User {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: UserJoin, ctx: &mut Self::Context) -> Self::Result {
+        ensure!(
+            self.room.is_some(),
+            StatusCode::BAD_REQUEST,
+            "you already joined to room"
+        );
+        let room = send(self, ctx, self.hub.clone(), GetRoom(msg.0))??;
+        send(
+            self,
+            ctx,
+            room.clone(),
+            RoomJoin::User(self.info.user_no.into(), ctx.address()),
+        )??;
+        let info = send(self, ctx, room.clone(), GetInfo)?;
+        self.room = Some(JoinedRoom {
+            addr: room,
+            info,
+            group: Group::start_default(),
+        });
+        self.status |= UserStatus::IN_ROOM;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct UserLeave;
+
+impl Handler<UserLeave> for User {
+    type Result = Result<()>;
+
+    fn handle(&mut self, _: UserLeave, ctx: &mut Self::Context) -> Self::Result {
+        ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
+        if let Some(room) = &self.room {
+            let to = room.addr.clone();
+            let no = self.info.user_no;
+            send(self, ctx, to, RoomLeave::User(no.into()))??;
+        }
+        self.status ^= self.status & UserStatus::ROOM_MASK;
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct Leave;
-
-impl Handler<Leave> for User {
-    type Result = ();
-
-    fn handle(&mut self, msg: Leave, _: &mut Self::Context) -> Self::Result {
-        unimplemented!()
-    }
-}
-
-#[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub enum ChangeStatus {
-    List(Status),
-    Main(Status),
-    Observe(Status),
-}
+pub struct ChangeStatus(pub Status);
 
 impl Handler<ChangeStatus> for User {
     type Result = ();
 
     fn handle(&mut self, msg: ChangeStatus, _: &mut Self::Context) -> Self::Result {
-        match msg {
-            ChangeStatus::List(s) => {
-                self.list_status = s;
-            }
-            ChangeStatus::Main(s) => {
-                self.main_status = s;
-            }
-            ChangeStatus::Observe(s) => {
-                self.observe_status = s;
-            }
+        self.status = (self.status & UserStatus::ROOM_MASK) | msg.0.into();
+        // todo
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct Go(pub Command);
+
+impl Handler<Go> for User {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: Go, ctx: &mut Self::Context) -> Self::Result {
+        ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
+        if let Some(room) = &self.room {
+            let to = room.addr.clone();
+            let no = self.info.user_no;
+            send(self, ctx, to, room::Go(no.into(), msg.0))??;
         }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct GotRoomInfo(pub RoomInfo);
+
+impl Handler<GotRoomInfo> for User {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: GotRoomInfo, _: &mut Self::Context) -> Self::Result {
+        ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
+        if let Some(room) = &mut self.room {
+            room.info = msg.0;
+        }
+        // todo
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "()")]
+pub struct GotGameState(pub State);
+
+impl Handler<GotGameState> for User {
+    type Result = ();
+
+    fn handle(&mut self, _: GotGameState, _: &mut Self::Context) -> Self::Result {
+        // todo
     }
 }
 
 impl User {
-    pub fn new(info: UserInfo, hub: Addr<Hub>, db: Addr<Database>) -> User {
+    pub fn new(info: UserInfo, hub: Addr<Hub>) -> User {
         User {
             info,
-            status: UserStatus::Online,
+            status: UserStatus::OFFLINE,
             room: None,
-            list_session: Connection::start_default(),
-            list_status: Status::Offline,
-            main_session: Connection::start_default(),
-            main_status: Status::Offline,
-            observe_session: Connection::start_default(),
-            observe_status: Status::Offline,
+            main: Connection::start_default(),
             hub,
-            db,
         }
     }
 }

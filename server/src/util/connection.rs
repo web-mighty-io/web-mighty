@@ -137,7 +137,7 @@ where
     fn handle(&mut self, msg: Disconnect<A>, ctx: &mut Self::Context) -> Self::Result {
         self.update();
         self.addrs.remove(&msg.0);
-        if self.addrs.is_empty(){
+        if self.addrs.is_empty() {
             ctx.notify(Update);
             ctx.notify_later(Update, RECONNECTION_TIME + Duration::from_millis(1));
         }
@@ -222,7 +222,10 @@ where
 #[rtype(result = "Status")]
 pub struct GetStatus;
 
-impl<A> Handler<GetStatus> for Connection<A> where A: Actor {
+impl<A> Handler<GetStatus> for Connection<A>
+where
+    A: Actor,
+{
     type Result = Status;
 
     fn handle(&mut self, _: GetStatus, _: &mut Self::Context) -> Self::Result {

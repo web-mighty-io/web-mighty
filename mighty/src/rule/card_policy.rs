@@ -17,11 +17,11 @@ pub enum CardPolicy {
 /// All types of cards has two policies: First turn & Last turn
 #[derive(Debug, Clone, Config, Serialize, Deserialize, Eq)]
 pub struct Policy {
-    mighty: (CardPolicy, CardPolicy),
-    giruda: (CardPolicy, CardPolicy),
-    joker: (CardPolicy, CardPolicy),
-    joker_call: (CardPolicy, CardPolicy),
-    card: HashMap<Card, (CardPolicy, CardPolicy)>,
+    pub mighty: (CardPolicy, CardPolicy),
+    pub giruda: (CardPolicy, CardPolicy),
+    pub joker: (CardPolicy, CardPolicy),
+    pub joker_call: (CardPolicy, CardPolicy),
+    pub card: HashMap<Card, (CardPolicy, CardPolicy)>,
 }
 
 impl PartialEq for Policy {

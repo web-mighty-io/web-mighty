@@ -1,15 +1,5 @@
-use crate::card::Card;
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Hash)]
-pub enum FriendFunc {
-    None,
-    ByCard(Card),
-    ByUser(usize),
-    First,
-    Last,
-}
 
 bitflags! {
     #[derive(Serialize, Deserialize)]

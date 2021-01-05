@@ -63,7 +63,8 @@ pub enum State {
         // current pattern of this turn
         current_pattern: Rush,
         // is joker called (user can decide)
-        is_joker_called: bool,
+        joker_call_card: Option<Card>,
+        joker_call_effect: bool,
     },
     GameEnded {
         // bitmask of winners
@@ -112,8 +113,8 @@ impl State {
     }
 
     fn is_joker_called(&self) -> bool {
-        if let State::InGame { is_joker_called, .. } = self {
-            *is_joker_called
+        if let State::InGame { joker_call_card, .. } = self {
+            *joker_call_card != None
         } else {
             false
         }
@@ -145,7 +146,7 @@ impl State {
         }
     }
 
-    fn check_card_policy(&self, c: (CardPolicy, CardPolicy)) -> bool {
+    fn check_card_valid(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame {
                 turn_count,
@@ -158,6 +159,16 @@ impl State {
                 } else {
                     c.1 == CardPolicy::Invalid || (c.1 == CardPolicy::InvalidForFirst && current_user == start_user)
                 }
+            }
+            // don't need this value
+            _ => false,
+        }
+    }
+
+    fn check_card_effect(&self, c: (CardPolicy, CardPolicy)) -> bool {
+        match self {
+            State::InGame { turn_count, .. } => {
+                (*turn_count == 0 && c.0 == CardPolicy::NoEffect) || (*turn_count == 9 && c.1 == CardPolicy::NoEffect)
             }
             // don't need this value
             _ => false,
@@ -456,7 +467,8 @@ impl State {
                         start_user: *president,
                         current_user: *president,
                         current_pattern: Rush::from(Pattern::Spade),
-                        is_joker_called: false,
+                        joker_call_card: None,
+                        joker_call_effect: false,
                     })
                 }
                 Command::ChangePledge(new_giruda) => {
@@ -513,7 +525,8 @@ impl State {
                 start_user,
                 current_user,
                 current_pattern,
-                is_joker_called,
+                joker_call_card,
+                joker_call_effect,
             } => match cmd {
                 Command::Go(card, rush_type, user_joker_call) => {
                     if user_id != *current_user {
@@ -528,7 +541,8 @@ impl State {
                     let mut placed_cards = placed_cards.clone();
                     let mut start_user = *start_user;
                     let mut current_pattern = *current_pattern;
-                    let mut is_joker_called = *is_joker_called;
+                    let mut joker_call_card = joker_call_card.clone();
+                    let mut joker_call_effect = *joker_call_effect;
 
                     placed_cards[user_id] = (card.clone(), CardPolicy::Valid);
 
@@ -538,6 +552,7 @@ impl State {
                     };
 
                     let mut joker_calls = Vec::new();
+                    let mut is_noeffect = false;
                     joker_calls.push(
                         if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[0].0)) {
                             rule.joker_call.cards[0].0
@@ -554,48 +569,67 @@ impl State {
                         },
                     );
 
-                    if is_joker_called
-                        && !deck[user_id].iter().all(|x| match x {
-                            Card::Joker(t) => {
-                                Rush::from(joker_calls[0]) | Rush::from(joker_calls[1]) != Rush::from(*t) || card == *x
-                            }
-                            _ => true,
-                        })
-                    {
-                        return Err(Error::JokerCall);
+                    if joker_call_card != None {
+                        if !deck[user_id]
+                            .iter()
+                            .all(|x| matches!(joker_call_card, Some(y) if y == *x) || card == *x)
+                        {
+                            return Err(Error::JokerCall);
+                        } else if joker_call_effect {
+                            is_noeffect = true;
+                        }
                     }
 
                     let idx = deck[user_id].iter().position(|x| *x == card).ok_or(Error::NotInDeck)?;
                     if turn_count == 0 || turn_count == 9 {
-                        if card == self.get_mighty() && self.check_card_policy(rule.card_policy.mighty) {
+                        if card == self.get_mighty() {
+                            if self.check_card_valid(rule.card_policy.mighty) {
+                                return Err(Error::WrongCard);
+                            }
+                            if self.check_card_effect(rule.card_policy.mighty) {
+                                is_noeffect = true;
+                            }
+                        } else if matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_valid(*y)) {
                             return Err(Error::WrongCard);
-                        }
-                        if matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_policy(*y)) {
-                            return Err(Error::WrongCard);
-                        }
-                        match card {
-                            Card::Normal(t, _) => {
-                                if Some(t) == *giruda && self.check_card_policy(rule.card_policy.giruda) {
-                                    return Err(Error::WrongCard);
+                        } else if matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_effect(*y)) {
+                            is_noeffect = true;
+                        } else {
+                            match card {
+                                Card::Normal(t, _) => {
+                                    if Some(t) == *giruda {
+                                        if self.check_card_valid(rule.card_policy.giruda) {
+                                            return Err(Error::WrongCard);
+                                        }
+                                        if self.check_card_effect(rule.card_policy.giruda) {
+                                            is_noeffect = true;
+                                        }
+                                    }
+                                    if joker_calls.contains(&card)
+                                        && user_joker_call
+                                        && self.check_card_valid(rule.card_policy.joker_call)
+                                    {
+                                        return Err(Error::WrongCard);
+                                    }
                                 }
-                                if joker_calls.contains(&card)
-                                    && user_joker_call
-                                    && self.check_card_policy(rule.card_policy.joker_call)
-                                {
-                                    return Err(Error::WrongCard);
+                                Card::Joker(_) => {
+                                    if self.check_card_valid(rule.card_policy.joker) {
+                                        return Err(Error::WrongCard);
+                                    }
+                                    if self.check_card_effect(rule.card_policy.joker) {
+                                        is_noeffect = true;
+                                    }
                                 }
                             }
-                            Card::Joker(_) => {
-                                if self.check_card_policy(rule.card_policy.joker) {
-                                    return Err(Error::WrongCard);
-                                }
-                            }
+                        }
+                        if is_noeffect {
+                            placed_cards[user_id].1 = CardPolicy::NoEffect;
                         }
                     }
 
                     if *current_user == start_user {
                         current_pattern = Rush::from(card.clone());
-                        is_joker_called = false;
+                        joker_call_card = None;
+                        joker_call_effect = false;
 
                         if !deck[user_id].iter().all(|x| match *x {
                             Card::Normal(t, _) => *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y),
@@ -608,8 +642,13 @@ impl State {
 
                         match card {
                             Card::Normal(..) => {
-                                if joker_calls.contains(&card) {
-                                    is_joker_called = user_joker_call;
+                                if joker_calls.contains(&card) && user_joker_call {
+                                    joker_call_card = Some(card.clone());
+                                    if !(rule.card_policy.joker_call.0 == CardPolicy::NoEffect && turn_count == 0)
+                                        && !(rule.card_policy.joker_call.1 == CardPolicy::NoEffect && turn_count == 9)
+                                    {
+                                        joker_call_effect = true;
+                                    }
                                 }
                             }
 
@@ -660,7 +699,20 @@ impl State {
                                 None => Some(i),
                             };
                         }
-
+                        if winner == None {
+                            for i in 0..5 {
+                                winner = match winner {
+                                    Some(j) => {
+                                        if self.compare_cards(&placed_cards[i].0, &placed_cards[j].0) {
+                                            Some(j)
+                                        } else {
+                                            Some(i)
+                                        }
+                                    }
+                                    None => Some(i),
+                                };
+                            }
+                        }
                         let winner = winner.ok_or(Error::Internal("internal error occurred when calculating score"))?;
 
                         if let FriendFunc::First = friend_func {
@@ -744,7 +796,8 @@ impl State {
                         start_user,
                         current_user: next_user,
                         current_pattern,
-                        is_joker_called,
+                        joker_call_card,
+                        joker_call_effect,
                     })
                 }
                 Command::Random => {

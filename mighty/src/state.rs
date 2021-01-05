@@ -131,10 +131,10 @@ impl State {
 
     fn get_mighty(&self) -> Card {
         match self {
-            State::InGame { giruda, .. } => match giruda {
-                Some(Pattern::Spade) => Card::Normal(Pattern::Diamond, 0),
-                _ => Card::Normal(Pattern::Spade, 0),
-            },
+            State::InGame {
+                giruda: Some(Pattern::Spade),
+                ..
+            } => Card::Normal(Pattern::Diamond, 0),
             // don't need this value
             _ => Card::Normal(Pattern::Spade, 0),
         }
@@ -346,11 +346,11 @@ impl State {
                                         }
                                     }
                                 }
-                            } else if !is_ordered && not_done.len() == 0 {
+                            } else if !is_ordered && not_done.is_empty() {
                                 is_election_done = true;
                                 for (i, p) in pledge.iter().enumerate() {
-                                    match p {
-                                        Some((_, c)) => match c.cmp(&last_max) {
+                                    if let Some((_, c)) = p {
+                                        match c.cmp(&last_max) {
                                             std::cmp::Ordering::Greater => {
                                                 candidate = vec![i];
                                                 last_max = *c;
@@ -359,14 +359,13 @@ impl State {
                                                 candidate.push(i);
                                             }
                                             _ => {}
-                                        },
-                                        _ => {}
+                                        }
                                     }
                                 }
                             }
                             if is_election_done {
                                 let mut deck = deck.clone();
-                                let left = left.clone();
+                                let mut left = left.clone();
                                 let president = candidate.choose(&mut rand::thread_rng()).copied().unwrap();
                                 let mut pledge = pledge[president];
                                 if last_max == 0 {
@@ -382,7 +381,7 @@ impl State {
                                     }
                                     pledge = Some(pledge_vec.choose(&mut rand::thread_rng()).copied().unwrap());
                                 }
-                                deck[president].append(&mut left.clone());
+                                deck[president].append(&mut left);
                                 Ok(State::SelectFriend {
                                     president,
                                     giruda: pledge.unwrap().0,
@@ -535,10 +534,10 @@ impl State {
                     let mut placed_cards = placed_cards.clone();
                     let mut start_user = *start_user;
                     let mut current_pattern = *current_pattern;
-                    let mut joker_call_card = joker_call_card.clone();
+                    let mut joker_call_card = *joker_call_card;
                     let mut joker_call_effect = *joker_call_effect;
 
-                    placed_cards[user_id] = (card.clone(), CardPolicy::Valid);
+                    placed_cards[user_id] = (card, CardPolicy::Valid);
 
                     is_friend_known = match friend_func {
                         FriendFunc::ByCard(c) => *c == card,
@@ -621,7 +620,7 @@ impl State {
                     }
 
                     if *current_user == start_user {
-                        current_pattern = Rush::from(card.clone());
+                        current_pattern = Rush::from(card);
                         joker_call_card = None;
                         joker_call_effect = false;
 
@@ -637,9 +636,9 @@ impl State {
                         match card {
                             Card::Normal(..) => {
                                 if joker_calls.contains(&card) && user_joker_call {
-                                    joker_call_card = Some(card.clone());
-                                    if !(rule.card_policy.joker_call.0 == CardPolicy::NoEffect && turn_count == 0)
-                                        && !(rule.card_policy.joker_call.1 == CardPolicy::NoEffect && turn_count == 9)
+                                    joker_call_card = Some(card);
+                                    if !(rule.card_policy.joker_call.0 == CardPolicy::NoEffect && turn_count == 0
+                                        || rule.card_policy.joker_call.1 == CardPolicy::NoEffect && turn_count == 9)
                                     {
                                         joker_call_effect = true;
                                     }
@@ -724,7 +723,7 @@ impl State {
                         {
                             let mut score_cards = placed_cards
                                 .iter()
-                                .filter_map(|(c, _)| if c.is_score() { Some(c.clone()) } else { None })
+                                .filter_map(|(c, _)| if c.is_score() { Some(*c) } else { None })
                                 .collect::<Vec<_>>();
                             score_deck[winner].append(&mut score_cards);
                         }
@@ -796,11 +795,7 @@ impl State {
                 }
                 Command::Random => {
                     let rand_card = deck[user_id].choose(&mut rand::thread_rng()).unwrap();
-                    self.next(
-                        user_id,
-                        Command::Go(rand_card.clone(), Rush::from(rand_card.clone()), false),
-                        rule,
-                    )
+                    self.next(user_id, Command::Go(*rand_card, Rush::from(*rand_card), false), rule)
                 }
                 _ => Err(Error::InvalidCommand("BasicCommand::Go")),
             },
@@ -811,7 +806,7 @@ impl State {
     /// Valid users to action next time.
     /// Result is 8-bit integer which contains 0 or 1 for each user.
     /// If all users all valid to action, the result would be `(1 << N) - 1`
-    pub fn valid_users(&self, rule: &Rule) -> u8 {
+    pub fn valid_users(&self, _rule: &Rule) -> u8 {
         unimplemented!()
     }
 

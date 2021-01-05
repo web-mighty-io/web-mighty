@@ -8,15 +8,15 @@ use std::time::SystemTime;
 pub trait SessionTrait: Sized + Unpin + 'static {
     type Receiver: Message<Result = ()> + Serialize + Send;
 
-    fn started(&mut self, _: &mut WebsocketContext<Session<Self>>) {}
+    fn started(_: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {}
 
-    fn stopped(&mut self, _: &mut WebsocketContext<Session<Self>>) {}
+    fn stopped(_: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {}
 
-    fn handle(&mut self, msg: Self::Receiver, ctx: &mut WebsocketContext<Session<Self>>) {
+    fn handle(_: &mut Session<Self>, msg: Self::Receiver, ctx: &mut WebsocketContext<Session<Self>>) {
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
 
-    fn receive(&mut self, msg: String, ctx: &mut WebsocketContext<Session<Self>>);
+    fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>);
 
     fn make(self) -> Session<Self> {
         Session::new(self)
@@ -27,7 +27,7 @@ pub struct Session<T>
 where
     T: SessionTrait,
 {
-    inner: T,
+    pub inner: T,
     hb: SystemTime,
 }
 
@@ -38,7 +38,7 @@ where
     type Context = WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.inner.started(ctx);
+        T::started(self, ctx);
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if act.hb.elapsed().unwrap() > CLIENT_TIMEOUT {
                 ctx.stop();
@@ -49,7 +49,7 @@ where
     }
 
     fn stopped(&mut self, ctx: &mut Self::Context) {
-        self.inner.stopped(ctx);
+        T::stopped(self, ctx);
     }
 }
 
@@ -60,7 +60,7 @@ where
     type Result = ();
 
     fn handle(&mut self, msg: T::Receiver, ctx: &mut Self::Context) {
-        self.inner.handle(msg, ctx);
+        T::handle(self, msg, ctx);
     }
 }
 
@@ -71,7 +71,7 @@ where
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match try_ctx!(msg, ctx) {
             ws::Message::Text(msg) => {
-                self.inner.receive(msg, ctx);
+                T::receive(self, msg, ctx);
             }
             ws::Message::Ping(msg) => {
                 self.hb = SystemTime::now();

@@ -145,30 +145,6 @@ where
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct SendOver<A, M>(pub Addr<A>, M)
-where
-    A: Actor + Handler<M>,
-    M: Message + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>;
-
-impl<A, M> Handler<SendOver<A, M>> for Connection<A>
-where
-    A: Actor + Handler<M>,
-    M: Message + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>,
-{
-    type Result = ();
-
-    fn handle(&mut self, msg: SendOver<A, M>, ctx: &mut Self::Context) -> Self::Result {
-        self.update(ctx);
-        msg.0.do_send(msg.1);
-    }
-}
-
-#[derive(Clone, Message)]
 #[rtype(result = "usize")]
 pub struct AddListener<F: 'static + FnMut(Status)>(pub F);
 
@@ -201,7 +177,7 @@ where
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-struct Update;
+pub struct Update;
 
 impl<A> Handler<Update> for Connection<A>
 where
@@ -300,89 +276,5 @@ where
     fn update(&mut self, ctx: &mut <Self as Actor>::Context) {
         self.time = SystemTime::now();
         ctx.notify_later(Update, ABSENT_TIME + Duration::from_millis(1));
-    }
-}
-
-pub struct Group<A>
-where
-    A: Actor,
-{
-    addrs: HashSet<Addr<A>>,
-}
-
-impl<A> Actor for Group<A>
-where
-    A: Actor,
-{
-    type Context = Context<Self>;
-}
-
-impl<A, M> Handler<Spread<M>> for Group<A>
-where
-    A: Actor + Handler<M>,
-    M: Message + Clone + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>,
-{
-    type Result = ();
-
-    fn handle(&mut self, msg: Spread<M>, _: &mut Self::Context) -> Self::Result {
-        for i in self.addrs.iter() {
-            i.do_send(msg.0.clone());
-        }
-    }
-}
-
-impl<A> Handler<Connect<A>> for Group<A>
-where
-    A: Actor,
-{
-    type Result = ();
-
-    fn handle(&mut self, msg: Connect<A>, _: &mut Self::Context) -> Self::Result {
-        self.addrs.insert(msg.0);
-    }
-}
-impl<A> Handler<Disconnect<A>> for Group<A>
-where
-    A: Actor,
-{
-    type Result = Result<()>;
-
-    fn handle(&mut self, msg: Disconnect<A>, _: &mut Self::Context) -> Self::Result {
-        ensure!(self.addrs.remove(&msg.0), StatusCode::NOT_FOUND, "no user");
-        Ok(())
-    }
-}
-
-impl<A, M> Handler<SendOver<A, M>> for Group<A>
-where
-    A: Actor + Handler<M>,
-    M: Message + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>,
-{
-    type Result = ();
-
-    fn handle(&mut self, msg: SendOver<A, M>, _: &mut Self::Context) -> Self::Result {
-        msg.0.do_send(msg.1);
-    }
-}
-
-impl<A> Default for Group<A>
-where
-    A: Actor,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<A> Group<A>
-where
-    A: Actor,
-{
-    pub fn new() -> Group<A> {
-        Group { addrs: HashSet::new() }
     }
 }

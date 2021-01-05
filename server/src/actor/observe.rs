@@ -24,15 +24,15 @@ pub struct ObserveReceive;
 impl SessionTrait for Observe {
     type Receiver = ObserveSend;
 
-    fn started(&mut self, ctx: &mut WebsocketContext<Session<Self>>) {
-        self.room.do_send(RoomJoin::Observe(ctx.address()));
+    fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
+        act.inner.room.do_send(RoomJoin::Observe(ctx.address()));
     }
 
-    fn stopped(&mut self, ctx: &mut WebsocketContext<Session<Self>>) {
-        self.room.do_send(RoomLeave::Observe(ctx.address()));
+    fn stopped(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
+        act.inner.room.do_send(RoomLeave::Observe(ctx.address()));
     }
 
-    fn receive(&mut self, msg: String, _: &mut WebsocketContext<Session<Self>>) {
+    fn receive(_: &mut Session<Self>, msg: String, _: &mut WebsocketContext<Session<Self>>) {
         let _: ObserveReceive = serde_json::from_str(&*msg).unwrap();
     }
 }

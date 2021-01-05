@@ -1,12 +1,15 @@
 use crate::actor::db::UserInfo;
 use crate::actor::hub::GetRoom;
-use crate::actor::room::{self, GetInfo, RoomInfo, RoomJoin, RoomLeave};
+use crate::actor::main::MainSend;
+use crate::actor::room::{ChangeName, ChangeRule, GetInfo, Go, RoomInfo, RoomJoin, RoomLeave, StartGame};
+use crate::actor::room_user::{RoomUserReceive, RoomUserSend};
 use crate::actor::{Hub, Main, Room, RoomId, RoomUser};
 use crate::dev::*;
 use actix::prelude::*;
 use bitflags::bitflags;
-use mighty::{Command, State};
+use mighty::State;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 bitflags! {
     #[derive(Serialize, Deserialize)]
@@ -35,7 +38,7 @@ impl From<Status> for UserStatus {
 pub struct JoinedRoom {
     addr: Addr<Room>,
     info: RoomInfo,
-    group: Addr<Group<Session<RoomUser>>>,
+    group: HashSet<Addr<Session<RoomUser>>>,
 }
 
 pub struct User {
@@ -43,6 +46,7 @@ pub struct User {
     status: UserStatus,
     room: Option<JoinedRoom>,
     main: Addr<Connection<Session<Main>>>,
+    subscribers: HashSet<Addr<Session<Main>>>,
     hub: Addr<Hub>,
 }
 
@@ -61,6 +65,7 @@ impl Actor for User {
 pub enum UserConnect {
     Room(Addr<Session<RoomUser>>),
     Main(Addr<Session<Main>>),
+    Subscribe(Addr<Session<Main>>),
 }
 
 impl Handler<UserConnect> for User {
@@ -70,10 +75,13 @@ impl Handler<UserConnect> for User {
         match msg {
             UserConnect::Room(addr) => {
                 ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "no joined room");
-                send(self, ctx, self.room.as_ref().unwrap().group.clone(), Connect(addr))?;
+                self.room.as_mut().unwrap().group.insert(addr);
             }
             UserConnect::Main(addr) => {
                 send(self, ctx, self.main.clone(), Connect(addr))?;
+            }
+            UserConnect::Subscribe(addr) => {
+                self.subscribers.insert(addr);
             }
         }
         Ok(())
@@ -85,6 +93,7 @@ impl Handler<UserConnect> for User {
 pub enum UserDisconnect {
     Room(Addr<Session<RoomUser>>),
     Main(Addr<Session<Main>>),
+    Unsubscribe(Addr<Session<Main>>),
 }
 
 impl Handler<UserDisconnect> for User {
@@ -94,10 +103,17 @@ impl Handler<UserDisconnect> for User {
         match msg {
             UserDisconnect::Room(addr) => {
                 ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
-                send(self, ctx, self.room.as_ref().unwrap().group.clone(), Disconnect(addr))??;
+                ensure!(
+                    self.room.as_mut().unwrap().group.remove(&addr),
+                    StatusCode::BAD_REQUEST,
+                    "you are not joined"
+                );
             }
             UserDisconnect::Main(addr) => {
                 send(self, ctx, self.main.clone(), Disconnect(addr))??;
+            }
+            UserDisconnect::Unsubscribe(addr) => {
+                ensure!(self.subscribers.remove(&addr), StatusCode::NOT_FOUND, "not subscribed");
             }
         }
         Ok(())
@@ -124,7 +140,7 @@ impl Handler<UserJoin> for User {
         self.room = Some(JoinedRoom {
             addr: room,
             info,
-            group: Group::start_default(),
+            group: HashSet::new(),
         });
         self.status |= UserStatus::IN_ROOM;
         Ok(())
@@ -148,6 +164,36 @@ impl Handler<UserLeave> for User {
 }
 
 #[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct UserCommand(pub RoomUserReceive);
+
+impl Handler<UserCommand> for User {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: UserCommand, ctx: &mut Self::Context) -> Self::Result {
+        ensure!(self.room.is_some(), "not joined in room");
+        let room = self.room.as_ref().unwrap();
+        let user_no = self.info.user_no.into();
+        match msg.0 {
+            RoomUserReceive::Start => {
+                send(self, ctx, room.addr.clone(), StartGame(user_no))??;
+            }
+            RoomUserReceive::ChangeName(name) => {
+                send(self, ctx, room.addr.clone(), ChangeName(user_no, name))??;
+            }
+            RoomUserReceive::ChangeRule(rule) => {
+                send(self, ctx, room.addr.clone(), ChangeRule(user_no, rule))??;
+            }
+            RoomUserReceive::Command(cmd) => {
+                send(self, ctx, room.addr.clone(), Go(user_no, cmd))??;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
 #[rtype(result = "()")]
 pub struct ChangeStatus(pub Status);
 
@@ -156,22 +202,12 @@ impl Handler<ChangeStatus> for User {
 
     fn handle(&mut self, msg: ChangeStatus, _: &mut Self::Context) -> Self::Result {
         self.status = (self.status & UserStatus::ROOM_MASK) | msg.0.into();
-        // todo
-    }
-}
-
-#[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
-pub struct Go(pub Command);
-
-impl Handler<Go> for User {
-    type Result = Result<()>;
-
-    fn handle(&mut self, msg: Go, ctx: &mut Self::Context) -> Self::Result {
-        ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
-        let to = self.room.as_ref().unwrap().addr.clone();
-        send(self, ctx, to, room::Go(self.info.user_no.into(), msg.0))??;
-        Ok(())
+        for i in self.subscribers.iter() {
+            i.do_send(MainSend {
+                user_no: self.info.user_no.into(),
+                status: self.status,
+            });
+        }
     }
 }
 
@@ -184,21 +220,28 @@ impl Handler<GotRoomInfo> for User {
 
     fn handle(&mut self, msg: GotRoomInfo, _: &mut Self::Context) -> Self::Result {
         ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
-        self.room.as_mut().unwrap().info = msg.0;
-        // todo
+        let room = self.room.as_mut().unwrap();
+        for i in room.group.iter() {
+            i.do_send(RoomUserSend::Room(msg.0.clone()));
+        }
+        room.info = msg.0;
         Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
+#[rtype(result = "Result<()>")]
 pub struct GotGameState(pub State);
 
 impl Handler<GotGameState> for User {
-    type Result = ();
+    type Result = Result<()>;
 
-    fn handle(&mut self, _: GotGameState, _: &mut Self::Context) -> Self::Result {
-        // todo
+    fn handle(&mut self, msg: GotGameState, _: &mut Self::Context) -> Self::Result {
+        ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
+        for i in self.room.as_ref().unwrap().group.iter() {
+            i.do_send(RoomUserSend::Game(msg.0.clone()));
+        }
+        Ok(())
     }
 }
 
@@ -209,6 +252,7 @@ impl User {
             status: UserStatus::OFFLINE,
             room: None,
             main: Connection::start_default(),
+            subscribers: HashSet::new(),
             hub,
         }
     }

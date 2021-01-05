@@ -1,12 +1,15 @@
 use crate::actor::db::SaveStateForm;
 use crate::actor::hub::{MakeGameId, RemoveRoom};
+use crate::actor::list::ListSend;
+use crate::actor::observe::ObserveSend;
+use crate::actor::user::{GotGameState, GotRoomInfo};
 use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::rule::Rule;
 use mighty::{Command, Game};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Message, MessageResponse, Serialize, Deserialize)]
 #[rtype(result = "()")]
@@ -21,7 +24,7 @@ pub struct RoomInfo {
     is_game: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GameInfo {
     id: GameId,
     no: u32,
@@ -32,8 +35,8 @@ pub struct Room {
     info: RoomInfo,
     game: Option<GameInfo>,
     user_addr: HashMap<UserNo, Addr<User>>,
-    observe: Addr<Group<Session<Observe>>>,
-    list: Addr<Group<Session<List>>>,
+    observe: HashSet<Addr<Session<Observe>>>,
+    list: HashSet<Addr<Session<List>>>,
     hub: Addr<Hub>,
     db: Addr<Database>,
 }
@@ -69,12 +72,12 @@ impl Handler<RoomJoin> for Room {
                 self.spread_info();
             }
             RoomJoin::Observe(addr) => {
-                self.observe.do_send(Connect(addr));
+                self.observe.insert(addr);
                 self.info.observer_cnt += 1;
                 self.spread_info();
             }
             RoomJoin::List(addr) => {
-                self.list.do_send(Connect(addr));
+                self.list.insert(addr);
             }
         }
         Ok(())
@@ -114,11 +117,15 @@ impl Handler<RoomLeave> for Room {
                 }
             }
             RoomLeave::Observe(addr) => {
-                send(self, ctx, self.observe.clone(), Disconnect(addr))??;
+                ensure!(
+                    self.observe.remove(&addr),
+                    StatusCode::BAD_REQUEST,
+                    "you are not joined"
+                );
                 self.spread_info();
             }
             RoomLeave::List(addr) => {
-                self.list.do_send(Disconnect(addr));
+                ensure!(self.list.remove(&addr), StatusCode::BAD_REQUEST, "you are not joined");
             }
         }
         Ok(())
@@ -139,6 +146,26 @@ impl Handler<ChangeName> for Room {
             "you are not head of room"
         );
         self.info.name = msg.1;
+        self.spread_info();
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct ChangeRule(pub UserNo, pub Rule);
+
+impl Handler<ChangeRule> for Room {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: ChangeRule, _: &mut Self::Context) -> Self::Result {
+        ensure!(
+            msg.0 == self.info.head,
+            StatusCode::UNAUTHORIZED,
+            "you are not head of room"
+        );
+        ensure!(!self.info.is_game, "rule can't change in game");
+        self.info.rule = msg.1;
         self.spread_info();
         Ok(())
     }
@@ -239,8 +266,8 @@ impl Room {
             },
             game: None,
             user_addr: HashMap::new(),
-            observe: Group::start_default(),
-            list: Group::start_default(),
+            observe: HashSet::new(),
+            list: HashSet::new(),
             hub: server,
             db,
         }
@@ -285,10 +312,28 @@ impl Room {
     }
 
     fn spread_info(&self) {
-        // todo
+        for (_, i) in self.user_addr.iter() {
+            i.do_send(GotRoomInfo(self.info.clone()));
+        }
+
+        for i in self.observe.iter() {
+            i.do_send(ObserveSend::Room(self.info.clone()));
+        }
+
+        for i in self.list.iter() {
+            i.do_send(ListSend::Room(self.info.clone()));
+        }
     }
 
+    // assert: game is not `None`
     fn spread_game(&self) {
-        // todo
+        let state = self.game.as_ref().unwrap().game.get_state();
+        for (_, i) in self.user_addr.iter() {
+            i.do_send(GotGameState(state.clone()));
+        }
+
+        for i in self.observe.iter() {
+            i.do_send(ObserveSend::Game(state.clone()));
+        }
     }
 }

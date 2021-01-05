@@ -38,7 +38,7 @@ pub async fn main(
             .into_future()
             .await
             .unwrap()?;
-        ws::start(Main::new(addr).make(), &req, stream)
+        ws::start(Main::new(addr, data.hub.clone()).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

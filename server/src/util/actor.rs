@@ -1,8 +1,8 @@
+use crate::prelude::*;
 use actix::dev::ToEnvelope;
 use actix::prelude::*;
-use std::sync::mpsc::channel;
 
-pub fn send<A, B, M>(actor: &mut A, ctx: &mut A::Context, to: Addr<B>, msg: M) -> Result<M::Result, MailboxError>
+pub fn send<A, B, M>(actor: &A, ctx: &mut A::Context, to: Addr<B>, msg: M) -> Result<M::Result, MailboxError>
 where
     A: Actor,
     A::Context: AsyncContext<A>,
@@ -12,13 +12,17 @@ where
     B: Handler<M>,
     B::Context: ToEnvelope<B, M>,
 {
-    let (tx, rx) = channel();
-    to.send(msg)
-        .into_actor(actor)
-        .then(move |res, _, _| {
-            let _ = tx.send(res);
-            fut::ready(())
-        })
-        .wait(ctx);
-    rx.recv().unwrap()
+    let mut x = Err(MailboxError::Closed);
+    let r = &mut x as *const Result<M::Result, MailboxError> as *mut Result<M::Result, MailboxError>;
+    // SAFETY: referencing `x` is finished inside unsafe code block
+    unsafe {
+        to.send(msg)
+            .into_actor(actor)
+            .then(move |res, _, _| {
+                *r = res;
+                fut::ready(())
+            })
+            .wait(ctx);
+    }
+    x
 }

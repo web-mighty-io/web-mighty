@@ -71,10 +71,7 @@ impl Handler<UserConnect> for User {
         match msg {
             UserConnect::Room(addr) => {
                 ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "no joined room");
-                if let Some(room) = &self.room {
-                    let to = room.group.clone();
-                    send(self, ctx, to, Connect(addr))?;
-                }
+                send(self, ctx, self.room.as_ref().unwrap().group.clone(), Connect(addr))?;
             }
             UserConnect::Main(addr) => {
                 send(self, ctx, self.main.clone(), Connect(addr))?;
@@ -98,10 +95,7 @@ impl Handler<UserDisconnect> for User {
         match msg {
             UserDisconnect::Room(addr) => {
                 ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
-                if let Some(room) = &self.room {
-                    let to = room.group.clone();
-                    send(self, ctx, to, Disconnect(addr))??;
-                }
+                send(self, ctx, self.room.as_ref().unwrap().group.clone(), Disconnect(addr))??;
             }
             UserDisconnect::Main(addr) => {
                 send(self, ctx, self.main.clone(), Disconnect(addr))??;
@@ -119,11 +113,7 @@ impl Handler<UserJoin> for User {
     type Result = Result<()>;
 
     fn handle(&mut self, msg: UserJoin, ctx: &mut Self::Context) -> Self::Result {
-        ensure!(
-            self.room.is_some(),
-            StatusCode::BAD_REQUEST,
-            "you already joined to room"
-        );
+        ensure!(self.room.is_none(), StatusCode::BAD_REQUEST, "already joined to room");
         let room = send(self, ctx, self.hub.clone(), GetRoom(msg.0))??;
         send(
             self,
@@ -151,11 +141,8 @@ impl Handler<UserLeave> for User {
 
     fn handle(&mut self, _: UserLeave, ctx: &mut Self::Context) -> Self::Result {
         ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
-        if let Some(room) = &self.room {
-            let to = room.addr.clone();
-            let no = self.info.user_no;
-            send(self, ctx, to, RoomLeave::User(no.into()))??;
-        }
+        let to = self.room.as_ref().unwrap().addr.clone();
+        send(self, ctx, to, RoomLeave::User(self.info.user_no.into()))??;
         self.status ^= self.status & UserStatus::ROOM_MASK;
         Ok(())
     }
@@ -183,11 +170,8 @@ impl Handler<Go> for User {
 
     fn handle(&mut self, msg: Go, ctx: &mut Self::Context) -> Self::Result {
         ensure!(self.room.is_some(), StatusCode::NOT_FOUND, "not joined in room");
-        if let Some(room) = &self.room {
-            let to = room.addr.clone();
-            let no = self.info.user_no;
-            send(self, ctx, to, room::Go(no.into(), msg.0))??;
-        }
+        let to = self.room.as_ref().unwrap().addr.clone();
+        send(self, ctx, to, room::Go(self.info.user_no.into(), msg.0))??;
         Ok(())
     }
 }
@@ -201,9 +185,7 @@ impl Handler<GotRoomInfo> for User {
 
     fn handle(&mut self, msg: GotRoomInfo, _: &mut Self::Context) -> Self::Result {
         ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
-        if let Some(room) = &mut self.room {
-            room.info = msg.0;
-        }
+        self.room.as_mut().unwrap().info = msg.0;
         // todo
         Ok(())
     }

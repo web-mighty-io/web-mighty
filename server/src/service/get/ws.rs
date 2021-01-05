@@ -52,11 +52,10 @@ pub async fn observe(
     stream: web::Payload,
     web::Path(room_id): web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-    if let Some(id) = id.identity() {
-        let user_no = id.parse().unwrap();
+    if id.identity().is_some() {
         let room_id = Uuid::from_str(&*room_id).unwrap().into();
         let addr = data.hub.send(GetRoom(room_id)).into_future().await.unwrap()?;
-        ws::start(Observe::new(UserNo(user_no), addr).make(), &req, stream)
+        ws::start(Observe::new(addr).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

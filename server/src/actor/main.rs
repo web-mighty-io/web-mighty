@@ -41,14 +41,12 @@ impl SessionTrait for Main {
         let msg: MainReceive = serde_json::from_str(&*msg).unwrap();
         match msg {
             MainReceive::Subscribe(no) => {
-                if let Ok(Some(user)) = send(act, ctx, act.inner.hub.clone(), GetUser(no)) {
-                    user.do_send(UserConnect::Subscribe(ctx.address()));
-                }
+                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
+                    .do_send(UserConnect::Subscribe(ctx.address()));
             }
             MainReceive::Unsubscribe(no) => {
-                if let Ok(Some(user)) = send(act, ctx, act.inner.hub.clone(), GetUser(no)) {
-                    user.do_send(UserDisconnect::Unsubscribe(ctx.address()));
-                }
+                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
+                    .do_send(UserDisconnect::Unsubscribe(ctx.address()));
             }
             _ => {}
         }

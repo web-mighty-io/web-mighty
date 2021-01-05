@@ -81,14 +81,14 @@ impl Handler<HubConnect> for Hub {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Option<Addr<User>>")]
+#[rtype(result = "Result<Addr<User>>")]
 pub struct GetUser(pub UserNo);
 
 impl Handler<GetUser> for Hub {
-    type Result = Option<Addr<User>>;
+    type Result = Result<Addr<User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
-        self.users.get(&msg.0).cloned()
+        self.users.get(&msg.0).cloned().ok_or_else(|| err!("no user"))
     }
 }
 

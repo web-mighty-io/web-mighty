@@ -1,5 +1,5 @@
 use crate::actor::room::{RoomInfo, RoomJoin, RoomLeave};
-use crate::actor::{Room, UserNo};
+use crate::actor::Room;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
@@ -7,7 +7,6 @@ use mighty::State;
 use serde::{Deserialize, Serialize};
 
 pub struct Observe {
-    user_no: UserNo,
     room: Addr<Room>,
 }
 
@@ -38,7 +37,7 @@ impl SessionTrait for Observe {
 }
 
 impl Observe {
-    pub fn new(user_no: UserNo, room: Addr<Room>) -> Observe {
-        Observe { user_no, room }
+    pub fn new(room: Addr<Room>) -> Observe {
+        Observe { room }
     }
 }

@@ -1,5 +1,6 @@
-use crate::actor::room::RoomInfo;
-use crate::actor::Hub;
+use crate::actor::hub::GetRoom;
+use crate::actor::room::{RoomInfo, RoomJoin, RoomLeave};
+use crate::actor::{Hub, RoomId};
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
@@ -16,13 +17,26 @@ pub enum ListSend {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct ListReceive;
+pub enum ListReceive {
+    Subscribe(RoomId),
+    Unsubscribe(RoomId),
+}
 
 impl SessionTrait for List {
     type Receiver = ListSend;
 
-    fn receive(_: &mut Session<Self>, msg: String, _: &mut WebsocketContext<Session<Self>>) {
-        let _: ListReceive = serde_json::from_str(&*msg).unwrap();
+    fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>) {
+        let msg: ListReceive = serde_json::from_str(&*msg).unwrap();
+        match msg {
+            ListReceive::Subscribe(id) => {
+                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetRoom(id))))
+                    .do_send(RoomJoin::List(ctx.address()));
+            }
+            ListReceive::Unsubscribe(id) => {
+                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetRoom(id))))
+                    .do_send(RoomLeave::List(ctx.address()));
+            }
+        }
     }
 }
 

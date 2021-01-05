@@ -2,11 +2,11 @@ pub mod api;
 pub mod ws;
 
 use crate::actor::db::GetInfoForm;
-use crate::actor::hub::Connect;
+use crate::actor::hub::HubConnect;
 use crate::actor::user::UserJoin;
 use crate::actor::UserNo;
 use crate::app_state::AppState;
-use crate::prelude::*;
+use crate::dev::*;
 use actix_identity::Identity;
 use actix_web::{get, http, web, HttpResponse, Responder};
 use futures::TryFutureExt;
@@ -58,7 +58,7 @@ pub async fn join(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         data.hub
-            .send(Connect(UserNo(id.parse().unwrap())))
+            .send(HubConnect(UserNo(id.parse().unwrap())))
             .into_future()
             .await??
             .send(UserJoin(Uuid::from_str(&*room_id)?.into()))

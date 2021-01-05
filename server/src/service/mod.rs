@@ -23,7 +23,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(get::user_info)
         .service(
             web::scope("/ws")
-                .service(get::ws::chat)
                 .service(get::ws::list)
                 .service(get::ws::main)
                 .service(get::ws::observe)

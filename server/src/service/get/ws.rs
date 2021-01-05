@@ -1,24 +1,13 @@
-use crate::actor::UserNo;
+use crate::actor::hub::{GetRoom, HubConnect};
+use crate::actor::{List, Main, Observe, RoomUser, UserNo};
 use crate::app_state::AppState;
-use crate::session::{ChatSession, ListSession, MainSession, ObserveSession, RoomSession};
+use crate::dev::*;
 use actix_identity::Identity;
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-
-#[get("/chat")]
-pub async fn chat(
-    id: Identity,
-    data: web::Data<AppState>,
-    req: HttpRequest,
-    stream: web::Payload,
-) -> Result<HttpResponse, Error> {
-    if let Some(id) = id.identity() {
-        let user_no = id.parse().unwrap();
-        ws::start(ChatSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
-    } else {
-        Ok(HttpResponse::NotFound().finish())
-    }
-}
+use futures::TryFutureExt;
+use std::str::FromStr;
+use uuid::Uuid;
 
 #[get("/list")]
 pub async fn list(
@@ -27,9 +16,8 @@ pub async fn list(
     req: HttpRequest,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
-    if let Some(id) = id.identity() {
-        let user_no = id.parse().unwrap();
-        ws::start(ListSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
+    if id.identity().is_some() {
+        ws::start(List::new(data.hub.clone()).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -44,22 +32,31 @@ pub async fn main(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse().unwrap();
-        ws::start(MainSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
+        let addr = data
+            .hub
+            .send(HubConnect(UserNo(user_no)))
+            .into_future()
+            .await
+            .unwrap()?;
+        ws::start(Main::new(addr).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
 }
 
-#[get("/observe")]
+#[get("/observe/{room_id}")]
 pub async fn observe(
     id: Identity,
     data: web::Data<AppState>,
     req: HttpRequest,
     stream: web::Payload,
+    web::Path(room_id): web::Path<String>,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse().unwrap();
-        ws::start(ObserveSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
+        let room_id = Uuid::from_str(&*room_id).unwrap().into();
+        let addr = data.hub.send(GetRoom(room_id)).into_future().await.unwrap()?;
+        ws::start(Observe::new(UserNo(user_no), addr).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
@@ -74,7 +71,13 @@ pub async fn room(
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse().unwrap();
-        ws::start(RoomSession::new(UserNo(user_no), data.hub.clone()), &req, stream)
+        let addr = data
+            .hub
+            .send(HubConnect(UserNo(user_no)))
+            .into_future()
+            .await
+            .unwrap()?;
+        ws::start(RoomUser::new(addr).make(), &req, stream)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

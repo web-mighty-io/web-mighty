@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::dev::*;
 use actix::dev::ToEnvelope;
 use actix::prelude::*;
 use bitflags::_core::time::Duration;
@@ -26,7 +26,7 @@ pub enum Status {
 ///
 /// ```no_run
 /// # use actix::prelude::*;
-/// # use server::util::{AddListener, Connect, Connection, Spread};
+/// # use server::prelude::{AddListener, Connect, Connection, Spread};
 ///
 /// # #[derive(Clone, Default)]
 /// # pub struct A {

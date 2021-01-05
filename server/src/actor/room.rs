@@ -1,15 +1,14 @@
 use crate::actor::db::SaveStateForm;
 use crate::actor::hub::{MakeGameId, RemoveRoom};
-use crate::actor::user::User;
-use crate::actor::{hub, Database, GameId, Hub, RoomId, UserNo};
-use crate::prelude::*;
-use crate::session::{ListSession, ObserveSession};
+use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
+use crate::dev::*;
 use actix::prelude::*;
 use mighty::rule::Rule;
 use mighty::{Command, Game};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone, Message, MessageResponse)]
+#[derive(Debug, Clone, Message, MessageResponse, Serialize, Deserialize)]
 #[rtype(result = "()")]
 pub struct RoomInfo {
     id: RoomId,
@@ -33,8 +32,8 @@ pub struct Room {
     info: RoomInfo,
     game: Option<GameInfo>,
     user_addr: HashMap<UserNo, Addr<User>>,
-    observe: Addr<Group<ObserveSession>>,
-    list: Addr<Group<ListSession>>,
+    observe: Addr<Group<Session<Observe>>>,
+    list: Addr<Group<Session<List>>>,
     hub: Addr<Hub>,
     db: Addr<Database>,
 }
@@ -47,8 +46,8 @@ impl Actor for Room {
 #[rtype(result = "Result<()>")]
 pub enum RoomJoin {
     User(UserNo, Addr<User>),
-    Observe(Addr<ObserveSession>),
-    List(Addr<ListSession>),
+    Observe(Addr<Session<Observe>>),
+    List(Addr<Session<List>>),
 }
 
 impl Handler<RoomJoin> for Room {
@@ -86,8 +85,8 @@ impl Handler<RoomJoin> for Room {
 #[rtype(result = "Result<()>")]
 pub enum RoomLeave {
     User(UserNo),
-    Observe(Addr<ObserveSession>),
-    List(Addr<ListSession>),
+    Observe(Addr<Session<Observe>>),
+    List(Addr<Session<List>>),
 }
 
 impl Handler<RoomLeave> for Room {

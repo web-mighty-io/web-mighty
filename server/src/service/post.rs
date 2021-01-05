@@ -1,6 +1,6 @@
 use crate::actor::db::{LoginForm, RegisterForm};
 use crate::app_state::AppState;
-use crate::prelude::*;
+use crate::dev::*;
 use actix_identity::Identity;
 use actix_web::{http, post, web, HttpResponse, Responder};
 use futures::TryFutureExt;

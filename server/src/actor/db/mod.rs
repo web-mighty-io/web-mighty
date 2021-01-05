@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::dev::*;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
 use game::{change_rating, get_rating, make_game, save_state};

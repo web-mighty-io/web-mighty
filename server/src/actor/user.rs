@@ -1,9 +1,8 @@
 use crate::actor::db::UserInfo;
 use crate::actor::hub::GetRoom;
 use crate::actor::room::{self, GetInfo, RoomInfo, RoomJoin, RoomLeave};
-use crate::actor::{Hub, Room, RoomId};
-use crate::prelude::*;
-use crate::session::{MainSession, RoomSession};
+use crate::actor::{Hub, Main, Room, RoomId, RoomUser};
+use crate::dev::*;
 use actix::prelude::*;
 use bitflags::bitflags;
 use mighty::{Command, State};
@@ -36,14 +35,14 @@ impl From<Status> for UserStatus {
 pub struct JoinedRoom {
     addr: Addr<Room>,
     info: RoomInfo,
-    group: Addr<Group<RoomSession>>,
+    group: Addr<Group<Session<RoomUser>>>,
 }
 
 pub struct User {
     info: UserInfo,
     status: UserStatus,
     room: Option<JoinedRoom>,
-    main: Addr<Connection<MainSession>>,
+    main: Addr<Connection<Session<Main>>>,
     hub: Addr<Hub>,
 }
 
@@ -60,8 +59,8 @@ impl Actor for User {
 #[derive(Clone, Message)]
 #[rtype(result = "Result<()>")]
 pub enum UserConnect {
-    Room(Addr<RoomSession>),
-    Main(Addr<MainSession>),
+    Room(Addr<Session<RoomUser>>),
+    Main(Addr<Session<Main>>),
 }
 
 impl Handler<UserConnect> for User {
@@ -84,8 +83,8 @@ impl Handler<UserConnect> for User {
 #[derive(Clone, Message)]
 #[rtype(result = "Result<()>")]
 pub enum UserDisconnect {
-    Room(Addr<RoomSession>),
-    Main(Addr<MainSession>),
+    Room(Addr<Session<RoomUser>>),
+    Main(Addr<Session<Main>>),
 }
 
 impl Handler<UserDisconnect> for User {

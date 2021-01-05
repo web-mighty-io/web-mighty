@@ -2,7 +2,7 @@ use crate::actor::db::GetInfoForm;
 use crate::actor::room::Room;
 use crate::actor::user::User;
 use crate::actor::{Database, GameId, RoomId, UserNo};
-use crate::prelude::*;
+use crate::dev::*;
 use actix::prelude::*;
 use mighty::rule::Rule;
 use std::collections::HashMap;
@@ -63,12 +63,12 @@ impl Handler<RemoveRoom> for Hub {
 
 #[derive(Clone, Message)]
 #[rtype(result = "Result<Addr<User>>")]
-pub struct Connect(pub UserNo);
+pub struct HubConnect(pub UserNo);
 
-impl Handler<Connect> for Hub {
+impl Handler<HubConnect> for Hub {
     type Result = Result<Addr<User>>;
 
-    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: HubConnect, ctx: &mut Self::Context) -> Self::Result {
         if let Some(addr) = self.users.get(&msg.0) {
             Ok(addr.clone())
         } else {
@@ -94,12 +94,12 @@ impl Handler<GetUser> for Hub {
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct Disconnect(pub UserNo);
+pub struct HubDisconnect(pub UserNo);
 
-impl Handler<Disconnect> for Hub {
+impl Handler<HubDisconnect> for Hub {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: HubDisconnect, _: &mut Self::Context) -> Self::Result {
         self.users.remove(&msg.0);
     }
 }

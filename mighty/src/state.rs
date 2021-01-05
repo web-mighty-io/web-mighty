@@ -79,12 +79,6 @@ pub enum State {
     },
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self::new(&Rule::new())
-    }
-}
-
 impl State {
     fn get_random_deck(rule: &Rule) -> Vec<Vec<Card>> {
         loop {

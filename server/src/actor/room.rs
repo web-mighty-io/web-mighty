@@ -1,30 +1,43 @@
-use crate::actor::db::{MakeGameForm, SaveStateForm};
-use crate::actor::error::Result;
+use crate::actor::db::SaveStateForm;
 use crate::actor::hub::{MakeGameId, RemoveRoom};
-use crate::actor::user::User;
-use crate::actor::{hub, Database, GameId, Hub, RoomId, UserNo};
-use crate::session::{ListSession, ObserveSession};
+use crate::actor::list::ListSend;
+use crate::actor::observe::ObserveSend;
+use crate::actor::user::{GotGameState, GotRoomInfo};
+use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
+use crate::dev::*;
 use actix::prelude::*;
-use futures::TryFutureExt;
 use mighty::rule::Rule;
-use mighty::Game;
+use mighty::{Command, Game};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
 
-pub struct Room {
+#[derive(Debug, Clone, Message, MessageResponse, Serialize, Deserialize)]
+#[rtype(result = "()")]
+pub struct RoomInfo {
     id: RoomId,
     name: String,
     rule: Rule,
     is_rank: bool,
-    game_id: GameId,
-    game_no: u32,
-    game: Option<Game>,
     head: UserNo,
     user: Vec<UserNo>,
+    observer_cnt: usize,
+    is_game: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct GameInfo {
+    id: GameId,
+    no: u32,
+    game: Game,
+}
+
+pub struct Room {
+    info: RoomInfo,
+    game: Option<GameInfo>,
     user_addr: HashMap<UserNo, Addr<User>>,
-    observe_addr: HashSet<Addr<ObserveSession>>,
-    list_addr: HashSet<Addr<ListSession>>,
-    server: Addr<Hub>,
+    observe: HashSet<Addr<Session<Observe>>>,
+    list: HashSet<Addr<Session<List>>>,
+    hub: Addr<Hub>,
     db: Addr<Database>,
 }
 
@@ -33,217 +46,294 @@ impl Actor for Room {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "bool")]
-pub enum Join {
+#[rtype(result = "Result<()>")]
+pub enum RoomJoin {
     User(UserNo, Addr<User>),
-    Observe(Addr<ObserveSession>),
-    List(Addr<ListSession>),
+    Observe(Addr<Session<Observe>>),
+    List(Addr<Session<List>>),
 }
 
-impl Handler<Join> for Room {
-    type Result = bool;
+impl Handler<RoomJoin> for Room {
+    type Result = Result<()>;
 
-    fn handle(&mut self, msg: Join, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: RoomJoin, _: &mut Self::Context) -> Self::Result {
         match msg {
-            Join::User(user_id, addr) => {
-                if self.user.len() < self.rule.user_cnt as usize {
-                    self.user.push(user_id);
-                    self.user_addr.insert(user_id, addr);
-                    true
-                } else {
-                    false
+            RoomJoin::User(user_id, addr) => {
+                let mut is_full = true;
+                for i in self.info.user.iter_mut() {
+                    if i.0 == 0 {
+                        *i = user_id;
+                        is_full = false;
+                    }
                 }
+                ensure!(!is_full, StatusCode::BAD_REQUEST, "room is full");
+                self.user_addr.insert(user_id, addr);
+                self.set_head();
+                self.spread_info();
             }
-            Join::Observe(addr) => {
-                self.observe_addr.insert(addr);
-                true
+            RoomJoin::Observe(addr) => {
+                self.observe.insert(addr);
+                self.info.observer_cnt += 1;
+                self.spread_info();
             }
-            Join::List(addr) => {
-                self.list_addr.insert(addr);
-                true
+            RoomJoin::List(addr) => {
+                self.list.insert(addr);
             }
         }
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub enum Leave {
+#[rtype(result = "Result<()>")]
+pub enum RoomLeave {
     User(UserNo),
-    Observe(Addr<ObserveSession>),
-    List(Addr<ListSession>),
+    Observe(Addr<Session<Observe>>),
+    List(Addr<Session<List>>),
 }
 
-impl Handler<Leave> for Room {
-    type Result = ();
+impl Handler<RoomLeave> for Room {
+    type Result = Result<()>;
 
-    fn handle(&mut self, msg: Leave, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: RoomLeave, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            Leave::User(user_id) => {
-                if self.game.is_some() {
-                    return;
+            RoomLeave::User(user_no) => {
+                ensure!(
+                    self.user_addr.remove(&user_no).is_some(),
+                    StatusCode::NOT_FOUND,
+                    "no user"
+                );
+                for i in self.info.user.iter_mut() {
+                    if *i == user_no {
+                        i.0 = 0;
+                    }
                 }
+                self.set_head();
+                self.spread_info();
 
-                if self.user_addr.remove(&user_id).is_some() {
-                    let mut idx = 0;
-                    for (i, v) in self.user.iter().enumerate() {
-                        if *v == user_id {
-                            idx = i;
-                            break;
-                        }
-                    }
-                    self.user.remove(idx);
-
-                    if user_id == self.head {
-                        if let Some(id) = self.user.first() {
-                            self.head = *id;
-                        }
-                    }
-                    self.try_remove(ctx);
+                if self.user_addr.is_empty() {
+                    self.hub.do_send(RemoveRoom(self.info.id));
+                    ctx.stop();
                 }
             }
-            Leave::Observe(addr) => {
-                self.observe_addr.remove(&addr);
-                self.try_remove(ctx);
+            RoomLeave::Observe(addr) => {
+                ensure!(
+                    self.observe.remove(&addr),
+                    StatusCode::BAD_REQUEST,
+                    "you are not joined"
+                );
+                self.spread_info();
             }
-            Leave::List(addr) => {
-                self.list_addr.remove(&addr);
-                self.try_remove(ctx);
+            RoomLeave::List(addr) => {
+                ensure!(self.list.remove(&addr), StatusCode::BAD_REQUEST, "you are not joined");
             }
         }
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct ChangeName(UserNo, String);
+#[rtype(result = "Result<()>")]
+pub struct ChangeName(pub UserNo, pub String);
 
 impl Handler<ChangeName> for Room {
-    type Result = ();
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: ChangeName, _: &mut Self::Context) -> Self::Result {
-        if msg.0 == self.head {
-            self.name = msg.1;
-        }
+        ensure!(
+            msg.0 == self.info.head,
+            StatusCode::UNAUTHORIZED,
+            "you are not head of room"
+        );
+        self.info.name = msg.1;
+        self.spread_info();
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct StartGame(UserNo);
+#[rtype(result = "Result<()>")]
+pub struct ChangeRule(pub UserNo, pub Rule);
+
+impl Handler<ChangeRule> for Room {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: ChangeRule, _: &mut Self::Context) -> Self::Result {
+        ensure!(
+            msg.0 == self.info.head,
+            StatusCode::UNAUTHORIZED,
+            "you are not head of room"
+        );
+        ensure!(!self.info.is_game, "rule can't change in game");
+        self.info.rule = msg.1;
+        self.spread_info();
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "Result<()>")]
+pub struct StartGame(pub UserNo);
 
 impl Handler<StartGame> for Room {
-    type Result = ();
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: StartGame, ctx: &mut Self::Context) -> Self::Result {
-        if self.game.is_none() && msg.0 == self.head {
-            self.server
-                .send(MakeGameId)
-                .into_actor(self)
-                .then(|res, act, ctx| {
-                    if let Ok(res) = res {
-                        act.game = Some(Game::new(act.rule.clone()));
-                        act.db
-                            .send(MakeGameForm {
-                                game_id: res.0,
-                                room_id: act.id.0,
-                                room_name: act.name.clone(),
-                                users: act.user.iter().map(|u| u.0).collect(),
-                                is_rank: act.is_rank,
-                                rule: act.rule.clone(),
-                            })
-                            .into_actor(act)
-                            .then(|_, _, _| fut::ready(()))
-                            .wait(ctx);
-                    }
-
-                    fut::ready(())
-                })
-                .wait(ctx);
-        }
+        ensure!(
+            msg.0 == self.info.head,
+            StatusCode::UNAUTHORIZED,
+            "you are not head of room"
+        );
+        let id = send(self, ctx, self.hub.clone(), MakeGameId)?;
+        self.game = Some(GameInfo {
+            id,
+            no: 0,
+            game: Game::new(self.info.rule.clone()),
+        });
+        self.info.is_game = true;
+        self.spread_info();
+        self.spread_game();
+        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "mighty::Result<()>")]
-pub struct Go(UserNo, mighty::Command);
+#[rtype(result = "Result<()>")]
+pub struct Go(pub UserNo, pub Command);
 
 impl Handler<Go> for Room {
-    type Result = mighty::Result<()>;
+    type Result = Result<()>;
 
-    fn handle(&mut self, msg: Go, _: &mut Self::Context) -> Self::Result {
-        if let Some(user_id) = self
-            .user
-            .iter()
-            .enumerate()
-            .filter_map(|(i, x)| if *x == msg.0 { Some(i) } else { None })
-            .next()
-        {
-            if self.next(user_id, msg.1)? {
-                self.game = None;
+    fn handle(&mut self, msg: Go, ctx: &mut Self::Context) -> Self::Result {
+        let mut user_id = self.info.user.len();
+        for (i, x) in self.info.user.iter().enumerate() {
+            if *x == msg.0 {
+                user_id = i;
+                break;
             }
-            Ok(())
-        } else {
-            Err(mighty::Error::InvalidUser)
         }
+
+        ensure!(
+            user_id != self.info.user.len(),
+            StatusCode::UNAUTHORIZED,
+            "you are not the player"
+        );
+        let finished = self.next(user_id, msg.1)?;
+        self.save_state(ctx)?;
+
+        if finished {
+            // todo: apply rating system
+            self.info.is_game = false;
+            self.game = None;
+            self.spread_info();
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Message)]
+#[rtype(result = "RoomInfo")]
+pub struct GetInfo;
+
+impl Handler<GetInfo> for Room {
+    type Result = RoomInfo;
+
+    fn handle(&mut self, _: GetInfo, _: &mut Self::Context) -> Self::Result {
+        self.info.clone()
     }
 }
 
 impl Room {
-    pub fn new(id: RoomId, name: String, rule: Rule, server: Addr<hub::Hub>, db: Addr<Database>) -> Room {
+    pub fn new(
+        id: RoomId,
+        name: String,
+        rule: Rule,
+        is_rank: bool,
+        server: Addr<hub::Hub>,
+        db: Addr<Database>,
+    ) -> Room {
+        let user_cnt = rule.user_cnt as usize;
         Room {
-            id,
-            name,
-            rule,
-            is_rank: false,
-            game_id: GameId(Uuid::default()),
-            game_no: 0,
+            info: RoomInfo {
+                id,
+                name,
+                rule,
+                is_rank,
+                head: UserNo(0),
+                user: vec![UserNo(0); user_cnt],
+                observer_cnt: 0,
+                is_game: false,
+            },
             game: None,
-            head: UserNo(0),
-            user: Vec::new(),
             user_addr: HashMap::new(),
-            observe_addr: HashSet::new(),
-            list_addr: HashSet::new(),
-            server,
+            observe: HashSet::new(),
+            list: HashSet::new(),
+            hub: server,
             db,
         }
     }
 
-    fn try_remove(&mut self, ctx: &mut Context<Self>) {
-        if self.user_addr.is_empty() && self.observe_addr.is_empty() && self.list_addr.is_empty() {
-            self.server
-                .send(RemoveRoom(self.id))
-                .into_actor(self)
-                .then(|_, _, ctx| {
-                    ctx.stop();
-                    fut::ready(())
-                })
-                .wait(ctx);
+    fn set_head(&mut self) {
+        if self.info.head.0 == 0 {
+            for i in self.info.user.iter() {
+                if i.0 != 0 {
+                    self.info.head.0 = 0;
+                }
+            }
+        } else if !self.user_addr.contains_key(&self.info.head) {
+            self.info.head.0 = 0;
+            // recursion: only go down once
+            self.set_head();
         }
     }
 
-    async fn save_state(&self) -> Result<()> {
+    fn save_state(&mut self, ctx: &mut <Self as Actor>::Context) -> Result<()> {
         if let Some(game) = &self.game {
-            self.db
-                .send(SaveStateForm {
-                    game_id: self.game_id.0,
-                    room_id: self.id.0,
-                    number: self.game_no,
-                    state: game.get_state(),
-                })
-                .into_future()
-                .await
-                .unwrap()
+            let form = SaveStateForm {
+                game_id: game.id.0,
+                room_id: self.info.id.0,
+                number: game.no,
+                state: game.game.get_state(),
+            };
+            send(self, ctx, self.db.clone(), form)?
         } else {
             Ok(())
         }
     }
 
-    fn next(&mut self, user_id: usize, cmd: mighty::Command) -> mighty::Result<bool> {
+    fn next(&mut self, user_id: usize, cmd: mighty::Command) -> Result<bool> {
         if let Some(game) = &mut self.game {
-            game.next(user_id, cmd)
+            let res = game.game.next(user_id, cmd)?;
+            self.spread_game();
+            Ok(res)
         } else {
-            Err(mighty::Error::Internal("Game not started"))
+            bail!("game not started")
+        }
+    }
+
+    fn spread_info(&self) {
+        for (_, i) in self.user_addr.iter() {
+            i.do_send(GotRoomInfo(self.info.clone()));
+        }
+
+        for i in self.observe.iter() {
+            i.do_send(ObserveSend::Room(self.info.clone()));
+        }
+
+        for i in self.list.iter() {
+            i.do_send(ListSend::Room(self.info.clone()));
+        }
+    }
+
+    // assert: game is not `None`
+    fn spread_game(&self) {
+        let state = self.game.as_ref().unwrap().game.get_state();
+        for (_, i) in self.user_addr.iter() {
+            i.do_send(GotGameState(state.clone()));
+        }
+
+        for i in self.observe.iter() {
+            i.do_send(ObserveSend::Game(state.clone()));
         }
     }
 }

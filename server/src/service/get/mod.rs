@@ -2,34 +2,40 @@ pub mod api;
 pub mod ws;
 
 use crate::actor::db::GetInfoForm;
+use crate::actor::hub::HubConnect;
+use crate::actor::user::UserJoin;
+use crate::actor::UserNo;
 use crate::app_state::AppState;
+use crate::dev::*;
 use actix_identity::Identity;
-use actix_web::{get, http, web, Error, HttpResponse, Responder};
+use actix_web::{get, http, web, HttpResponse, Responder};
 use futures::TryFutureExt;
 use serde_json::{json, Map};
+use std::str::FromStr;
+use uuid::Uuid;
 
-#[get("/admin")]
-pub async fn admin(id: Identity, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
-    if let Some(id) = id.identity() {
-        let user_no = id.parse::<u32>().map_err(|_| Error::from(()))?;
-        if data
-            .db
-            .send(GetInfoForm::UserNo(user_no))
-            .into_future()
-            .await
-            .unwrap()?
-            .is_admin
-        {
-            let handlebars = data.get_handlebars();
-            let body = handlebars.render("admin.hbs", &json!({ "id": id })).unwrap();
-            Ok(HttpResponse::Ok().body(body))
-        } else {
-            Ok(HttpResponse::NotFound().finish())
-        }
-    } else {
-        Ok(HttpResponse::NotFound().finish())
-    }
-}
+// #[get("/admin")]
+// pub async fn admin(id: Identity, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
+//     if let Some(id) = id.identity() {
+//         let user_no = id.parse().unwrap();
+//         if data
+//             .db
+//             .send(GetInfoForm::UserNo(user_no))
+//             .into_future()
+//             .await
+//             .unwrap()?
+//             .is_admin
+//         {
+//             let handlebars = data.get_handlebars();
+//             let body = handlebars.render("admin.hbs", &json!({ "id": id })).unwrap();
+//             Ok(HttpResponse::Ok().body(body))
+//         } else {
+//             Ok(HttpResponse::NotFound().finish())
+//         }
+//     } else {
+//         Ok(HttpResponse::NotFound().finish())
+//     }
+// }
 
 #[get("/")]
 pub async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
@@ -45,14 +51,24 @@ pub async fn index(id: Identity, data: web::Data<AppState>) -> impl Responder {
 }
 
 #[get("/join/{room_id}")]
-pub async fn join(id: Identity, data: web::Data<AppState>, web::Path(room_id): web::Path<String>) -> impl Responder {
+pub async fn join(
+    id: Identity,
+    data: web::Data<AppState>,
+    web::Path(room_id): web::Path<String>,
+) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
-        // todo
-        HttpResponse::Ok().body("")
+        data.hub
+            .send(HubConnect(UserNo(id.parse().unwrap())))
+            .into_future()
+            .await??
+            .send(UserJoin(Uuid::from_str(&*room_id)?.into()))
+            .into_future()
+            .await??;
+        Ok(HttpResponse::Ok().body(""))
     } else {
-        HttpResponse::Found()
+        Ok(HttpResponse::Found()
             .header(http::header::LOCATION, format!("/login?back=join_{}", room_id))
-            .finish()
+            .finish())
     }
 }
 
@@ -83,7 +99,7 @@ pub async fn login(id: Identity, data: web::Data<AppState>) -> impl Responder {
 #[get("/mail/{token}")]
 pub async fn mail(data: web::Data<AppState>, web::Path(token): web::Path<String>) -> impl Responder {
     let handlebars = data.get_handlebars();
-    let body = handlebars.render("mail.hbs", &json!({})).unwrap();
+    let body = handlebars.render("mail.hbs", &json!({ "token": token })).unwrap();
     HttpResponse::Ok().body(body)
 }
 
@@ -93,6 +109,7 @@ pub async fn observe(id: Identity, data: web::Data<AppState>, web::Path(room_id)
     if let Some(id) = id.identity() {
         val.insert("id".to_owned(), json!(id));
     }
+    val.insert("room_id".to_owned(), json!(room_id));
 
     let handlebars = data.get_handlebars();
     let body = handlebars.render("observe.hbs", &val).unwrap();
@@ -131,7 +148,7 @@ pub async fn resource(data: web::Data<AppState>, web::Path(file): web::Path<Stri
 pub async fn room(id: Identity, data: web::Data<AppState>, web::Path(room_id): web::Path<String>) -> impl Responder {
     if let Some(id) = id.identity() {
         let handlebars = data.get_handlebars();
-        let body = handlebars.render("room.hbs", &json!({ "id": id })).unwrap();
+        let body = handlebars.render("game.hbs", &json!({ "id": id })).unwrap();
         HttpResponse::Ok().body(body)
     } else {
         HttpResponse::Found()
@@ -154,7 +171,7 @@ pub async fn setting(id: Identity, data: web::Data<AppState>) -> impl Responder 
 }
 
 #[get("/user/{user_id}")]
-pub async fn user(
+pub async fn user_info(
     id: Identity,
     data: web::Data<AppState>,
     web::Path(user_id): web::Path<String>,

@@ -1,5 +1,33 @@
+use crate::dev::*;
+use actix::dev::ToEnvelope;
+use actix::prelude::*;
 use std::env;
 use std::path::{Path, PathBuf};
+
+pub fn send<A, B, M>(actor: &A, ctx: &mut A::Context, to: Addr<B>, msg: M) -> Result<M::Result, MailboxError>
+where
+    A: Actor,
+    A::Context: AsyncContext<A>,
+    B: Actor,
+    M: Message + Send + 'static,
+    M::Result: Send,
+    B: Handler<M>,
+    B::Context: ToEnvelope<B, M>,
+{
+    let mut x = Err(MailboxError::Closed);
+    let r = &mut x as *const Result<M::Result, MailboxError> as *mut Result<M::Result, MailboxError>;
+    // SAFETY: referencing `x` is finished inside unsafe code block
+    unsafe {
+        to.send(msg)
+            .into_actor(actor)
+            .then(move |res, _, _| {
+                *r = res;
+                fut::ready(())
+            })
+            .wait(ctx);
+    }
+    x
+}
 
 /// This compresses the input path.
 /// `Path::join` just pushes second path to first one.
@@ -14,7 +42,7 @@ use std::path::{Path, PathBuf};
 /// # Examples
 ///
 /// ```
-/// use server::util::compress;
+/// use server::prelude::compress;
 /// use std::path::PathBuf;
 ///
 /// assert_eq!(compress("/../world/./"), PathBuf::from("/world"));
@@ -45,13 +73,13 @@ pub fn compress<P: AsRef<Path>>(from: P) -> PathBuf {
 }
 
 /// Changes the path to absolute path.
-/// If input path is relative, it concats with current directory path.
+/// If input path is relative, it concat with current directory path.
 /// If input path is absolute, it returns input.
 ///
 /// # Examples
 ///
 /// ```no_run
-/// use server::util::to_absolute_path;
+/// use server::prelude::to_absolute_path;
 /// use std::env;
 /// use std::path::PathBuf;
 ///

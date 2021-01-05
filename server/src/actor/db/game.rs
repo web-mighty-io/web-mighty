@@ -1,4 +1,4 @@
-use crate::actor::error::Result;
+use crate::dev::*;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
 use mighty::rule::Rule;

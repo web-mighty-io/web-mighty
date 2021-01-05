@@ -2,6 +2,7 @@ use crate::actor::db::GetInfoForm;
 use crate::actor::room::Room;
 use crate::actor::user::User;
 use crate::actor::{Database, GameId, RoomId, UserNo};
+use crate::dev::*;
 use actix::prelude::*;
 use mighty::rule::Rule;
 use std::collections::HashMap;
@@ -20,20 +21,20 @@ impl Actor for Hub {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Option<Addr<Room>>")]
+#[rtype(result = "Result<Addr<Room>>")]
 pub struct GetRoom(pub RoomId);
 
 impl Handler<GetRoom> for Hub {
-    type Result = Option<Addr<Room>>;
+    type Result = Result<Addr<Room>>;
 
     fn handle(&mut self, msg: GetRoom, _: &mut Self::Context) -> Self::Result {
-        self.room.get(&msg.0).cloned()
+        self.room.get(&msg.0).cloned().ok_or_else(|| err!("no room"))
     }
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "RoomId")]
-pub struct MakeRoom(pub String, pub Rule);
+pub struct MakeRoom(pub String, pub Rule, pub bool);
 
 impl Handler<MakeRoom> for Hub {
     type Result = RoomId;
@@ -42,7 +43,7 @@ impl Handler<MakeRoom> for Hub {
         let room_id = RoomId(self.generate_uuid("room"));
         self.room.insert(
             room_id,
-            Room::new(room_id, msg.0, msg.1, ctx.address(), self.db.clone()).start(),
+            Room::new(room_id, msg.0, msg.1, msg.2, ctx.address(), self.db.clone()).start(),
         );
         room_id
     }
@@ -61,53 +62,44 @@ impl Handler<RemoveRoom> for Hub {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Addr<User>")]
-pub struct Connect(pub UserNo);
+#[rtype(result = "Result<Addr<User>>")]
+pub struct HubConnect(pub UserNo);
 
-impl Handler<Connect> for Hub {
-    type Result = Addr<User>;
+impl Handler<HubConnect> for Hub {
+    type Result = Result<Addr<User>>;
 
-    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: HubConnect, ctx: &mut Self::Context) -> Self::Result {
         if let Some(addr) = self.users.get(&msg.0) {
-            addr.clone()
+            Ok(addr.clone())
         } else {
-            let user_no = msg.0;
-            self.db
-                .send(GetInfoForm::UserNo(msg.0 .0))
-                .into_actor(self)
-                .then(move |res, act, ctx| {
-                    let user = User::new(res.unwrap().unwrap(), ctx.address(), act.db.clone()).start();
-                    act.users.insert(user_no, user);
-
-                    fut::ready(())
-                })
-                .wait(ctx);
-
-            self.users.get(&user_no).unwrap().clone()
+            let info = send(self, ctx, self.db.clone(), GetInfoForm::UserNo(msg.0 .0))??;
+            let user = User::new(info, ctx.address()).start();
+            self.users.insert(msg.0, user.clone());
+            Ok(user)
         }
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Option<Addr<User>>")]
+#[rtype(result = "Result<Addr<User>>")]
 pub struct GetUser(pub UserNo);
 
 impl Handler<GetUser> for Hub {
-    type Result = Option<Addr<User>>;
+    type Result = Result<Addr<User>>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
-        self.users.get(&msg.0).cloned()
+        self.users.get(&msg.0).cloned().ok_or_else(|| err!("no user"))
     }
 }
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub struct Disconnect(pub UserNo);
+pub struct HubDisconnect(pub UserNo);
 
-impl Handler<Disconnect> for Hub {
+impl Handler<HubDisconnect> for Hub {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: HubDisconnect, _: &mut Self::Context) -> Self::Result {
         self.users.remove(&msg.0);
     }
 }

@@ -1,3 +1,4 @@
+use crate::dev::*;
 use actix::prelude::*;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{SmtpTransport, Transport};
@@ -11,11 +12,11 @@ impl Actor for Mail {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<(), lettre::transport::smtp::Error>")]
+#[rtype(result = "Result<()>")]
 pub struct Send(lettre::Message);
 
 impl Handler<Send> for Mail {
-    type Result = Result<(), lettre::transport::smtp::Error>;
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: Send, _: &mut Self::Context) -> Self::Result {
         self.smtp.send(&msg.0)?;

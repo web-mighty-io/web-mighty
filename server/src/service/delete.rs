@@ -13,7 +13,7 @@ pub async fn delete_user(
     if let Some(user_id) = id.identity() {
         state
             .db
-            .send(Delete(user_id.parse().map_err(|_| Error::from(()))?, (*form).clone()))
+            .send(Delete(user_id.parse().unwrap(), (*form).clone()))
             .into_future()
             .await
             .unwrap()?;

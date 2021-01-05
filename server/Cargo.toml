@@ -6,6 +6,9 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "server"
+
 [dependencies]
 mighty = { path = "../mighty" }
 
@@ -13,9 +16,10 @@ actix = "0.10"
 actix-identity = "0.3"
 actix-web = "3"
 actix-web-actors = "3"
+anyhow = "1.0"
 bitflags = "1.2"
 clap = "3.0.0-beta.2"
-deadpool-postgres = "0.6"
+deadpool-postgres = "0.7"
 derive_more = "0.99"
 futures = "0.3"
 handlebars = "3.5"
@@ -31,7 +35,7 @@ slog-term = "2.6"
 slog-async = "2.5"
 slog-scope = "4.3"
 slog-stdlog = "4.1"
-tokio-postgres = { version = "0.6", features = ["with-uuid-0_8", "with-serde_json-1"] }
+tokio-postgres = { version = "0.7", features = ["with-uuid-0_8", "with-serde_json-1"] }
 toml = "0.5"
 uuid = { version = "0.8", features = ["serde", "v5"] }
 walkdir = "2"

@@ -1,4 +1,4 @@
-use crate::{ABSENT_TIME, RECONNECTION_TIME};
+use crate::dev::*;
 use actix::dev::ToEnvelope;
 use actix::prelude::*;
 use bitflags::_core::time::Duration;
@@ -25,30 +25,30 @@ pub enum Status {
 /// # Example
 ///
 /// ```no_run
-/// use actix::prelude::*;
-/// use server::util::{AddListener, Connect, Connection, Spread};
+/// # use actix::prelude::*;
+/// # use server::prelude::{AddListener, Connect, Connection, Spread};
 ///
-/// #[derive(Clone, Default)]
-/// pub struct A {
-///     counter: usize,
-/// }
+/// # #[derive(Clone, Default)]
+/// # pub struct A {
+/// #     counter: usize,
+/// # }
 ///
-/// impl Actor for A {
-///     type Context = Context<Self>;
-/// }
+/// # impl Actor for A {
+/// #     type Context = Context<Self>;
+/// # }
 ///
-/// #[derive(Clone, Message)]
-/// #[rtype(result = "()")]
-/// pub struct AddOne;
+/// # #[derive(Clone, Message)]
+/// # #[rtype(result = "()")]
+/// # pub struct AddOne;
 ///
-/// impl Handler<AddOne> for A {
-///     type Result = ();
+/// # impl Handler<AddOne> for A {
+/// #     type Result = ();
 ///
-///     fn handle(&mut self, _: AddOne, _: &mut Self::Context) -> Self::Result {
-///         self.counter += 1;
-///         println!("{}", self.counter);
-///     }
-/// }
+/// #     fn handle(&mut self, _: AddOne, _: &mut Self::Context) -> Self::Result {
+/// #         self.counter += 1;
+/// #         println!("{}", self.counter);
+/// #     }
+/// # }
 ///
 /// let connection: Addr<Connection<A>> = Connection::start_default();
 /// connection.do_send(AddListener(|status| {
@@ -92,8 +92,8 @@ where
 {
     type Result = ();
 
-    fn handle(&mut self, msg: Spread<M>, _: &mut Self::Context) -> Self::Result {
-        self.update();
+    fn handle(&mut self, msg: Spread<M>, ctx: &mut Self::Context) -> Self::Result {
+        self.update(ctx);
         for i in self.addrs.iter() {
             i.do_send(msg.0.clone());
         }
@@ -113,17 +113,16 @@ where
     type Result = ();
 
     fn handle(&mut self, msg: Connect<A>, ctx: &mut Self::Context) -> Self::Result {
-        self.update();
+        self.update(ctx);
         self.addrs.insert(msg.0);
         if self.addrs.len() == 1 {
             ctx.notify(Update);
-            ctx.notify_later(Update, ABSENT_TIME + Duration::from_millis(1));
         }
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "()")]
+#[rtype(result = "Result<()>")]
 pub struct Disconnect<A>(pub Addr<A>)
 where
     A: Actor;
@@ -132,39 +131,16 @@ impl<A> Handler<Disconnect<A>> for Connection<A>
 where
     A: Actor,
 {
-    type Result = ();
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: Disconnect<A>, ctx: &mut Self::Context) -> Self::Result {
-        self.update();
-        self.addrs.remove(&msg.0);
+        self.update(ctx);
+        ensure!(self.addrs.remove(&msg.0), StatusCode::NOT_FOUND, "no user");
         if self.addrs.is_empty() {
             ctx.notify(Update);
             ctx.notify_later(Update, RECONNECTION_TIME + Duration::from_millis(1));
         }
-    }
-}
-
-#[derive(Clone, Message)]
-#[rtype(result = "()")]
-pub struct SendOver<A, M>(pub Addr<A>, M)
-where
-    A: Actor + Handler<M>,
-    M: Message + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>;
-
-impl<A, M> Handler<SendOver<A, M>> for Connection<A>
-where
-    A: Actor + Handler<M>,
-    M: Message + Send,
-    M::Result: Send,
-    A::Context: ToEnvelope<A, M>,
-{
-    type Result = ();
-
-    fn handle(&mut self, msg: SendOver<A, M>, _: &mut Self::Context) -> Self::Result {
-        self.update();
-        msg.0.do_send(msg.1);
+        Ok(())
     }
 }
 
@@ -201,7 +177,7 @@ where
 
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-struct Update;
+pub struct Update;
 
 impl<A> Handler<Update> for Connection<A>
 where
@@ -297,7 +273,8 @@ where
         self.status_listener.remove(&id);
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, ctx: &mut <Self as Actor>::Context) {
         self.time = SystemTime::now();
+        ctx.notify_later(Update, ABSENT_TIME + Duration::from_millis(1));
     }
 }

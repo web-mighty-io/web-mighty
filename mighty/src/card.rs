@@ -78,6 +78,16 @@ impl From<Card> for Rush {
     }
 }
 
+impl From<Rush> for Color {
+    fn from(c: Rush) -> Self {
+        if (Rush::SPADE | Rush::CLOVER).contains(c) {
+            Self::Black
+        } else {
+            Self::Red
+        }
+    }
+}
+
 impl Rush {
     pub fn black() -> Rush {
         Rush::SPADE | Rush::CLOVER

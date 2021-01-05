@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Config, Hash, Eq, PartialEq)]
 pub struct JokerCall {
-    cards: Vec<(Card, Card)>,
-    mighty_defense: bool,
-    has_power: bool,
+    pub cards: Vec<(Card, Card)>,
+    pub mighty_defense: bool,
+    pub has_power: bool,
 }
 
 impl Default for JokerCall {

@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Config, Hash, Eq, PartialEq)]
 pub struct Pledge {
-    min: u8,
-    max: u8,
-    no_giruda_offset: i8,
-    change_cost: u8,
-    first_offset: i8,
+    pub min: u8,
+    pub max: u8,
+    pub no_giruda_offset: i8,
+    pub change_cost: u8,
+    pub first_offset: i8,
 }
 
 impl Default for Pledge {

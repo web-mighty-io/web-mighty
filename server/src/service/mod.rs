@@ -7,7 +7,8 @@ use actix_web::{web, HttpResponse, Responder};
 use serde_json::json;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(get::admin)
+    cfg
+        // .service(get::admin)
         .service(get::index)
         .service(get::join)
         .service(get::list)
@@ -19,10 +20,9 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         .service(get::resource)
         .service(get::room)
         .service(get::setting)
-        .service(get::user)
+        .service(get::user_info)
         .service(
             web::scope("/ws")
-                .service(get::ws::chat)
                 .service(get::ws::list)
                 .service(get::ws::main)
                 .service(get::ws::observe)

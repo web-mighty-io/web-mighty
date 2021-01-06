@@ -8,16 +8,30 @@ pub mod missed_deal;
 pub mod pledge;
 pub mod visibility;
 
+pub mod prelude {
+    pub use crate::rule::card_policy::{CardPolicy, Policy};
+    pub use crate::rule::dealer::Dealer;
+    pub use crate::rule::deck::{Deck, Preset as DeckPreset};
+    pub use crate::rule::election::Election;
+    pub use crate::rule::friend::Friend;
+    pub use crate::rule::joker_call::JokerCall;
+    pub use crate::rule::missed_deal::MissedDeal;
+    pub use crate::rule::pledge::Pledge;
+    pub use crate::rule::visibility::Visibility;
+
+    pub use crate::rule::{Preset, Rule};
+}
+
 use crate::card::{Card, Pattern};
 use crate::rule::card_policy::{CardPolicy, Policy};
 use crate::rule::dealer::Dealer;
+use crate::rule::election::Election;
+use crate::rule::friend::Friend;
 use crate::rule::joker_call::JokerCall;
+use crate::rule::missed_deal::MissedDeal;
 use crate::rule::pledge::Pledge;
 use crate::rule::visibility::Visibility;
 use config::Config;
-use election::Election;
-use friend::Friend;
-use missed_deal::MissedDeal;
 use serde::{Deserialize, Serialize};
 
 /// Temporary Presets
@@ -73,7 +87,7 @@ impl From<Preset> for Rule {
             Preset::DDSHS5 => Rule::new()
                 .set_election(Election::all() - Election::NO_GIRUDA_EXIST)
                 .map_pledge(|p| p.set_change_cost(1))
-                .set_friend(Friend::CARD | Friend::FAKE)
+                .set_friend(Friend::CARD | Friend::FAKE | Friend::NONE)
                 .map_joker_call(|j| {
                     j.set_cards(vec![(
                         Card::Normal(Pattern::Clover, 3),
@@ -93,12 +107,12 @@ impl From<Preset> for Rule {
             }),
             Preset::GSHS5 => Rule::new()
                 .set_deck(deck::Preset::FullDeck.to_vec())
-                .set_election(Election::empty())
+                .set_election(Election::NO_GIRUDA_EXIST | Election::PASS_FIRST)
                 .map_missed_deal(|m| {
                     m.set_score(2)
                         .set_joker(-1)
                         .mut_card(|m| {
-                            m.insert(Card::Normal(Pattern::Spade, 0), -1);
+                            m.insert(Card::Normal(Pattern::Spade, 0), -2);
                         })
                         .set_limit(1)
                 })

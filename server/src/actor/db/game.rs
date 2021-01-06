@@ -1,8 +1,7 @@
-use crate::actor::error::Result;
+use crate::dev::*;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
-use mighty::rule::Rule;
-use mighty::State;
+use mighty::prelude::{Rule, State};
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use tokio_postgres::types::Json;

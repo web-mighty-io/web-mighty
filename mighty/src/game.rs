@@ -1,8 +1,7 @@
 use crate::command::Command;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::rule::Rule;
 use crate::state::State;
-use crate::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
@@ -14,7 +13,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(rule: Rule) -> Game {
-        let state = State::new();
+        let state = State::new(&rule);
         let valid_users = state.valid_users(&rule);
         Game {
             rule,

@@ -1,10 +1,9 @@
-use crate::actor::db::TOKEN_VALID_DURATION;
-use crate::actor::error::{Error, Result};
+use crate::dev::*;
 use actix::prelude::*;
 use actix_web::http::StatusCode;
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use uuid::Uuid;
 
 #[derive(Deserialize, Serialize, Clone, Message)]
@@ -24,11 +23,13 @@ pub async fn add_user(form: AddUserForm, pool: Pool) -> Result<()> {
     let res = client.query(&stmt, &[&form.user_id, &form.token]).await?;
     let row = res
         .first()
-        .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED, "login failed"))?;
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
     let time: SystemTime = row.get(0);
-    if time.elapsed().unwrap_or_else(|_| Duration::from_secs(0)) >= TOKEN_VALID_DURATION {
-        return Error::result(StatusCode::UNAUTHORIZED, "token expired");
-    }
+    ensure!(
+        time.elapsed()? <= TOKEN_VALID_DURATION,
+        StatusCode::UNAUTHORIZED,
+        "token expired"
+    );
     let email: String = row.get(1);
 
     let client = pool.get().await?;
@@ -64,7 +65,7 @@ pub async fn change_info(form: ChangeInfoForm, pool: Pool) -> Result<()> {
     let res = client.query(&stmt, &[&form.user_no, &form.password]).await?;
     let row = res
         .first()
-        .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED, "login failed"))?;
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
     let username = form.name.clone().unwrap_or_else(|| row.get(0));
     let email = form.email.clone().unwrap_or_else(|| row.get(1));
     let password = form.new_password.clone().unwrap_or_else(|| form.password.clone());
@@ -120,9 +121,7 @@ pub async fn delete(user_no: u32, form: DeleteForm, pool: Pool) -> Result<()> {
         .prepare("SELECT 1 no FROM users WHERE no=$1 AND password=$2;")
         .await?;
     let res = client.query(&stmt, &[&user_no, &form.password]).await?;
-    if res.is_empty() {
-        return Error::result(StatusCode::UNAUTHORIZED, "password doesn't match");
-    }
+    ensure!(!res.is_empty(), StatusCode::UNAUTHORIZED, "password doesn't match");
     let stmt = client.prepare("DELETE FROM users WHERE no=$1").await?;
     client.query(&stmt, &[&user_no]).await?;
     Ok(())
@@ -143,7 +142,7 @@ pub async fn login(form: LoginForm, pool: Pool) -> Result<u32> {
     let res = client.query(&stmt, &[&form.user_id, &form.password]).await?;
     let row = res
         .first()
-        .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED, "login failed"))?;
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
     Ok(row.get(0))
 }
 
@@ -157,9 +156,7 @@ pub async fn get_email(form: GetEmailForm, pool: Pool) -> Result<String> {
     let client = pool.get().await?;
     let stmt = client.prepare("SELECT email FROM users WHERE id=$1;").await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
-    let row = res
-        .first()
-        .ok_or_else(|| Error::new(StatusCode::NOT_FOUND, "no user"))?;
+    let row = res.first().ok_or_else(|| err!(StatusCode::NOT_FOUND, "no user"))?;
     Ok(row.get(0))
 }
 
@@ -195,9 +192,7 @@ pub async fn get_info(form: GetInfoForm, pool: Pool) -> Result<UserInfo> {
             client.query(&stmt, &[id]).await?
         }
     };
-    let row = res
-        .first()
-        .ok_or_else(|| Error::new(StatusCode::NOT_FOUND, "no user"))?;
+    let row = res.first().ok_or_else(|| err!(StatusCode::NOT_FOUND, "no user"))?;
     Ok(UserInfo {
         user_no: row.get(0),
         user_id: row.get(1),
@@ -220,7 +215,7 @@ pub async fn regenerate_token(form: RegenerateTokenForm, pool: Pool) -> Result<U
     let res = client.query(&stmt, &[&form.user_id, &form.email]).await?;
     let row = res
         .first()
-        .ok_or_else(|| Error::new(StatusCode::UNAUTHORIZED, "login failed"))?;
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
     Ok(row.get(0))
 }
 
@@ -237,9 +232,7 @@ pub async fn register(form: RegisterForm, pool: Pool) -> Result<()> {
         .prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")
         .await?;
     let res = client.query(&stmt, &[&form.user_id]).await?;
-    if !res.is_empty() {
-        return Error::result(StatusCode::UNAUTHORIZED, "username already in use");
-    }
+    ensure!(res.is_empty(), StatusCode::UNAUTHORIZED, "username already in use");
 
     let client = pool.get().await?;
     let stmt = client

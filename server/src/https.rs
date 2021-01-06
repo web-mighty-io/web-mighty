@@ -1,31 +1,4 @@
 //! Redirects to https when http request is incoming.
-//!
-//! # Examples
-//!
-//! ```no_run
-//! use actix_web::{get, App, HttpServer, Responder};
-//! use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-//! use server::https::RedirectHttps;
-//!
-//! #[get("/")]
-//! async fn index() -> impl Responder {
-//!     format!("Hello, World!")
-//! }
-//!
-//! #[cfg(feature = "https")]
-//! #[actix_web::main]
-//! async fn main() -> std::io::Result<()> {
-//!     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-//!     builder.set_private_key_file("key.pem", SslFiletype::PEM).unwrap();
-//!     builder.set_certificate_chain_file("cert.pem").unwrap();
-//!
-//!     HttpServer::new(move || App::new().wrap(RedirectHttps::new(8080, 8443)).service(index))
-//!         .bind("0.0.0.0:8080")?
-//!         .bind_openssl("0.0.0.0:8443", builder)?
-//!         .run()
-//!         .await
-//! }
-//! ```
 
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header;

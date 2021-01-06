@@ -131,7 +131,7 @@ def install_bulma() -> None:
 
 
 def compile_sass_files(sass_path: str) -> None:
-    _, files = run_fast_scandir('public/static/res/scss', ['.scss'])
+    _, files = run_fast_scandir('static/res/scss', ['.scss'])
     success = True
     for i in files:
         output = subprocess.run('{} {} {}'.format(sass_path, i, i.replace('scss', 'css')), shell=True)
@@ -270,11 +270,7 @@ def main() -> None:
     minify_files()
     init_postgres()
 
-    if https:
-        os.system(
-            'cd server && nohup ./build/bin/server -p 8080 -s ../public/static/ -l server.log --https-port 8443 --https-cert localhost.pem --https-key localhost-key.pem > /dev/null &')
-    else:
-        os.system('cd server && nohup ./build/bin/server -p 8080 -s ../public/static/ -l server.log > /dev/null &')
+    os.system('cd server && nohup ./build/bin/server > /dev/null&')
 
 
 if __name__ == '__main__':

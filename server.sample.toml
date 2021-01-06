@@ -10,7 +10,7 @@ port = 80
 # secret key for cookie identification
 secret = "xxxx"
 # path to files to serve
-public = "public/static"
+public = "static"
 
 # remove this part if you are not using https
 [server.https]

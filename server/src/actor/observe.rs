@@ -3,8 +3,8 @@ use crate::actor::Room;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
-use serde::{Deserialize, Serialize};
 use mighty::prelude::State;
+use serde::{Deserialize, Serialize};
 
 pub struct Observe {
     room: Addr<Room>,

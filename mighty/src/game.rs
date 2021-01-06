@@ -1,5 +1,5 @@
 use crate::command::Command;
-use crate::error::{Result, Error};
+use crate::error::{Error, Result};
 use crate::rule::Rule;
 use crate::state::State;
 use serde::{Deserialize, Serialize};

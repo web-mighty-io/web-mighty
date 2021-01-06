@@ -1,11 +1,11 @@
 use crate::dev::*;
 use actix::prelude::*;
 use deadpool_postgres::Pool;
+use mighty::prelude::{Rule, State};
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use tokio_postgres::types::Json;
 use uuid::Uuid;
-use mighty::prelude::{State, Rule};
 
 #[derive(Deserialize, Serialize, Clone, Message)]
 #[rtype(result = "Result<()>")]

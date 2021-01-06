@@ -4,8 +4,8 @@ use crate::actor::User;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
+use mighty::prelude::{Command, Rule, State};
 use serde::{Deserialize, Serialize};
-use mighty::prelude::{State, Rule, Command};
 
 pub struct RoomUser {
     user: Addr<User>,

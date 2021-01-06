@@ -6,9 +6,9 @@ use crate::actor::user::{GotGameState, GotRoomInfo};
 use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
 use crate::dev::*;
 use actix::prelude::*;
+use mighty::prelude::{Command, Game, Rule};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use mighty::prelude::{Rule, Game, Command};
 
 #[derive(Debug, Clone, Message, MessageResponse, Serialize, Deserialize)]
 #[rtype(result = "()")]

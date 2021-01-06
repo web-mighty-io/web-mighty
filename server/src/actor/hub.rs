@@ -4,10 +4,10 @@ use crate::actor::user::User;
 use crate::actor::{Database, GameId, RoomId, UserNo};
 use crate::dev::*;
 use actix::prelude::*;
+use mighty::prelude::Rule;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use mighty::prelude::Rule;
 
 pub struct Hub {
     room: HashMap<RoomId, Addr<Room>>,

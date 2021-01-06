@@ -25,4 +25,9 @@ $footer-background-color: $light;
   $box-background-color: primary;
 }
 
+aside {
+  width: 25%;
+  float: right;
+}
+
 @import "../bulma/bulma.sass";

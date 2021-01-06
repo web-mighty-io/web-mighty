@@ -4,8 +4,7 @@ use crate::actor::User;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
-use mighty::rule::Rule;
-use mighty::{Command, State};
+use mighty::prelude::{Command, Rule, State};
 use serde::{Deserialize, Serialize};
 
 pub struct RoomUser {
@@ -28,7 +27,7 @@ pub enum RoomUserReceive {
 }
 
 impl SessionTrait for RoomUser {
-    type Receiver = RoomUserSend;
+    type Sender = RoomUserSend;
 
     fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
         act.inner.user.do_send(UserConnect::Room(ctx.address()));

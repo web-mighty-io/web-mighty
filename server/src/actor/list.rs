@@ -23,10 +23,10 @@ pub enum ListReceive {
 }
 
 impl SessionTrait for List {
-    type Receiver = ListSend;
+    type Sender = ListSend;
 
     fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>) {
-        let msg: ListReceive = serde_json::from_str(&*msg).unwrap();
+        let msg: ListReceive = ignore!(serde_json::from_str(&*msg));
         match msg {
             ListReceive::Subscribe(id) => {
                 ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetRoom(id))))

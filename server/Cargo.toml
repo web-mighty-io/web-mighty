@@ -10,7 +10,7 @@ edition = "2018"
 name = "server"
 
 [dependencies]
-mighty = { path = "../mighty" }
+mighty = { path = "../mighty", features = ["server"] }
 
 actix = "0.10"
 actix-identity = "0.3"

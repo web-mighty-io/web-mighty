@@ -4,7 +4,7 @@ use crate::actor::user::User;
 use crate::actor::{Database, GameId, RoomId, UserNo};
 use crate::dev::*;
 use actix::prelude::*;
-use mighty::rule::Rule;
+use mighty::prelude::Rule;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;

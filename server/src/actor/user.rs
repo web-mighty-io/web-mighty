@@ -7,7 +7,7 @@ use crate::actor::{Hub, Main, Room, RoomId, RoomUser};
 use crate::dev::*;
 use actix::prelude::*;
 use bitflags::bitflags;
-use mighty::State;
+use mighty::prelude::State;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 

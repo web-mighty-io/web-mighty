@@ -1,16 +1,17 @@
 mod card;
 mod command;
 mod error;
+#[cfg(feature = "server")]
 mod game;
-pub mod rule;
+mod rule;
 mod state;
 
-pub use card::Card;
-pub use card::Color;
-pub use card::Pattern;
-pub use card::Rush;
-pub use command::Command;
-pub use error::Error;
-pub use error::Result;
-pub use game::Game;
-pub use state::State;
+pub mod prelude {
+    pub use crate::card::{Card, Color, Pattern, Rush};
+    pub use crate::command::Command;
+    pub use crate::error::{Error, Result};
+    #[cfg(feature = "server")]
+    pub use crate::game::Game;
+    pub use crate::rule::prelude::*;
+    pub use crate::state::{FriendFunc, State};
+}

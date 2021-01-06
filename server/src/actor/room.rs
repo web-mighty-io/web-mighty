@@ -6,8 +6,7 @@ use crate::actor::user::{GotGameState, GotRoomInfo};
 use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
 use crate::dev::*;
 use actix::prelude::*;
-use mighty::rule::Rule;
-use mighty::{Command, Game};
+use mighty::prelude::{Command, Game, Rule};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -77,6 +76,7 @@ impl Handler<RoomJoin> for Room {
                 self.spread_info();
             }
             RoomJoin::List(addr) => {
+                addr.do_send(ListSend::Room(self.info.clone()));
                 self.list.insert(addr);
             }
         }
@@ -301,7 +301,7 @@ impl Room {
         }
     }
 
-    fn next(&mut self, user_id: usize, cmd: mighty::Command) -> Result<bool> {
+    fn next(&mut self, user_id: usize, cmd: Command) -> Result<bool> {
         if let Some(game) = &mut self.game {
             let res = game.game.next(user_id, cmd)?;
             self.spread_game();

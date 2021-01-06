@@ -1,9 +1,14 @@
-use crate::card::{Card, Color, Pattern, Rush};
-use crate::command::Command;
-use crate::error::{Error, Result};
-use crate::rule::{card_policy::CardPolicy, election, friend, Rule};
-use rand::seq::SliceRandom;
+use crate::card::{Card, Pattern, Rush};
+use crate::rule::{card_policy::CardPolicy, Rule};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "server")]
+use {
+    crate::card::Color,
+    crate::command::Command,
+    crate::error::{Error, Result},
+    crate::rule::{election, friend},
+    rand::seq::SliceRandom,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Hash)]
 pub enum FriendFunc {
@@ -80,6 +85,7 @@ pub enum State {
 }
 
 impl State {
+    #[cfg(feature = "server")]
     fn get_random_deck(rule: &Rule) -> Vec<Vec<Card>> {
         loop {
             let mut deck = rule.deck.clone();
@@ -106,6 +112,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn is_joker_called(&self) -> bool {
         if let State::InGame { joker_call_card, .. } = self {
             *joker_call_card != None
@@ -114,6 +121,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn get_current_pattern(&self) -> Rush {
         match self {
             State::InGame { current_pattern, .. } => *current_pattern,
@@ -121,6 +129,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn get_giruda(&self) -> Option<Pattern> {
         match self {
             State::InGame { giruda, .. } => *giruda,
@@ -129,6 +138,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn get_mighty(&self) -> Card {
         match self {
             State::InGame {
@@ -140,6 +150,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn check_card_valid(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame {
@@ -159,6 +170,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn check_card_effect(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame { turn_count, .. } => {
@@ -169,6 +181,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
         let mighty = self.get_mighty();
         if *lhs == mighty {
@@ -242,6 +255,7 @@ impl State {
 }
 
 impl State {
+    #[cfg(feature = "server")]
     pub fn new(rule: &Rule) -> State {
         let mut deck = State::get_random_deck(rule);
         let left = deck.pop().unwrap();
@@ -255,6 +269,7 @@ impl State {
         }
     }
 
+    #[cfg(feature = "server")]
     pub fn next(&self, user_id: usize, cmd: Command, rule: &Rule) -> Result<Self> {
         match self {
             State::Election {
@@ -271,7 +286,7 @@ impl State {
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
                     if *curr_user != user_id && is_ordered {
                         return Err(Error::InvalidUser);
-                    } //vaild users 함수 만들고 바꾸기
+                    } // make valid users function and change
 
                     match x {
                         Some((c, p)) => {

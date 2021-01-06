@@ -3,8 +3,8 @@ use crate::actor::Room;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
-use mighty::State;
 use serde::{Deserialize, Serialize};
+use mighty::prelude::State;
 
 pub struct Observe {
     room: Addr<Room>,
@@ -21,7 +21,7 @@ pub enum ObserveSend {
 pub struct ObserveReceive;
 
 impl SessionTrait for Observe {
-    type Receiver = ObserveSend;
+    type Sender = ObserveSend;
 
     fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
         act.inner.room.do_send(RoomJoin::Observe(ctx.address()));

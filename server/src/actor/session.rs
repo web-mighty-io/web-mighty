@@ -6,17 +6,17 @@ use serde::Serialize;
 use std::time::SystemTime;
 
 pub trait SessionTrait: Sized + Unpin + 'static {
-    type Receiver: Message<Result = ()> + Serialize + Send;
+    type Sender: Message<Result = ()> + Serialize + Send;
 
     fn started(_: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {}
 
     fn stopped(_: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {}
 
-    fn handle(_: &mut Session<Self>, msg: Self::Receiver, ctx: &mut WebsocketContext<Session<Self>>) {
+    fn handle(_: &mut Session<Self>, msg: Self::Sender, ctx: &mut WebsocketContext<Session<Self>>) {
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
 
-    fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>);
+    fn receive(_: &mut Session<Self>, _: String, _: &mut WebsocketContext<Session<Self>>) {}
 
     fn make(self) -> Session<Self> {
         Session::new(self)
@@ -53,13 +53,13 @@ where
     }
 }
 
-impl<T> Handler<T::Receiver> for Session<T>
+impl<T> Handler<T::Sender> for Session<T>
 where
     T: SessionTrait + Unpin + 'static,
 {
     type Result = ();
 
-    fn handle(&mut self, msg: T::Receiver, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: T::Sender, ctx: &mut Self::Context) {
         T::handle(self, msg, ctx);
     }
 }

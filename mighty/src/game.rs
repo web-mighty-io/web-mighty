@@ -1,8 +1,7 @@
 use crate::command::Command;
-use crate::error::Result;
+use crate::error::{Result, Error};
 use crate::rule::Rule;
 use crate::state::State;
-use crate::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]

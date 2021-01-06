@@ -8,16 +8,30 @@ pub mod missed_deal;
 pub mod pledge;
 pub mod visibility;
 
+pub mod prelude {
+    pub use crate::rule::card_policy::{CardPolicy, Policy};
+    pub use crate::rule::dealer::Dealer;
+    pub use crate::rule::deck::{Deck, Preset as DeckPreset};
+    pub use crate::rule::election::Election;
+    pub use crate::rule::friend::Friend;
+    pub use crate::rule::joker_call::JokerCall;
+    pub use crate::rule::missed_deal::MissedDeal;
+    pub use crate::rule::pledge::Pledge;
+    pub use crate::rule::visibility::Visibility;
+
+    pub use crate::rule::{Preset, Rule};
+}
+
 use crate::card::{Card, Pattern};
 use crate::rule::card_policy::{CardPolicy, Policy};
 use crate::rule::dealer::Dealer;
+use crate::rule::election::Election;
+use crate::rule::friend::Friend;
 use crate::rule::joker_call::JokerCall;
+use crate::rule::missed_deal::MissedDeal;
 use crate::rule::pledge::Pledge;
 use crate::rule::visibility::Visibility;
 use config::Config;
-use election::Election;
-use friend::Friend;
-use missed_deal::MissedDeal;
 use serde::{Deserialize, Serialize};
 
 /// Temporary Presets

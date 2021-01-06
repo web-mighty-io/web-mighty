@@ -27,7 +27,7 @@ pub enum MainReceive {
 }
 
 impl SessionTrait for Main {
-    type Receiver = MainSend;
+    type Sender = MainSend;
 
     fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
         act.inner.user.do_send(UserConnect::Main(ctx.address()));

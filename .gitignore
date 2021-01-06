@@ -7,6 +7,7 @@
 public/bin
 public/pkg
 wasm-pack.log
+static/pkg
 
 # minified files
 **/*.min.js
@@ -19,7 +20,7 @@ wasm-pack.log
 
 # generated files
 **/bulma
-public/static/res/css
+static/res/css
 
 # python virtual env files
 venv

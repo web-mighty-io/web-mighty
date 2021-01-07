@@ -29,12 +29,9 @@ FROM ubuntu:latest
 
 COPY --from=node-build /app/build/bin /app/build/bin
 COPY --from=node-build /app/static /app/static
+RUN apt-get update && apt-get install libssl-dev -y
 
 # for postgresql server
 EXPOSE 5432
-# for http server
-EXPOSE 8080
-# for https server
-EXPOSE 8443
 
 ENTRYPOINT ["/app/build/bin/server"]

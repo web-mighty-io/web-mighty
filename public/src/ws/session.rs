@@ -4,8 +4,11 @@
 //!
 //! ```
 //! use public::ws::session::{Context, SessionTrait};
+//! use serde::{Deserialize, Serialize};
 //!
 //! pub struct A;
+//!
+//! #[derive(Serialize, Deserialize)]
 //! pub struct B;
 //!
 //! impl SessionTrait for A {

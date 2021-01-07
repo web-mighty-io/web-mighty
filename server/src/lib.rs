@@ -36,6 +36,10 @@ mod dev {
     pub use types::*;
 }
 
+pub mod prelude {
+    pub use crate::dev::*;
+}
+
 pub mod internal {
     use crate::app_state::AppState;
     use crate::config::Config;

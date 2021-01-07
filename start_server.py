@@ -247,7 +247,7 @@ def main() -> None:
         exit(1)
 
     print_info('building wasm')
-    os.system('cd public && {} build --target web'.format(wasm_path))
+    os.system('cd public && {} build --target web -d ../static/res/pkg'.format(wasm_path))
 
     https = prompt([{
         'name': 'https',

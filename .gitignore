@@ -5,9 +5,7 @@
 
 # Wasm files
 public/bin
-public/pkg
 wasm-pack.log
-static/pkg
 
 # minified files
 **/*.min.js

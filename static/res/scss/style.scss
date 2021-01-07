@@ -25,6 +25,16 @@ $footer-background-color: $light;
   $box-background-color: primary;
 }
 
+.play-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.align-bottom {
+  margin-top: auto;
+}
+
 aside {
   width: 25%;
   float: right;

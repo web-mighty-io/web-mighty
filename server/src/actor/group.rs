@@ -1,10 +1,9 @@
 use crate::dev::*;
 use actix::dev::ToEnvelope;
 use actix::prelude::*;
-use bitflags::_core::time::Duration;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 /// Status of connection
 ///

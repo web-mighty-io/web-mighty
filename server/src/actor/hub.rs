@@ -1,7 +1,7 @@
 use crate::actor::db::GetInfoForm;
 use crate::actor::room::Room;
 use crate::actor::user::User;
-use crate::actor::{Database, GameId, RoomId, UserNo};
+use crate::actor::Database;
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::Rule;
@@ -41,10 +41,8 @@ impl Handler<MakeRoom> for Hub {
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
         let room_id = RoomId(self.generate_uuid("room"));
-        self.room.insert(
-            room_id,
-            Room::new(room_id, msg.0, msg.1, msg.2, ctx.address(), self.db.clone()).start(),
-        );
+        let room = Room::new(room_id, msg.0, msg.1, msg.2, ctx.address(), self.db.clone()).start();
+        self.room.insert(room_id, room);
         room_id
     }
 }

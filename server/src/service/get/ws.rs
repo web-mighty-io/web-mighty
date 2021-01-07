@@ -1,5 +1,5 @@
 use crate::actor::hub::{GetRoom, HubConnect};
-use crate::actor::{List, Main, Observe, RoomUser, UserNo};
+use crate::actor::{List, Main, Observe, RoomUser};
 use crate::app_state::AppState;
 use crate::dev::*;
 use actix_identity::Identity;

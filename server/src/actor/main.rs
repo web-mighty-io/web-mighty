@@ -1,10 +1,10 @@
 use crate::actor::hub::GetUser;
-use crate::actor::user::{UserConnect, UserDisconnect, UserStatus};
-use crate::actor::{Hub, User, UserNo};
+use crate::actor::user::{UserConnect, UserDisconnect};
+use crate::actor::{Hub, User};
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
-use serde::{Deserialize, Serialize};
+use types::{MainToClient, MainToServer};
 
 pub struct Main {
     user: Addr<User>,
@@ -12,22 +12,8 @@ pub struct Main {
     connection: Option<Addr<Connection<Session<Main>>>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Message)]
-#[rtype(result = "()")]
-pub struct MainSend {
-    pub user_no: UserNo,
-    pub status: UserStatus,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum MainReceive {
-    Subscribe(UserNo),
-    Unsubscribe(UserNo),
-    Update,
-}
-
 impl SessionTrait for Main {
-    type Sender = MainSend;
+    type Sender = MainToClient;
 
     fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
         act.inner.user.do_send(UserConnect::Main(ctx.address()));
@@ -38,13 +24,13 @@ impl SessionTrait for Main {
     }
 
     fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>) {
-        let msg: MainReceive = serde_json::from_str(&*msg).unwrap();
+        let msg: MainToServer = serde_json::from_str(&*msg).unwrap();
         match msg {
-            MainReceive::Subscribe(no) => {
+            MainToServer::Subscribe(no) => {
                 ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
                     .do_send(UserConnect::Subscribe(ctx.address()));
             }
-            MainReceive::Unsubscribe(no) => {
+            MainToServer::Unsubscribe(no) => {
                 ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
                     .do_send(UserDisconnect::Unsubscribe(ctx.address()));
             }

@@ -1,28 +1,11 @@
 use crate::actor::db::UserInfo;
 use crate::actor::hub::GetRoom;
-use crate::actor::main::MainSend;
-use crate::actor::room::{ChangeName, ChangeRule, GetInfo, Go, RoomInfo, RoomJoin, RoomLeave, StartGame};
-use crate::actor::room_user::{RoomUserReceive, RoomUserSend};
-use crate::actor::{Hub, Main, Room, RoomId, RoomUser};
+use crate::actor::room::{ChangeName, ChangeRule, GetInfo, Go, RoomJoin, RoomLeave, StartGame};
+use crate::actor::{Hub, Main, Room, RoomUser};
 use crate::dev::*;
 use actix::prelude::*;
-use bitflags::bitflags;
 use mighty::prelude::State;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-
-bitflags! {
-    #[derive(Serialize, Deserialize)]
-    pub struct UserStatus: u8 {
-        const ROOM_MASK    = 0b1100;
-        const IN_GAME      = 0b1100;
-        const IN_ROOM      = 0b0100;
-        const ONLINE       = 0b0011;
-        const ABSENT       = 0b0010;
-        const DISCONNECTED = 0b0001;
-        const OFFLINE      = 0b0000;
-    }
-}
 
 impl From<Status> for UserStatus {
     fn from(s: Status) -> Self {
@@ -165,7 +148,7 @@ impl Handler<UserLeave> for User {
 
 #[derive(Clone, Message)]
 #[rtype(result = "Result<()>")]
-pub struct UserCommand(pub RoomUserReceive);
+pub struct UserCommand(pub RoomUserToServer);
 
 impl Handler<UserCommand> for User {
     type Result = Result<()>;
@@ -175,16 +158,16 @@ impl Handler<UserCommand> for User {
         let room = self.room.as_ref().unwrap();
         let user_no = self.info.user_no.into();
         match msg.0 {
-            RoomUserReceive::Start => {
+            RoomUserToServer::Start => {
                 send(self, ctx, room.addr.clone(), StartGame(user_no))??;
             }
-            RoomUserReceive::ChangeName(name) => {
+            RoomUserToServer::ChangeName(name) => {
                 send(self, ctx, room.addr.clone(), ChangeName(user_no, name))??;
             }
-            RoomUserReceive::ChangeRule(rule) => {
+            RoomUserToServer::ChangeRule(rule) => {
                 send(self, ctx, room.addr.clone(), ChangeRule(user_no, rule))??;
             }
-            RoomUserReceive::Command(cmd) => {
+            RoomUserToServer::Command(cmd) => {
                 send(self, ctx, room.addr.clone(), Go(user_no, cmd))??;
             }
         }
@@ -203,7 +186,7 @@ impl Handler<ChangeStatus> for User {
     fn handle(&mut self, msg: ChangeStatus, _: &mut Self::Context) -> Self::Result {
         self.status = (self.status & UserStatus::ROOM_MASK) | msg.0.into();
         for i in self.subscribers.iter() {
-            i.do_send(MainSend {
+            i.do_send(MainToClient {
                 user_no: self.info.user_no.into(),
                 status: self.status,
             });
@@ -222,7 +205,7 @@ impl Handler<GotRoomInfo> for User {
         ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
         let room = self.room.as_mut().unwrap();
         for i in room.group.iter() {
-            i.do_send(RoomUserSend::Room(msg.0.clone()));
+            i.do_send(RoomUserToClient::Room(msg.0.clone()));
         }
         room.info = msg.0;
         Ok(())
@@ -239,7 +222,7 @@ impl Handler<GotGameState> for User {
     fn handle(&mut self, msg: GotGameState, _: &mut Self::Context) -> Self::Result {
         ensure!(self.room.is_some(), StatusCode::BAD_REQUEST, "not joined in room");
         for i in self.room.as_ref().unwrap().group.iter() {
-            i.do_send(RoomUserSend::Game(msg.0.clone()));
+            i.do_send(RoomUserToClient::Game(msg.0.clone()));
         }
         Ok(())
     }

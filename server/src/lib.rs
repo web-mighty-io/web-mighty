@@ -33,15 +33,7 @@ mod dev {
     pub use crate::util::*;
     pub use crate::{bail, ensure, err, ignore, try_ctx};
     pub use actix_web::http::StatusCode;
-}
-
-pub mod prelude {
-    pub use crate::actor::list::{ListReceive, ListSend};
-    pub use crate::actor::main::{MainReceive, MainSend};
-    pub use crate::actor::observe::{ObserveReceive, ObserveSend};
-    pub use crate::actor::room_user::{RoomUserReceive, RoomUserSend};
-    pub use crate::dev::*;
-    // todo: add things
+    pub use types::*;
 }
 
 pub mod internal {

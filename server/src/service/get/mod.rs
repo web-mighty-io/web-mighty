@@ -4,7 +4,6 @@ pub mod ws;
 use crate::actor::db::GetInfoForm;
 use crate::actor::hub::HubConnect;
 use crate::actor::user::UserJoin;
-use crate::actor::UserNo;
 use crate::app_state::AppState;
 use crate::dev::*;
 use actix_identity::Identity;

@@ -1,27 +1,12 @@
 use crate::actor::db::SaveStateForm;
 use crate::actor::hub::{MakeGameId, RemoveRoom};
-use crate::actor::list::ListSend;
-use crate::actor::observe::ObserveSend;
 use crate::actor::user::{GotGameState, GotRoomInfo};
-use crate::actor::{hub, Database, GameId, Hub, List, Observe, RoomId, User, UserNo};
+use crate::actor::{hub, Database, Hub, List, Observe, User};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::{Command, Game, Rule};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-
-#[derive(Debug, Clone, Message, MessageResponse, Serialize, Deserialize)]
-#[rtype(result = "()")]
-pub struct RoomInfo {
-    id: RoomId,
-    name: String,
-    rule: Rule,
-    is_rank: bool,
-    head: UserNo,
-    user: Vec<UserNo>,
-    observer_cnt: usize,
-    is_game: bool,
-}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GameInfo {
@@ -76,7 +61,7 @@ impl Handler<RoomJoin> for Room {
                 self.spread_info();
             }
             RoomJoin::List(addr) => {
-                addr.do_send(ListSend::Room(self.info.clone()));
+                addr.do_send(ListToClient::Room(self.info.clone()));
                 self.list.insert(addr);
             }
         }
@@ -317,11 +302,11 @@ impl Room {
         }
 
         for i in self.observe.iter() {
-            i.do_send(ObserveSend::Room(self.info.clone()));
+            i.do_send(ObserveToClient::Room(self.info.clone()));
         }
 
         for i in self.list.iter() {
-            i.do_send(ListSend::Room(self.info.clone()));
+            i.do_send(ListToClient::Room(self.info.clone()));
         }
     }
 
@@ -333,7 +318,7 @@ impl Room {
         }
 
         for i in self.observe.iter() {
-            i.do_send(ObserveSend::Game(state.clone()));
+            i.do_send(ObserveToClient::Game(state.clone()));
         }
     }
 }

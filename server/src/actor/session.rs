@@ -16,7 +16,7 @@ pub trait SessionTrait: Sized + Unpin + 'static {
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
 
-    fn receive(_: &mut Session<Self>, _: String, _: &mut WebsocketContext<Session<Self>>) {}
+    fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>);
 
     fn make(self) -> Session<Self> {
         Session::new(self)

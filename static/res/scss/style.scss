@@ -8,6 +8,7 @@ $dark-blue: #21243d;
 $light-pink: #ff7c7c;
 $yellow: #ffd082;
 $light-blue: #88e1f2;
+$blue: #3298DC;
 $beige: #E8E6DA;
 
 $primary: $dark-blue;
@@ -16,6 +17,10 @@ $dark: hsl(0, 0%, 48%);
 $light: hsl(0, 0%, 80%);
 $grey-light: $beige;
 $footer-background-color: $light;
+$info: $blue;
+
+$table-background-color: $info;
+
 
 .is-horizontal-center {
   justify-content: center;

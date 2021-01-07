@@ -1,0 +1,41 @@
+# Server configuration toml file
+#
+# Copy this file to `server.toml`
+
+[server]
+# host of this server
+host = "0.0.0.0"
+# port of http server
+port = 80
+# secret key for cookie identification
+secret = "xxxx"
+# path to files to serve
+public = "static"
+
+# remove this part if you are not using https
+[server.https]
+# port of https server
+port = 443
+# key file path for tls connection
+key = "key.pem"
+# cert file path for tls connection
+cert = "cert.pem"
+
+[server.log]
+# path to log
+# if you want to log to stdout, remove this
+file = "server.log"
+# verbose level (defaults to 4)
+verbose = 4
+
+# for this configuration, see https://docs.rs/deadpool-postgres/latest/deadpool_postgres/config/struct.Config.html
+[postgres]
+dbname = "postgres"
+user = "username"
+password = "secret"
+
+# mail server smtp relay using lettre crate
+[mail]
+username = "admin"
+password = "secret"
+host = "localhost"

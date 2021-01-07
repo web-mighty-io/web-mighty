@@ -3,14 +3,17 @@ pub enum Error {
     ParseError,
     InvalidCommand(&'static str),
     InvalidPledge(bool, u8),
-    InvalidUser(usize),
+    InvalidUser,
+    InvalidFriendFunc,
     NotLeader,
     NotPresident,
     NotInDeck,
     SameGiruda,
-    WrongCardType,
+    WrongPattern,
     Internal(&'static str),
     WrongCard,
+    PassFirst,
+    JokerCall,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -23,14 +26,17 @@ impl std::fmt::Display for Error {
             Error::ParseError => write!(f, "parse error"),
             Error::InvalidCommand(c) => write!(f, "invalid command, expected: {}", c),
             Error::InvalidPledge(..) => write!(f, "invalid pledge"),
-            Error::InvalidUser(u) => write!(f, "expected user {}", u),
+            Error::InvalidUser => write!(f, "invalid user"),
+            Error::InvalidFriendFunc => write!(f, "invalid friend function"),
             Error::NotLeader => write!(f, "you are not the leader"),
             Error::NotPresident => write!(f, "you are not the president"),
             Error::NotInDeck => write!(f, "the card is not in the deck"),
-            Error::WrongCardType => write!(f, "your card is not"),
+            Error::WrongPattern => write!(f, "your card has wrong pattern"),
             Error::SameGiruda => write!(f, "same giruda"),
             Error::Internal(e) => write!(f, "internal error: {}", e),
             Error::WrongCard => write!(f, "you can't place this card"),
+            Error::PassFirst => write!(f, "dealer should run at first turn"),
+            Error::JokerCall => write!(f, "you need to place the joker"),
         }
     }
 }

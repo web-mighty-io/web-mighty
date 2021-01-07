@@ -25,24 +25,20 @@ python3 util/start_server.py
 
 1. convert `public/static/res/scss/style.scss` to `public/static/res/css/style.css` using `sass`
 
+1. [install](https://www.postgresql.org/download/) and start your postgresql server
+
 1. run `cd public && wasm-pack build --target web --release`
 
 1. build server
 
-   1) if you want https:
-      
-      run `cd server && cargo install --features https --root build --path .`
-      
-   1) if you want only http:
-      
-      run `cd server && cargo install --root build --path .`
+    1) if you want https:
 
-1. run server
+       run `cargo install --features https --root build --path server`
 
-   1) for https:
-   
-      `./server/build/bin/server -p 8080 -s ./public/static/ --https-port 8443 --https-key PATH_TO_KEY.pem --https-cert PATH_TO_CERT.pem`
-      
-   2) for http-only:
-   
-      `./server/build/bin/server -p 8080 -s ./public/static`
+    1) if you want only http:
+
+       run `cargo install --root build --path server`
+
+1. make `server.toml` based from `server.sample.toml`
+
+1. run `./build/bin/server`

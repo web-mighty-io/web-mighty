@@ -8,21 +8,27 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+mighty = { path = "../mighty", features = ["client"] }
+types = { path = "../types" }
+
+js-sys = "0.3"
+serde = "1"
+serde_json = "1"
 wasm-bindgen = "0.2"
-mighty = { path = "../mighty", default-features = false, features = ["server"] }
 
 [dependencies.web-sys]
-version = "0.3.4"
+version = "0.3"
 features = [
     'Document',
-    'Element',
-    'HtmlElement',
-    'Node',
+    'Location',
+    "MessageEvent",
     'Window',
+    'WebSocket',
 ]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+serde = { version = "1", features = ["derive"] }
 
 [profile.release]
 opt-level = "s"

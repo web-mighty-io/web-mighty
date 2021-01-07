@@ -1,5 +1,8 @@
+//! Redirects to https when http request is incoming.
+
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{http, HttpResponse};
+use actix_web::http::header;
+use actix_web::HttpResponse;
 use futures::future::{ok, Either, Ready};
 use futures::task::{Context, Poll};
 
@@ -49,7 +52,6 @@ where
     type Request = S::Request;
     type Response = S::Response;
     type Error = S::Error;
-    #[allow(clippy::type_complexity)]
     type Future = Either<S::Future, Ready<Result<Self::Response, Self::Error>>>;
 
     fn poll_ready(&mut self, ctx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -64,12 +66,12 @@ where
                 .connection_info()
                 .host()
                 .to_owned()
-                .replace(&*self.http_port, &*self.https_port);
+                .replacen(&*self.http_port, &*self.https_port, 1);
             let uri = req.uri().to_owned();
             let url = format!("https://{}{}", host, uri);
             Either::Right(ok(req.into_response(
                 HttpResponse::MovedPermanently()
-                    .header(http::header::LOCATION, url)
+                    .header(header::LOCATION, url)
                     .finish()
                     .into_body(),
             )))

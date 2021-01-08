@@ -23,6 +23,7 @@ ADD https://github.com/jgthms/bulma/releases/download/0.9.1/bulma-0.9.1.zip /app
 RUN unzip /app/static/res/bulma-0.9.1.zip -d /app/static/res
 RUN rm /app/static/res/bulma-0.9.1.zip
 RUN sass /app/static/res/scss/style.scss /app/static/res/css/style.css
+RUN rm -rf /app/static/res/bulma /app/static/res/scss
 
 # minifying css & js files
 FROM python:latest AS python-build

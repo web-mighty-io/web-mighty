@@ -46,21 +46,24 @@ def minify_file(path: str, url: str) -> bool:
         print_error('minify {} failed due to bad response to {}'.format(path, url))
         return False
 
-    origin = path
-    path = path.split('.')
-    extension = path[-1]
-    path = path[:-1]
-    path.extend(['min', extension])
-    path = '.'.join(path)
-
-    f = open(path, 'w')
-    f.write(response.text)
-
-    print_info('minified {} to {}'.format(origin, path))
-
     if remove_files:
-        os.remove(origin)
-        print_info('removed {}'.format(origin))
+        f = open(path, 'w')
+        f.write(response.text)
+
+        print_info('minified {}'.format(path))
+    else:
+        origin = path
+        path = path.split('.')
+        extension = path[-1]
+        path = path[:-1]
+        path.extend(['min', extension])
+        path = '.'.join(path)
+
+        f = open(path, 'w')
+        f.write(response.text)
+
+        print_info('minified {} to {}'.format(origin, path))
+
     return True
 
 
@@ -82,7 +85,8 @@ def minify_files() -> None:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Minify files')
     parser.add_argument('--path', type=str, help='path to static files (defaults to `static`)', default='static')
-    parser.add_argument('--remove', type=bool, help='remove original files (defaults to `False`)', default=False, const=True, nargs='?')
+    parser.add_argument('--remove', type=bool, help='remove original files (defaults to `False`)', default=False,
+                        const=True, nargs='?')
     args = parser.parse_args()
     static_path = args.path
     remove_files = args.remove

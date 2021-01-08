@@ -29,6 +29,8 @@ RUN rm -rf /app/static/res/bulma /app/static/res/scss
 FROM python:latest AS python-build
 
 COPY --from=node-build /app/static /app/static
+COPY --from=rust-build /app/static/res/pkg/*.js /app/static/res/pkg
+COPY --from=rust-build /app/static/res/pkg/*.wasm /app/static/res/pkg
 COPY ./requirements.txt /app
 COPY ./minify_files.py /app
 RUN python3 -m pip install -r /app/requirements.txt
@@ -38,8 +40,6 @@ RUN python3 /app/minify_files.py --path /app/static --remove
 FROM ubuntu:latest
 
 COPY --from=rust-build /app/build/bin/server /app/bin
-COPY --from=rust-build /app/static/res/pkg/*.js /app/static/res/pkg
-COPY --from=rust-build /app/static/res/pkg/*.wasm /app/static/res/pkg
 COPY --from=python-build /app/static /app/static
 RUN apt-get update && apt-get install libssl-dev -y
 

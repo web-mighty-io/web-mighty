@@ -4,13 +4,13 @@
 [![Codecov](https://img.shields.io/codecov/c/github/buttercrab/web-mighty?style=flat-square)](https://codecov.io/gh/buttercrab/web-mighty)
 [![LICENSE](https://img.shields.io/github/license/buttercrab/web-mighty?style=flat-square)](https://github.com/buttercrab/web-mighty/blob/master/LICENSE)
 
-## Run your own server (WIP)
+## Run your own server
 
-Python script will guide you to run from docker/native
+Docker command to start right away.
+You can use `server.docker.toml` to configure based on docker.
 
 ```shell script
-pip3 install -r requirements.txt
-python3 util/start_server.py
+docker run -v <your_dir_to_conf_and_pem>:/app/conf -p 80:80 -p 443:443 -d buttercrab/web-mighty -c /app/conf/server.toml
 ```
 
 ## Manually start your server

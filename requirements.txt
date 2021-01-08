@@ -1,4 +1,2 @@
 clint==0.5.1
-pyfiglet==0.8.post1
-PyInquirer==1.0.3
-requests==2.23.0
+requests==2.25.1

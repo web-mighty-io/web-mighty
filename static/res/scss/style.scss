@@ -10,6 +10,7 @@ $yellow: #ffd082;
 $light-blue: #88e1f2;
 $blue: #3298DC;
 $beige: #E8E6DA;
+$green: #48C774;
 
 $primary: $dark-blue;
 $link: $light-pink;
@@ -18,26 +19,24 @@ $light: hsl(0, 0%, 80%);
 $grey-light: $beige;
 $footer-background-color: $light;
 $info: $blue;
-
-$table-background-color: $info;
-
+$success: $green;
 
 .is-horizontal-center {
   justify-content: center;
 }
 
 .box-is-primary {
-  $box-background-color: primary;
+  $box-background-color: $primary;
 }
 
-.play-tile {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+.is-success {
+  background-color: $success !important;
+  color: #fff !important;
 }
 
-.align-bottom {
-  margin-top: auto;
+.is-info {
+  background-color: $info !important;
+  color: #fff !important;
 }
 
 aside {

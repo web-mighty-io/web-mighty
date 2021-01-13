@@ -21,6 +21,7 @@ $footer-background-color: $light;
 $info: $blue;
 $success: $green;
 
+
 .is-horizontal-center {
   justify-content: center;
 }
@@ -38,6 +39,11 @@ $success: $green;
   background-color: $info !important;
   color: #fff !important;
 }
+
+.tab { margin-left: 30px; }
+
+
+.tab-small { margin-left: 20px; }
 
 aside {
   width: 25%;

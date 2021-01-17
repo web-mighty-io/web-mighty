@@ -9,7 +9,7 @@ LABEL org.label-schema.name="buttercrab/web-mighty"
 LABEL org.label-schema.description="Mighty Card Game in Online"
 
 COPY . /app
-RUN cargo install --root /app/build --path /app/server --features https
+RUN cargo install --root /app/build --path /app/server
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN wasm-pack build --target web -d /app/static/res/pkg /app/public
 

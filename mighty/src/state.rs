@@ -1,12 +1,12 @@
 use crate::card::{Card, Pattern, Rush};
-use crate::rule::{card_policy::CardPolicy, Rule};
+use crate::rule::{card_policy::CardPolicy, election, Rule};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "server")]
 use {
     crate::card::Color,
     crate::command::Command,
     crate::error::{Error, Result},
-    crate::rule::{election, friend},
+    crate::rule::friend,
     rand::seq::SliceRandom,
 };
 

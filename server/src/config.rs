@@ -1,6 +1,5 @@
 use crate::actor;
 use deadpool_postgres::Pool;
-#[cfg(feature = "https")]
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -20,15 +19,13 @@ pub struct Config {
 #[derive(Deserialize)]
 pub struct Server {
     pub host: String,
-    #[cfg(feature = "https")]
-    pub https: Https,
+    pub https: Option<Https>,
     pub log: Option<Log>,
     pub port: u16,
     pub public: String,
     pub secret: String,
 }
 
-#[cfg(feature = "https")]
 #[derive(Deserialize)]
 pub struct Https {
     pub cert: String,
@@ -105,14 +102,13 @@ impl Config {
         )
     }
 
-    #[cfg(feature = "https")]
     pub fn ssl_builder(&self) -> SslAcceptorBuilder {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder
-            .set_private_key_file(self.server.https.key.clone(), SslFiletype::PEM)
+            .set_private_key_file(self.server.https.as_ref().unwrap().key.clone(), SslFiletype::PEM)
             .unwrap();
         builder
-            .set_certificate_chain_file(self.server.https.cert.clone())
+            .set_certificate_chain_file(self.server.https.as_ref().unwrap().cert.clone())
             .unwrap();
         builder
     }

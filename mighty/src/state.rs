@@ -275,7 +275,7 @@ impl State {
             State::Election {
                 pledge,
                 done,
-                curr_user,
+                curr_user: _,
                 start_user,
                 deck,
                 left,
@@ -284,9 +284,6 @@ impl State {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
-                    if *curr_user != user_id && is_ordered {
-                        return Err(Error::InvalidUser);
-                    } // make valid users function and change
 
                     match x {
                         Some((c, p)) => {
@@ -426,10 +423,6 @@ impl State {
                 deck,
             } => match cmd {
                 Command::SelectFriend(drop_card, friend_func) => {
-                    if user_id != *president {
-                        return Err(Error::NotPresident);
-                    }
-
                     let mut deck = deck.clone();
                     for card in drop_card.iter() {
                         let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
@@ -480,9 +473,6 @@ impl State {
                     })
                 }
                 Command::ChangePledge(new_giruda) => {
-                    if user_id != *president {
-                        return Err(Error::NotPresident);
-                    }
                     if *giruda == new_giruda {
                         return Err(Error::SameGiruda);
                     }
@@ -537,10 +527,6 @@ impl State {
                 joker_call_effect,
             } => match cmd {
                 Command::Go(card, rush_type, user_joker_call) => {
-                    if user_id != *current_user {
-                        return Err(Error::InvalidUser);
-                    }
-
                     let mut friend = *friend;
                     let mut is_friend_known = *is_friend_known;
                     let mut deck = deck.clone();
@@ -821,11 +807,18 @@ impl State {
     /// Valid users to action next time.
     /// Result is 8-bit integer which contains 0 or 1 for each user.
     /// If all users all valid to action, the result would be `(1 << N) - 1`
-    pub fn valid_users(&self, _rule: &Rule) -> u8 {
-        unimplemented!()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        unimplemented!()
+    pub fn valid_users(&self, rule: &Rule) -> u8 {
+        match self {
+            State::Election { curr_user, .. } => {
+                if rule.election.contains(election::Election::ORDERED) {
+                    1 << *curr_user
+                } else {
+                    (1 << rule.user_cnt) - 1
+                }
+            }
+            State::SelectFriend { president, .. } => 1 << *president,
+            State::InGame { current_user, .. } => 1 << *current_user,
+            _ => (1 << rule.user_cnt) - 1,
+        }
     }
 }

@@ -5,7 +5,6 @@ mod actor;
 mod app_state;
 mod config;
 mod error;
-#[cfg(feature = "https")]
 mod https;
 mod service;
 mod util;
@@ -44,7 +43,6 @@ pub mod internal {
     use crate::app_state::AppState;
     use crate::config::Config;
     use crate::dev::*;
-    #[cfg(feature = "https")]
     use crate::https::RedirectHttps;
     use crate::service::{config, p404};
     use actix_identity::{CookieIdentityPolicy, IdentityService};
@@ -66,18 +64,15 @@ pub mod internal {
         config: PathBuf,
     }
 
-    #[cfg(feature = "https")]
     #[cfg(not(tarpaulin_include))]
-    pub async fn main() -> std::io::Result<()> {
-        let opts: Opts = Opts::parse();
-        let conf = Config::from_path(opts.config);
+    async fn main_https(conf: Config) -> std::io::Result<()> {
         let private_key = conf.private_key();
         let _guard = conf.logger();
         let pool = conf.db_pool();
         let public = conf.server.public.clone();
         let host = conf.server.host.clone();
         let http_port = conf.server.port;
-        let https_port = conf.server.https.port;
+        let https_port = conf.server.https.as_ref().unwrap().port;
         let builder = conf.ssl_builder();
         let mail = conf.get_mail();
 
@@ -102,11 +97,8 @@ pub mod internal {
         .await
     }
 
-    #[cfg(not(feature = "https"))]
     #[cfg(not(tarpaulin_include))]
-    pub async fn main() -> std::io::Result<()> {
-        let opts: Opts = Opts::parse();
-        let conf = Config::from_path(opts.config);
+    async fn main_http(conf: Config) -> std::io::Result<()> {
         let private_key = conf.private_key();
         let _guard = conf.logger();
         let pool = conf.db_pool();
@@ -132,6 +124,23 @@ pub mod internal {
         .bind(format!("{}:{}", host, http_port))?
         .run()
         .await
+    }
+
+    #[cfg(not(tarpaulin_include))]
+    pub async fn main() -> std::io::Result<()> {
+        let opts: Opts = Opts::parse();
+        let path = if let Some(path) = std::env::var_os("CONFIG") {
+            PathBuf::from(path)
+        } else {
+            opts.config
+        };
+        let conf = Config::from_path(path);
+
+        if conf.server.https.is_some() {
+            main_https(conf).await
+        } else {
+            main_http(conf).await
+        }
     }
 }
 

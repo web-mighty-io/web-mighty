@@ -9,9 +9,15 @@
 Docker command to start right away.
 You can use `server.docker.toml` to configure based on docker.
 
-```shell script
-docker run -v <your_dir_to_conf_and_pem>:/app/conf -p 80:80 -p 443:443 -d buttercrab/web-mighty -c /app/conf/server.toml
-```
+1. If you want https:
+    ```shell script
+    docker run -v <your_dir_to_conf_and_pem>:/app/conf -e CONFIG='/app/conf/server.toml' -p 80:80 -p 443:443 -d buttercrab/web-mighty
+    ```
+
+1. If you want http:
+    ```shell script
+    docker run -v <your_dir_to_conf>:/app/conf -e CONFIG='/app/conf/server.toml' -p 80:80 -d buttercrab/web-mighty
+    ```
 
 ## Manually start your server
 
@@ -21,9 +27,9 @@ docker run -v <your_dir_to_conf_and_pem>:/app/conf -p 80:80 -p 443:443 -d butter
 
 1. [install sass](https://sass-lang.com/install)
 
-1. [install bulma](https://bulma.io/): download latest version and unzip to `public/static/res/bulma`
+1. [install bulma](https://bulma.io/): download latest version and unzip to `static/res/bulma`
 
-1. convert `public/static/res/scss/style.scss` to `public/static/res/css/style.css` using `sass`
+1. convert `static/res/scss/style.scss` to `static/res/css/style.css` using `sass`
 
 1. [install](https://www.postgresql.org/download/) and start your postgresql server
 

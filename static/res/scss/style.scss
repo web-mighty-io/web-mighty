@@ -30,12 +30,12 @@ $success: $green;
   $box-background-color: $primary;
 }
 
-.is-success {
+.is-success.table {
   background-color: $success !important;
   color: #fff !important;
 }
 
-.is-info {
+.is-info.table {
   background-color: $info !important;
   color: #fff !important;
 }

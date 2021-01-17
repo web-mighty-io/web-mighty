@@ -818,7 +818,7 @@ impl State {
             }
             State::SelectFriend { president, .. } => 1 << *president,
             State::InGame { current_user, .. } => 1 << *current_user,
-            _ => (1 << rule.user_cnt) - 1,
+            _ => 0,
         }
     }
 }

@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 #[cfg(feature = "server")]
 use actix::prelude::*;
 use bitflags::bitflags;
@@ -7,10 +9,20 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
-pub struct RoomId(pub Uuid);
+pub struct RoomUuid(pub Uuid);
 
-impl From<Uuid> for RoomId {
+impl From<Uuid> for RoomUuid {
     fn from(u: Uuid) -> Self {
+        RoomUuid(u)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
+#[cfg_attr(feature = "server", derive(MessageResponse))]
+pub struct RoomId(pub u32);
+
+impl From<u32> for RoomId {
+    fn from(u: u32) -> Self {
         RoomId(u)
     }
 }
@@ -49,6 +61,7 @@ impl From<Uuid> for Token {
 #[cfg_attr(feature = "server", derive(Message, MessageResponse))]
 #[cfg_attr(feature = "server", rtype(result = "()"))]
 pub struct RoomInfo {
+    pub uuid: RoomUuid,
     pub id: RoomId,
     pub name: String,
     pub rule: Rule,
@@ -59,16 +72,29 @@ pub struct RoomInfo {
     pub is_game: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "server", derive(Message, MessageResponse))]
+#[cfg_attr(feature = "server", rtype(result = "()"))]
+pub struct UserInfo {
+    pub no: UserNo,
+    pub id: String,
+    pub name: String,
+    pub rating: u32,
+    pub room: Option<RoomId>,
+    pub is_admin: bool,
+}
+
 bitflags! {
     #[derive(Serialize, Deserialize)]
     pub struct UserStatus: u8 {
-        const ROOM_MASK    = 0b1100;
-        const IN_GAME      = 0b1100;
-        const IN_ROOM      = 0b0100;
-        const ONLINE       = 0b0011;
-        const ABSENT       = 0b0010;
-        const DISCONNECTED = 0b0001;
-        const OFFLINE      = 0b0000;
+        const ROOM_MASK    = 0b11100;
+        const IN_GAME      = 0b01100;
+        const ROOM_DISCONN = 0b10100;
+        const IN_ROOM      = 0b00100;
+        const ONLINE       = 0b00011;
+        const ABSENT       = 0b00010;
+        const DISCONNECTED = 0b00001;
+        const OFFLINE      = 0b00000;
     }
 }
 
@@ -88,9 +114,9 @@ pub enum ListToServer {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(Message))]
 #[cfg_attr(feature = "server", rtype(result = "()"))]
-pub struct MainToClient {
-    pub user_no: UserNo,
-    pub status: UserStatus,
+pub enum MainToClient {
+    UserStatus(UserNo, UserStatus),
+    UserInfo(UserInfo),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

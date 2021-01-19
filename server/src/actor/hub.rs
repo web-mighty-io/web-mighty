@@ -1,7 +1,6 @@
-use crate::actor::db::GetInfoForm;
 use crate::actor::room::Room;
 use crate::actor::user::User;
-use crate::actor::Database;
+use crate::db::user::{get_user_info, GetInfoForm};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::Rule;
@@ -13,7 +12,7 @@ pub struct Hub {
     room: HashMap<RoomId, Addr<Room>>,
     counter: u64,
     users: HashMap<UserNo, Addr<User>>,
-    db: Addr<Database>,
+    pool: Pool,
 }
 
 impl Actor for Hub {
@@ -40,8 +39,25 @@ impl Handler<MakeRoom> for Hub {
     type Result = RoomId;
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
-        let room_id = RoomId(self.generate_uuid("room"));
-        let room = Room::new(room_id, msg.0, msg.1, msg.2, ctx.address(), self.db.clone()).start();
+        let room_uuid = RoomUuid(self.generate_uuid("room"));
+        let room_id = self.generate_room_id();
+        let user_cnt = msg.1.user_cnt as usize;
+        let room = Room::new(
+            RoomInfo {
+                uuid: room_uuid,
+                id: room_id,
+                name: msg.0,
+                rule: msg.1,
+                is_rank: msg.2,
+                head: UserNo(0),
+                user: vec![UserNo(0); user_cnt],
+                observer_cnt: 0,
+                is_game: false,
+            },
+            ctx.address(),
+            self.pool.clone(),
+        )
+        .start();
         self.room.insert(room_id, room);
         room_id
     }
@@ -70,8 +86,8 @@ impl Handler<HubConnect> for Hub {
         if let Some(addr) = self.users.get(&msg.0) {
             Ok(addr.clone())
         } else {
-            let info = send(self, ctx, self.db.clone(), GetInfoForm::UserNo(msg.0 .0))??;
-            let user = User::new(info, ctx.address()).start();
+            let user_info = get_user_info(GetInfoForm::UserNo(msg.0 .0), self.pool.clone())?;
+            let user = User::new(user_info, ctx.address()).start();
             self.users.insert(msg.0, user.clone());
             Ok(user)
         }
@@ -115,12 +131,12 @@ impl Handler<MakeGameId> for Hub {
 }
 
 impl Hub {
-    pub fn new(db: Addr<Database>) -> Hub {
+    pub fn new(pool: Pool) -> Hub {
         Hub {
             room: HashMap::new(),
             counter: 0,
             users: HashMap::new(),
-            db,
+            pool,
         }
     }
 
@@ -136,5 +152,14 @@ impl Hub {
             )
             .as_ref(),
         )
+    }
+
+    pub fn generate_room_id(&mut self) -> RoomId {
+        loop {
+            let id = RoomId(rand::random());
+            if !self.room.contains_key(&id) {
+                break id;
+            }
+        }
     }
 }

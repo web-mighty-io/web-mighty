@@ -6,11 +6,9 @@ use crate::app_state::AppState;
 use actix_web::{web, HttpResponse, Responder};
 use serde_json::json;
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg
-        // .service(get::admin)
+pub fn config_services(cfg: &mut web::ServiceConfig) {
+    cfg.service(get::admin)
         .service(get::index)
-        .service(get::join)
         .service(get::list)
         .service(get::login)
         .service(get::mail)

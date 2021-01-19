@@ -1,10 +1,11 @@
-use crate::actor;
-use crate::actor::{Database, Hub, Mail};
+use crate::actor::{Hub, Mail};
+use crate::dev::*;
 use actix::prelude::*;
 use actix_web::web;
-use deadpool_postgres::Pool;
 use handlebars::Handlebars;
 use ignore::WalkBuilder;
+use r2d2_postgres::postgres::NoTls;
+use r2d2_postgres::PostgresConnectionManager;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, MAIN_SEPARATOR};
@@ -38,38 +39,40 @@ pub struct AppState {
     #[cfg(feature = "watch-file")]
     resources: Mutex<HashMap<String, Vec<u8>>>,
     pub hub: Addr<Hub>,
-    pub db: Addr<Database>,
+    pub pool: Pool,
     pub mail: Addr<Mail>,
 }
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new<P: AsRef<Path>>(path: P, pool: Pool, mail: Mail) -> web::Data<AppState> {
-        let db = actor::Database::new(pool).start();
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail) -> web::Data<AppState> {
+        let manager = PostgresConnectionManager::new(config, NoTls);
+        let pool = Pool::new(manager).unwrap();
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
-            hub: Hub::new(db.clone()).start(),
-            db,
+            hub: Hub::new(pool.clone()).start(),
+            pool,
             mail: mail.start(),
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new<P: AsRef<Path>>(path: P, pool: Pool, mail: Mail) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail) -> web::Data<AppState> {
         let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
 
         watcher.watch(path, RecursiveMode::Recursive).unwrap();
 
-        let db = actor::Database::new(pool).start();
+        let manager = PostgresConnectionManager::new(config, NoTls);
+        let pool = Pool::new(manager).unwrap();
         let state = web::Data::new(AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,
             resources: Mutex::new(get_resources(&path)),
-            hub: actor::Hub::new(db.clone()).start(),
-            db,
+            hub: Hub::new(pool.clone()).start(),
+            pool,
             mail: mail.start(),
         });
         let state_clone = state.clone();
@@ -81,21 +84,25 @@ impl AppState {
     }
 
     #[cfg(not(feature = "watch-file"))]
+    #[inline(always)]
     pub fn get_handlebars(&self) -> &Handlebars<'static> {
         &self.handlebars
     }
 
     #[cfg(feature = "watch-file")]
+    #[inline(always)]
     pub fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
         self.handlebars.lock().unwrap()
     }
 
     #[cfg(not(feature = "watch-file"))]
+    #[inline(always)]
     pub fn get_resources(&self) -> &HashMap<String, Vec<u8>> {
         &self.resources
     }
 
     #[cfg(feature = "watch-file")]
+    #[inline(always)]
     pub fn get_resources(&self) -> MutexGuard<'_, HashMap<String, Vec<u8>>> {
         self.resources.lock().unwrap()
     }

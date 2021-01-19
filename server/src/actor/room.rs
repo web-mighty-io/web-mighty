@@ -1,7 +1,7 @@
-use crate::actor::db::SaveStateForm;
 use crate::actor::hub::{MakeGameId, RemoveRoom};
 use crate::actor::user::{GotGameState, GotRoomInfo};
-use crate::actor::{hub, Database, Hub, List, Observe, User};
+use crate::actor::{hub, Hub, List, Observe, User};
+use crate::db::game::{save_state, SaveStateForm};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::{Command, Game, Rule};
@@ -22,7 +22,7 @@ pub struct Room {
     observe: HashSet<Addr<Session<Observe>>>,
     list: HashSet<Addr<Session<List>>>,
     hub: Addr<Hub>,
-    db: Addr<Database>,
+    pool: Pool,
 }
 
 impl Actor for Room {
@@ -30,7 +30,7 @@ impl Actor for Room {
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "RoomInfo")]
 pub enum RoomJoin {
     User(UserNo, Addr<User>),
     Observe(Addr<Session<Observe>>),
@@ -38,11 +38,14 @@ pub enum RoomJoin {
 }
 
 impl Handler<RoomJoin> for Room {
-    type Result = Result<()>;
+    type Result = RoomInfo;
 
     fn handle(&mut self, msg: RoomJoin, _: &mut Self::Context) -> Self::Result {
         match msg {
             RoomJoin::User(user_id, addr) => {
+                if self.info.is_game {
+                    return self.info.clone();
+                }
                 let mut is_full = true;
                 for i in self.info.user.iter_mut() {
                     if i.0 == 0 {
@@ -50,7 +53,9 @@ impl Handler<RoomJoin> for Room {
                         is_full = false;
                     }
                 }
-                ensure!(!is_full, StatusCode::BAD_REQUEST, "room is full");
+                if is_full {
+                    return self.info.clone();
+                }
                 self.user_addr.insert(user_id, addr);
                 self.set_head();
                 self.spread_info();
@@ -61,16 +66,15 @@ impl Handler<RoomJoin> for Room {
                 self.spread_info();
             }
             RoomJoin::List(addr) => {
-                addr.do_send(ListToClient::Room(self.info.clone()));
                 self.list.insert(addr);
             }
         }
-        Ok(())
+        self.info.clone()
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "()")]
 pub enum RoomLeave {
     User(UserNo),
     Observe(Addr<Session<Observe>>),
@@ -78,16 +82,18 @@ pub enum RoomLeave {
 }
 
 impl Handler<RoomLeave> for Room {
-    type Result = Result<()>;
+    type Result = ();
 
     fn handle(&mut self, msg: RoomLeave, ctx: &mut Self::Context) -> Self::Result {
         match msg {
             RoomLeave::User(user_no) => {
-                ensure!(
-                    self.user_addr.remove(&user_no).is_some(),
-                    StatusCode::NOT_FOUND,
-                    "no user"
-                );
+                if self.info.is_game {
+                    return;
+                }
+                if self.user_addr.remove(&user_no).is_none() {
+                    return;
+                }
+
                 for i in self.info.user.iter_mut() {
                     if *i == user_no {
                         i.0 = 0;
@@ -102,94 +108,94 @@ impl Handler<RoomLeave> for Room {
                 }
             }
             RoomLeave::Observe(addr) => {
-                ensure!(
-                    self.observe.remove(&addr),
-                    StatusCode::BAD_REQUEST,
-                    "you are not joined"
-                );
+                if !self.observe.remove(&addr) {
+                    return;
+                }
                 self.spread_info();
             }
             RoomLeave::List(addr) => {
-                ensure!(self.list.remove(&addr), StatusCode::BAD_REQUEST, "you are not joined");
+                self.list.remove(&addr);
             }
         }
-        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "()")]
 pub struct ChangeName(pub UserNo, pub String);
 
 impl Handler<ChangeName> for Room {
-    type Result = Result<()>;
+    type Result = ();
 
     fn handle(&mut self, msg: ChangeName, _: &mut Self::Context) -> Self::Result {
-        ensure!(
-            msg.0 == self.info.head,
-            StatusCode::UNAUTHORIZED,
-            "you are not head of room"
-        );
+        if msg.0 != self.info.head {
+            return;
+        }
         self.info.name = msg.1;
         self.spread_info();
-        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "()")]
 pub struct ChangeRule(pub UserNo, pub Rule);
 
 impl Handler<ChangeRule> for Room {
-    type Result = Result<()>;
+    type Result = ();
 
     fn handle(&mut self, msg: ChangeRule, _: &mut Self::Context) -> Self::Result {
-        ensure!(
-            msg.0 == self.info.head,
-            StatusCode::UNAUTHORIZED,
-            "you are not head of room"
-        );
-        ensure!(!self.info.is_game, "rule can't change in game");
+        if msg.0 != self.info.head || self.info.is_game {
+            return;
+        }
         self.info.rule = msg.1;
         self.spread_info();
-        Ok(())
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "()")]
 pub struct StartGame(pub UserNo);
 
 impl Handler<StartGame> for Room {
-    type Result = Result<()>;
+    type Result = ();
 
     fn handle(&mut self, msg: StartGame, ctx: &mut Self::Context) -> Self::Result {
-        ensure!(
-            msg.0 == self.info.head,
-            StatusCode::UNAUTHORIZED,
-            "you are not head of room"
-        );
-        let id = send(self, ctx, self.hub.clone(), MakeGameId)?;
-        self.game = Some(GameInfo {
-            id,
-            no: 0,
-            game: Game::new(self.info.rule.clone()),
-        });
-        self.info.is_game = true;
-        self.spread_info();
-        self.spread_game();
-        Ok(())
+        if msg.0 != self.info.head || self.info.is_game {
+            return;
+        }
+        self.hub
+            .send(MakeGameId)
+            .into_actor(self)
+            .then(|res, act, _| {
+                if let Ok(id) = res {
+                    act.game = Some(GameInfo {
+                        id,
+                        no: 0,
+                        game: Game::new(act.info.rule.clone()),
+                    });
+                    act.info.is_game = true;
+                    act.spread_info();
+                    act.spread_game();
+                }
+
+                fut::ready(())
+            })
+            .wait(ctx);
     }
 }
 
 #[derive(Clone, Message)]
-#[rtype(result = "Result<()>")]
+#[rtype(result = "()")]
 pub struct Go(pub UserNo, pub Command);
 
 impl Handler<Go> for Room {
-    type Result = Result<()>;
+    type Result = ();
 
-    fn handle(&mut self, msg: Go, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: Go, _: &mut Self::Context) -> Self::Result {
+        if !self.info.is_game {
+            return;
+        }
+
         let mut user_id = self.info.user.len();
         for (i, x) in self.info.user.iter().enumerate() {
             if *x == msg.0 {
@@ -198,13 +204,20 @@ impl Handler<Go> for Room {
             }
         }
 
-        ensure!(
-            user_id != self.info.user.len(),
-            StatusCode::UNAUTHORIZED,
-            "you are not the player"
+        if user_id == self.info.user.len() {
+            return;
+        }
+        let finished = ignore!(self.next(user_id, msg.1));
+        let game = self.game.as_ref().unwrap();
+        let _ = save_state(
+            SaveStateForm {
+                game_id: game.id.0,
+                room_id: self.info.uuid.0,
+                number: game.no,
+                state: game.game.get_state(),
+            },
+            self.pool.clone(),
         );
-        let finished = self.next(user_id, msg.1)?;
-        self.save_state(ctx)?;
 
         if finished {
             // todo: apply rating system
@@ -212,7 +225,6 @@ impl Handler<Go> for Room {
             self.game = None;
             self.spread_info();
         }
-        Ok(())
     }
 }
 
@@ -229,60 +241,29 @@ impl Handler<GetInfo> for Room {
 }
 
 impl Room {
-    pub fn new(
-        id: RoomId,
-        name: String,
-        rule: Rule,
-        is_rank: bool,
-        server: Addr<hub::Hub>,
-        db: Addr<Database>,
-    ) -> Room {
-        let user_cnt = rule.user_cnt as usize;
+    pub fn new(info: RoomInfo, server: Addr<hub::Hub>, pool: Pool) -> Room {
         Room {
-            info: RoomInfo {
-                id,
-                name,
-                rule,
-                is_rank,
-                head: UserNo(0),
-                user: vec![UserNo(0); user_cnt],
-                observer_cnt: 0,
-                is_game: false,
-            },
+            info,
             game: None,
             user_addr: HashMap::new(),
             observe: HashSet::new(),
             list: HashSet::new(),
             hub: server,
-            db,
+            pool,
         }
     }
 
     fn set_head(&mut self) {
+        if !self.user_addr.contains_key(&self.info.head) {
+            self.info.head.0 = 0;
+        }
+
         if self.info.head.0 == 0 {
             for i in self.info.user.iter() {
                 if i.0 != 0 {
                     self.info.head.0 = 0;
                 }
             }
-        } else if !self.user_addr.contains_key(&self.info.head) {
-            self.info.head.0 = 0;
-            // recursion: only go down once
-            self.set_head();
-        }
-    }
-
-    fn save_state(&mut self, ctx: &mut <Self as Actor>::Context) -> Result<()> {
-        if let Some(game) = &self.game {
-            let form = SaveStateForm {
-                game_id: game.id.0,
-                room_id: self.info.id.0,
-                number: game.no,
-                state: game.game.get_state(),
-            };
-            send(self, ctx, self.db.clone(), form)?
-        } else {
-            Ok(())
         }
     }
 

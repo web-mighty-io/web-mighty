@@ -9,7 +9,7 @@ LABEL org.label-schema.name="buttercrab/web-mighty"
 LABEL org.label-schema.description="Mighty Card Game in Online"
 
 COPY . /app
-RUN cargo install --root /app/build --path /app/server --features https
+RUN cargo install --root /app/build --path /app/server
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN wasm-pack build --target web -d /app/static/res/pkg /app/public
 
@@ -39,11 +39,10 @@ RUN python3 /app/minify_files.py --path /app/static --remove
 # main container
 FROM ubuntu:latest
 
-COPY --from=rust-build /app/build/bin/server /app/bin
+ENV SERVE_PATH="/app/static"
+
+COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=python-build /app/static /app/static
 RUN apt-get update && apt-get install libssl-dev -y
-
-# for postgresql server
-EXPOSE 5432
 
 ENTRYPOINT ["/app/bin/server"]

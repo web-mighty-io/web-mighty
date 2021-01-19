@@ -1,5 +1,5 @@
 use crate::actor::hub::GetUser;
-use crate::actor::user::{UserConnect, UserDisconnect};
+use crate::actor::user::{Update, UserConnect, UserDisconnect};
 use crate::actor::{Hub, User};
 use crate::dev::*;
 use actix::prelude::*;
@@ -9,45 +9,59 @@ use types::{MainToClient, MainToServer};
 pub struct Main {
     user: Addr<User>,
     hub: Addr<Hub>,
-    connection: Option<Addr<Connection<Session<Main>>>>,
 }
 
 impl SessionTrait for Main {
     type Sender = MainToClient;
 
-    fn started(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
-        act.inner.user.do_send(UserConnect::Main(ctx.address()));
+    fn started(act: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {
+        act.inner.user.do_send(UserConnect::Main);
     }
 
-    fn stopped(act: &mut Session<Self>, ctx: &mut WebsocketContext<Session<Self>>) {
-        act.inner.user.do_send(UserDisconnect::Main(ctx.address()));
+    fn stopped(act: &mut Session<Self>, _: &mut WebsocketContext<Session<Self>>) {
+        act.inner.user.do_send(UserDisconnect::Main);
     }
 
     fn receive(act: &mut Session<Self>, msg: String, ctx: &mut WebsocketContext<Session<Self>>) {
         let msg: MainToServer = serde_json::from_str(&*msg).unwrap();
         match msg {
             MainToServer::Subscribe(no) => {
-                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
-                    .do_send(UserConnect::Subscribe(ctx.address()));
+                act.inner
+                    .hub
+                    .send(GetUser(no))
+                    .into_actor(act)
+                    .then(|res, _, ctx| {
+                        if let Ok(Ok(user)) = res {
+                            user.do_send(UserConnect::Subscribe(ctx.address()));
+                        }
+
+                        fut::ready(())
+                    })
+                    .wait(ctx);
             }
             MainToServer::Unsubscribe(no) => {
-                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetUser(no))))
-                    .do_send(UserDisconnect::Unsubscribe(ctx.address()));
+                act.inner
+                    .hub
+                    .send(GetUser(no))
+                    .into_actor(act)
+                    .then(|res, _, ctx| {
+                        if let Ok(Ok(user)) = res {
+                            user.do_send(UserDisconnect::Unsubscribe(ctx.address()));
+                        }
+
+                        fut::ready(())
+                    })
+                    .wait(ctx);
             }
-            _ => {}
-        }
-        if let Some(connection) = &act.inner.connection {
-            connection.do_send(Update);
+            MainToServer::Update => {
+                act.inner.user.do_send(Update);
+            }
         }
     }
 }
 
 impl Main {
     pub fn new(user: Addr<User>, hub: Addr<Hub>) -> Main {
-        Main {
-            user,
-            hub,
-            connection: None,
-        }
+        Main { user, hub }
     }
 }

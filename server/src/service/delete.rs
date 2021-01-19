@@ -1,8 +1,8 @@
-use crate::actor::db::{Delete, DeleteForm};
 use crate::app_state::AppState;
+use crate::db::user;
+use crate::db::user::DeleteForm;
 use actix_identity::Identity;
 use actix_web::{delete, http, web, Error, HttpResponse};
-use futures::TryFutureExt;
 
 #[delete("/delete_user")]
 pub async fn delete_user(
@@ -11,12 +11,8 @@ pub async fn delete_user(
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     if let Some(user_id) = id.identity() {
-        state
-            .db
-            .send(Delete(user_id.parse().unwrap(), (*form).clone()))
-            .into_future()
-            .await
-            .unwrap()?;
+        let user_no = user_id.parse().unwrap();
+        let _ = user::delete_user(user_no, (*form).clone(), state.pool.clone());
         id.forget();
         Ok(HttpResponse::Found()
             .header(http::header::LOCATION, "/")

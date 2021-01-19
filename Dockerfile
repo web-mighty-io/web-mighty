@@ -39,11 +39,10 @@ RUN python3 /app/minify_files.py --path /app/static --remove
 # main container
 FROM ubuntu:latest
 
-COPY --from=rust-build /app/build/bin/server /app/bin
+ENV SERVE_PATH="/app/static"
+
+COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=python-build /app/static /app/static
 RUN apt-get update && apt-get install libssl-dev -y
-
-# for postgresql server
-EXPOSE 5432
 
 ENTRYPOINT ["/app/bin/server"]

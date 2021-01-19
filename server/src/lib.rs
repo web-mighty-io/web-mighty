@@ -4,6 +4,7 @@
 mod actor;
 mod app_state;
 mod config;
+mod db;
 mod error;
 mod https;
 mod service;
@@ -25,7 +26,6 @@ mod constant {
 }
 
 mod dev {
-    pub use crate::actor::group::*;
     pub use crate::actor::session::*;
     pub use crate::constant::*;
     pub use crate::error::{Error, Result};
@@ -33,9 +33,16 @@ mod dev {
     pub use crate::{bail, ensure, err, ignore, try_ctx};
     pub use actix_web::http::StatusCode;
     pub use types::*;
+
+    use r2d2_postgres::postgres::NoTls;
+    use r2d2_postgres::PostgresConnectionManager;
+
+    pub type Pool = r2d2_postgres::r2d2::Pool<PostgresConnectionManager<NoTls>>;
+    pub type PgConfig = r2d2_postgres::postgres::Config;
 }
 
 pub mod prelude {
+    pub use crate::db::*;
     pub use crate::dev::*;
 }
 
@@ -44,7 +51,7 @@ pub mod internal {
     use crate::config::Config;
     use crate::dev::*;
     use crate::https::RedirectHttps;
-    use crate::service::{config, p404};
+    use crate::service::{config_services, p404};
     use actix_identity::{CookieIdentityPolicy, IdentityService};
     use actix_web::middleware::Logger;
     use actix_web::{web, App, HttpServer};
@@ -66,17 +73,18 @@ pub mod internal {
 
     #[cfg(not(tarpaulin_include))]
     async fn main_https(conf: Config) -> std::io::Result<()> {
-        let private_key = conf.private_key();
-        let _guard = conf.logger();
-        let pool = conf.db_pool();
-        let public = conf.server.public.clone();
-        let host = conf.server.host.clone();
-        let http_port = conf.server.port;
-        let https_port = conf.server.https.as_ref().unwrap().port;
-        let builder = conf.ssl_builder();
+        let private_key = conf.get_private_key();
+        let _guard = conf.get_logger();
+        let pg_config = conf.get_pg_config();
+        let serve_path = conf.serve_path.clone();
+        let host = conf.get_host();
+        let http_port = conf.port;
+        let https_port = conf.https.as_ref().unwrap().port;
+        let builder = conf.get_ssl_builder();
         let mail = conf.get_mail();
+        let redirect = conf.https.as_ref().unwrap().redirect.unwrap_or(false);
 
-        let state = AppState::new(to_absolute_path(public), pool, mail);
+        let state = AppState::new(to_absolute_path(serve_path), pg_config, mail);
 
         HttpServer::new(move || {
             App::new()
@@ -85,10 +93,10 @@ pub mod internal {
                         .name("web-mighty-auth")
                         .secure(true),
                 ))
-                .wrap(RedirectHttps::new(http_port, https_port))
+                .wrap(RedirectHttps::new(http_port, https_port, redirect))
                 .wrap(Logger::default())
                 .app_data(state.clone())
-                .configure(config)
+                .configure(config_services)
                 .default_service(web::to(p404))
         })
         .bind(format!("{}:{}", host, http_port))?
@@ -99,15 +107,15 @@ pub mod internal {
 
     #[cfg(not(tarpaulin_include))]
     async fn main_http(conf: Config) -> std::io::Result<()> {
-        let private_key = conf.private_key();
-        let _guard = conf.logger();
-        let pool = conf.db_pool();
-        let public = conf.server.public.clone();
-        let host = conf.server.host.clone();
-        let http_port = conf.server.port;
+        let private_key = conf.get_private_key();
+        let _guard = conf.get_logger();
+        let pg_config = conf.get_pg_config();
+        let serve_path = conf.serve_path.clone();
+        let host = conf.get_host();
+        let http_port = conf.port;
         let mail = conf.get_mail();
 
-        let state = AppState::new(to_absolute_path(public), pool, mail);
+        let state = AppState::new(to_absolute_path(serve_path), pg_config, mail);
 
         HttpServer::new(move || {
             App::new()
@@ -118,7 +126,7 @@ pub mod internal {
                 ))
                 .wrap(Logger::default())
                 .app_data(state.clone())
-                .configure(config)
+                .configure(config_services)
                 .default_service(web::to(p404))
         })
         .bind(format!("{}:{}", host, http_port))?
@@ -134,9 +142,9 @@ pub mod internal {
         } else {
             opts.config
         };
-        let conf = Config::from_path(path);
+        let conf = Config::generate(path);
 
-        if conf.server.https.is_some() {
+        if conf.https.is_some() {
             main_https(conf).await
         } else {
             main_http(conf).await

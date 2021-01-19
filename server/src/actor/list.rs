@@ -17,12 +17,32 @@ impl SessionTrait for List {
         let msg: ListToServer = ignore!(serde_json::from_str(&*msg));
         match msg {
             ListToServer::Subscribe(id) => {
-                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetRoom(id))))
-                    .do_send(RoomJoin::List(ctx.address()));
+                act.inner
+                    .hub
+                    .send(GetRoom(id))
+                    .into_actor(act)
+                    .then(|res, _, ctx| {
+                        if let Ok(Ok(room)) = res {
+                            room.do_send(RoomJoin::List(ctx.address()));
+                        }
+
+                        fut::ready(())
+                    })
+                    .wait(ctx);
             }
             ListToServer::Unsubscribe(id) => {
-                ignore!(ignore!(send(act, ctx, act.inner.hub.clone(), GetRoom(id))))
-                    .do_send(RoomLeave::List(ctx.address()));
+                act.inner
+                    .hub
+                    .send(GetRoom(id))
+                    .into_actor(act)
+                    .then(|res, _, ctx| {
+                        if let Ok(Ok(room)) = res {
+                            room.do_send(RoomLeave::List(ctx.address()));
+                        }
+
+                        fut::ready(())
+                    })
+                    .wait(ctx);
             }
         }
     }

@@ -6,8 +6,6 @@ use actix_identity::Identity;
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use futures::TryFutureExt;
-use std::str::FromStr;
-use uuid::Uuid;
 
 #[get("/list")]
 pub async fn list(
@@ -53,7 +51,7 @@ pub async fn observe(
     web::Path(room_id): web::Path<String>,
 ) -> Result<HttpResponse, Error> {
     if id.identity().is_some() {
-        let room_id = Uuid::from_str(&*room_id).unwrap().into();
+        let room_id = room_id.parse::<u32>().unwrap().into();
         let addr = data.hub.send(GetRoom(room_id)).into_future().await.unwrap()?;
         ws::start(Observe::new(addr).make(), &req, stream)
     } else {

@@ -78,11 +78,4 @@ mod test {
         assert_eq!(compress("/../world/./"), PathBuf::from("/world"));
         assert_eq!(compress("hello/../../world"), PathBuf::from("../world"));
     }
-
-    #[test]
-    fn to_absolute_path_test() {
-        env::set_current_dir("/hello").unwrap();
-        assert_eq!(to_absolute_path("world"), PathBuf::from("/hello/world"));
-        assert_eq!(to_absolute_path("/world"), PathBuf::from("/world"));
-    }
 }

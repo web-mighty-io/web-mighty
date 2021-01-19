@@ -76,13 +76,13 @@ pub mod internal {
         let private_key = conf.get_private_key();
         let _guard = conf.get_logger();
         let pg_config = conf.get_pg_config();
-        let serve_path = conf.serve_path.clone();
+        let serve_path = conf.get_serve_path();
         let host = conf.get_host();
-        let http_port = conf.port;
-        let https_port = conf.https.as_ref().unwrap().port;
+        let http_port = conf.get_port();
+        let https_port = conf.get_https_port();
         let builder = conf.get_ssl_builder();
         let mail = conf.get_mail();
-        let redirect = conf.https.as_ref().unwrap().redirect.unwrap_or(false);
+        let redirect = conf.get_redirect();
 
         let state = AppState::new(to_absolute_path(serve_path), pg_config, mail);
 
@@ -110,9 +110,9 @@ pub mod internal {
         let private_key = conf.get_private_key();
         let _guard = conf.get_logger();
         let pg_config = conf.get_pg_config();
-        let serve_path = conf.serve_path.clone();
+        let serve_path = conf.get_serve_path();
         let host = conf.get_host();
-        let http_port = conf.port;
+        let http_port = conf.get_port();
         let mail = conf.get_mail();
 
         let state = AppState::new(to_absolute_path(serve_path), pg_config, mail);

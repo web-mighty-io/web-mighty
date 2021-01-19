@@ -7,19 +7,10 @@
 ## Run your own server
 
 Docker command to start right away.
-You can use `server.docker.toml` to configure based on docker.
 
-1. If you want https:
-    ```shell script
-    docker run -v <your_dir_to_conf_and_pem>:/app/conf -e CONFIG='/app/conf/server.toml' 
-   -p 80:80 -p 443:443 -p 5432:5432 -d buttercrab/web-mighty
-    ```
-
-1. If you want http:
-    ```shell script
-    docker run  -e PORT=80 
-   -p 80:80 -p 5432:5432 -d buttercrab/web-mighty
-    ```
+```shell script
+docker run -p 80:80 -p 5432:5432 -d buttercrab/web-mighty
+```
 
 ## Manually start your server
 

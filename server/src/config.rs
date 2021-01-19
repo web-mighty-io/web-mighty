@@ -96,6 +96,9 @@ impl Config {
             || {
                 let mut c = PgConfig::new();
                 c.host("localhost");
+                c.user("admin");
+                c.password("admin");
+                c.dbname("web_mighty");
                 c
             },
             |c| c.get_pg_config().unwrap().into(),

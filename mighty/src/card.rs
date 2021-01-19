@@ -176,8 +176,6 @@ mod test {
         assert_eq!(Rush::from(Card::Joker(Color::Black)), Rush::black());
     }
 
-
-
     #[test]
     fn card_is_score() {
         assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), true);

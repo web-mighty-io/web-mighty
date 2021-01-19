@@ -1,9 +1,10 @@
+use crate::prelude::*;
 use crate::ws::session::{Context, SessionTrait};
 use types::{RoomUserToClient, RoomUserToServer};
 
-pub struct Room;
+pub struct User;
 
-impl SessionTrait for Room {
+impl SessionTrait for User {
     type Sender = RoomUserToServer;
 
     fn tag() -> &'static str {
@@ -13,4 +14,15 @@ impl SessionTrait for Room {
     fn receive(&mut self, msg: String, _: &Context<Self>) {
         let _: RoomUserToClient = serde_json::from_str(&*msg).unwrap();
     }
+}
+
+#[wasm_bindgen]
+pub fn room_change_name(name: String) {
+    USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeName(name)));
+}
+
+#[wasm_bindgen]
+pub fn room_change_rule() {
+    let rule = RULE.with(|rule| rule.borrow().clone());
+    USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeRule(rule)));
 }

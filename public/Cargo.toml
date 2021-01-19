@@ -28,7 +28,6 @@ features = [
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
-serde = { version = "1", features = ["derive"] }
 
 [profile.release]
 opt-level = "s"

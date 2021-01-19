@@ -942,7 +942,7 @@ impl State {
                 joker_call_effect: _,
             } => match cmd {
                 Command::Go(card, rush_type, user_joker_call) => {
-                    let mut deck = deck.clone();
+                    let deck = deck.clone();
                     let turn_count = *turn_count;
                     let start_user = *start_user;
                     let mut current_pattern = *current_pattern;
@@ -965,30 +965,25 @@ impl State {
                         },
                     );
 
-                    if joker_call_card != None {
-                        if !deck[user_id]
+                    if joker_call_card != None
+                        && !deck[user_id]
                             .iter()
                             .all(|x| matches!(joker_call_card, Some(y) if y == *x) || card == *x)
-                        {
-                            return Err(Error::JokerCall);
-                        }
+                    {
+                        return Err(Error::JokerCall);
                     }
 
-                    let idx = deck[user_id].iter().position(|x| *x == card).ok_or(Error::NotInDeck)?;
+                    deck[user_id].iter().position(|x| *x == card).ok_or(Error::NotInDeck)?;
                     if turn_count == 0 || turn_count == 9 {
-                        if card == self.get_mighty() {
-                            if self.check_card_valid(rule.card_policy.mighty) {
-                                return Err(Error::WrongCard);
-                            }
-                        } else if matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_valid(*y)) {
+                        if card == self.get_mighty() && self.check_card_valid(rule.card_policy.mighty)
+                            || matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_valid(*y))
+                        {
                             return Err(Error::WrongCard);
                         } else {
                             match card {
                                 Card::Normal(t, _) => {
-                                    if Some(t) == *giruda {
-                                        if self.check_card_valid(rule.card_policy.giruda) {
-                                            return Err(Error::WrongCard);
-                                        }
+                                    if Some(t) == *giruda && self.check_card_valid(rule.card_policy.giruda) {
+                                        return Err(Error::WrongCard);
                                     }
                                     if joker_calls.contains(&card)
                                         && user_joker_call
@@ -1018,20 +1013,16 @@ impl State {
                             return Err(Error::WrongCard);
                         }
 
-                        match card {
-                            Card::Joker(t) => {
-                                current_pattern = rush_type;
-                                let containing = match t {
-                                    Color::Black => Rush::black().contains(current_pattern),
-                                    Color::Red => Rush::red().contains(current_pattern),
-                                };
-                                if !containing {
-                                    return Err(Error::WrongPattern);
-                                }
+                        if let Card::Joker(t) = card {
+                            current_pattern = rush_type;
+                            let containing = match t {
+                                Color::Black => Rush::black().contains(current_pattern),
+                                Color::Red => Rush::red().contains(current_pattern),
+                            };
+                            if !containing {
+                                return Err(Error::WrongPattern);
                             }
-                            _ => {}
                         }
-                        deck[user_id].remove(idx);
                     } else if !deck[user_id].iter().all(|x| !current_pattern == Rush::from(*x))
                         && !current_pattern == Rush::from(card)
                     {

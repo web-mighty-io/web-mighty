@@ -39,7 +39,6 @@ slog-term = "2.6"
 slog-async = "2.5"
 slog-scope = "4.3"
 slog-stdlog = "4.1"
-toml = "0.5"
 uuid = { version = "0.8", features = ["serde", "v5"] }
 walkdir = "2"
 

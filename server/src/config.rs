@@ -18,30 +18,30 @@ type DpConfig = deadpool_postgres::Config;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     // postgres configuration
-    pub postgres: DpConfig,
+    pub postgres: Option<DpConfig>,
     // host of server (default: localhost)
     pub host: Option<String>,
-    // port of server
-    pub port: u16,
+    // port of server (default: 80)
+    pub port: Option<u16>,
     // https configuration (default: http only)
     pub https: Option<Https>,
     // path to log (default: stdout)
     pub log_path: Option<String>,
     // log verbose (default: 4)
     pub verbose: Option<usize>,
-    // path to static files
-    pub serve_path: String,
+    // path to static files (default: static)
+    pub serve_path: Option<String>,
     // secret key for auth (default: random)
     // note: generate through `openssl rand -hex 16`
     pub secret: Option<String>,
     // mail configuration
-    pub mail: Mail,
+    pub mail: Option<Mail>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Https {
-    // port for serving https
-    pub port: u16,
+    // port for serving https (default: 443)
+    pub port: Option<u16>,
     // key file for https
     pub key: String,
     // cert file for https
@@ -52,21 +52,28 @@ pub struct Https {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Mail {
-    pub username: String,
-    pub password: String,
-    pub host: String,
+    // username to mail server (default: admin)
+    pub username: Option<String>,
+    // password to mail server (default: main)
+    pub password: Option<String>,
+    // host to mail server (default: localhost:587)
+    pub host: Option<String>,
 }
 
 impl Config {
     pub fn generate(path: PathBuf) -> Config {
         let mut s = ::config::Config::new();
         s.merge(File::from(path).required(false)).unwrap();
-        s.merge(Environment::new()).unwrap();
+        s.merge(Environment::new().separator("__")).unwrap();
         s.try_into().unwrap()
     }
 
     pub fn get_host(&self) -> String {
         self.host.clone().unwrap_or_else(|| "localhost".to_owned())
+    }
+
+    pub fn get_port(&self) -> u16 {
+        self.port.clone().unwrap_or(80)
     }
 
     pub fn get_private_key(&self) -> Vec<u8> {
@@ -80,8 +87,19 @@ impl Config {
         }
     }
 
+    pub fn get_serve_path(&self) -> String {
+        self.serve_path.clone().unwrap_or_else(|| "static".to_owned())
+    }
+
     pub fn get_pg_config(&self) -> PgConfig {
-        self.postgres.get_pg_config().unwrap().into()
+        self.postgres.as_ref().map_or_else(
+            || {
+                let mut c = PgConfig::new();
+                c.host("localhost");
+                c
+            },
+            |c| c.get_pg_config().unwrap().into(),
+        )
     }
 
     pub fn get_logger(&self) -> GlobalLoggerGuard {
@@ -112,11 +130,28 @@ impl Config {
     }
 
     pub fn get_mail(&self) -> actor::Mail {
+        let mail = self.mail.clone().unwrap_or(Mail {
+            username: None,
+            password: None,
+            host: None,
+        });
         actor::Mail::new(
-            self.mail.username.clone(),
-            self.mail.password.clone(),
-            self.mail.host.clone(),
+            mail.username.unwrap_or_else(|| "admin".to_owned()),
+            mail.password.unwrap_or_else(|| "admin".to_owned()),
+            mail.host.unwrap_or_else(|| "localhost:587".to_owned()),
         )
+    }
+
+    // # Https part
+    //
+    // from this part, is would assert that self.https is not none
+
+    pub fn get_https_port(&self) -> u16 {
+        self.https.as_ref().unwrap().port.unwrap_or(443)
+    }
+
+    pub fn get_redirect(&self) -> bool {
+        self.https.as_ref().unwrap().redirect.unwrap_or(false)
     }
 
     pub fn get_ssl_builder(&self) -> SslAcceptorBuilder {

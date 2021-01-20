@@ -44,55 +44,55 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - config (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path config/Cargo.toml -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - mighty (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path mighty/Cargo.toml -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - mighty (server feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path mighty/Cargo.toml --features server -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - mighty (client feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path mighty/Cargo.toml --features client -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - public (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path public/Cargo.toml -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - server (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path server/Cargo.toml -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - server (watch-file feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path server/Cargo.toml --features watch-file -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - types (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --manifest-path types/Cargo.toml -- -D warnings
 
-      - name: Checking if it builds without warnings
+      - name: Checking if it builds without warnings - types (server feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy

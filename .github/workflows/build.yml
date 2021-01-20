@@ -44,55 +44,55 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - config (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path config/Cargo.toml
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - mighty (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path mighty/Cargo.toml
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - mighty (server feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path mighty/Cargo.toml --features server
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - mighty (client feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path mighty/Cargo.toml --features client
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - public (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path public/Cargo.toml
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - server (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path server/Cargo.toml
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - server (watch-file feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path server/Cargo.toml --features watch-file
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - types (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets --manifest-path types/Cargo.toml
 
-      - name: Checking if it builds without errors
+      - name: Checking if it builds without errors - types (server feature)
         uses: actions-rs/cargo@v1
         with:
           command: build

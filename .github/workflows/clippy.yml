@@ -48,6 +48,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
+          args: --all-targets --manifest-path mighty/Cargo.toml -- -D warnings
+
+      - name: Checking if it builds without warnings
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
           args: --all-targets --manifest-path mighty/Cargo.toml --features server -- -D warnings
 
       - name: Checking if it builds without warnings

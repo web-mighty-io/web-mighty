@@ -48,6 +48,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --all-targets --manifest-path mighty/Cargo.toml
+
+      - name: Checking if it builds without errors
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
           args: --all-targets --manifest-path mighty/Cargo.toml --features server
 
       - name: Checking if it builds without errors

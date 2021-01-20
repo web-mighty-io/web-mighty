@@ -45,6 +45,20 @@ $input-focus-border-color: $dark;
 
 .tab-small { margin-left: 20px; }
 
+.scroll {
+  overflow-y: auto;
+}
+
+.scrollable-tile {
+  min-height: 0 !important;
+}
+
+#chat_area {
+  margin-bottom: 0 !important;
+  padding: 1rem !important;
+  height: 80%;
+}
+
 aside {
   width: 25%;
   float: right;

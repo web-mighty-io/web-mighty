@@ -20,7 +20,7 @@ mod prelude {
     pub use crate::console_log;
     pub use crate::global::*;
     pub use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsValue;
+    pub use wasm_bindgen::JsValue;
     use web_sys::Window;
 
     pub fn window() -> Result<Window> {

@@ -1,15 +1,13 @@
+mod global;
+pub mod rule;
 pub mod ws;
 
-use crate::ws::list::List;
-use crate::ws::session::SessionTrait;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-
-    fn alert(s: &str);
 }
 
 #[macro_export]
@@ -20,7 +18,9 @@ macro_rules! console_log {
 mod prelude {
     pub type Result<T, E = JsValue> = std::result::Result<T, E>;
     pub use crate::console_log;
-    use wasm_bindgen::JsValue;
+    pub use crate::global::*;
+    pub use wasm_bindgen::prelude::*;
+    pub use wasm_bindgen::JsValue;
     use web_sys::Window;
 
     pub fn window() -> Result<Window> {
@@ -28,13 +28,7 @@ mod prelude {
     }
 }
 
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, public!");
-}
-
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
-    let _ = List.start();
     Ok(())
 }

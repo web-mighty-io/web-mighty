@@ -100,13 +100,6 @@ impl Rush {
     pub fn any() -> Rush {
         Rush::all()
     }
-
-    pub fn is_valid(&self, c: Card) -> bool {
-        match c {
-            Card::Normal(pat, _) => self.contains(Rush::from(pat)),
-            Card::Joker(_) => true,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug, Hash, Ord, PartialOrd)]
@@ -150,6 +143,40 @@ mod test {
     }
 
     #[test]
+    fn rush_pattern_from() {
+        assert_eq!(Rush::from(Pattern::Spade), Rush::SPADE);
+        assert_eq!(Rush::from(Pattern::Diamond), Rush::DIAMOND);
+        assert_eq!(Rush::from(Pattern::Heart), Rush::HEART);
+        assert_eq!(Rush::from(Pattern::Clover), Rush::CLOVER);
+    }
+
+    #[test]
+    fn rush_color_from() {
+        assert_eq!(Rush::from(Color::Black), Rush::black());
+        assert_eq!(Rush::from(Color::Red), Rush::red());
+    }
+
+    #[test]
+    fn color_rush_from() {
+        assert_eq!(Color::from(Rush::black()), Color::Black);
+        assert_eq!(Color::from(Rush::red()), Color::Red);
+        assert_eq!(Color::from(Rush::SPADE), Color::Black);
+        assert_eq!(Color::from(Rush::CLOVER), Color::Black);
+        assert_eq!(Color::from(Rush::DIAMOND), Color::Red);
+        assert_eq!(Color::from(Rush::HEART), Color::Red);
+    }
+
+    #[test]
+    fn rush_card_from() {
+        assert_eq!(Rush::from(Card::Normal(Pattern::Spade, 2)), Rush::SPADE);
+        assert_eq!(Rush::from(Card::Normal(Pattern::Diamond, 3)), Rush::DIAMOND);
+        assert_eq!(Rush::from(Card::Normal(Pattern::Clover, 4)), Rush::CLOVER);
+        assert_eq!(Rush::from(Card::Normal(Pattern::Heart, 5)), Rush::HEART);
+        assert_eq!(Rush::from(Card::Joker(Color::Red)), Rush::red());
+        assert_eq!(Rush::from(Card::Joker(Color::Black)), Rush::black());
+    }
+
+    #[test]
     fn card_is_score() {
         assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), true);
         assert_eq!(Card::Normal(Pattern::Diamond, 8).is_score(), false);
@@ -159,6 +186,7 @@ mod test {
     #[test]
     fn card_is_joker() {
         assert_eq!(Card::Joker(Color::Red).is_joker(), true);
+        assert_eq!(Card::Joker(Color::Black).is_joker(), true);
         assert_eq!(Card::Normal(Pattern::Spade, 5).is_joker(), false);
     }
 }

@@ -9,11 +9,16 @@ use futures::task::{Context, Poll};
 pub struct RedirectHttps {
     http_port: u16,
     https_port: u16,
+    redirect: bool,
 }
 
 impl RedirectHttps {
-    pub fn new(http_port: u16, https_port: u16) -> RedirectHttps {
-        RedirectHttps { http_port, https_port }
+    pub fn new(http_port: u16, https_port: u16, redirect: bool) -> RedirectHttps {
+        RedirectHttps {
+            http_port,
+            https_port,
+            redirect,
+        }
     }
 }
 
@@ -34,6 +39,7 @@ where
             service,
             http_port: self.http_port.to_string(),
             https_port: self.https_port.to_string(),
+            redirect: self.redirect,
         })
     }
 }
@@ -42,6 +48,7 @@ pub struct RedirectHttpsMiddleware<S> {
     service: S,
     http_port: String,
     https_port: String,
+    redirect: bool,
 }
 
 impl<S, B> Service for RedirectHttpsMiddleware<S>
@@ -59,7 +66,7 @@ where
     }
 
     fn call(&mut self, req: Self::Request) -> Self::Future {
-        if req.connection_info().scheme() == "https" {
+        if req.connection_info().scheme() == "https" || !self.redirect {
             Either::Left(self.service.call(req))
         } else {
             let host = req

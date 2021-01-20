@@ -4,13 +4,12 @@
 [![Codecov](https://img.shields.io/codecov/c/github/buttercrab/web-mighty?style=flat-square)](https://codecov.io/gh/buttercrab/web-mighty)
 [![LICENSE](https://img.shields.io/github/license/buttercrab/web-mighty?style=flat-square)](https://github.com/buttercrab/web-mighty/blob/master/LICENSE)
 
-## Run your own server (WIP)
+## Run your own server
 
-Python script will guide you to run from docker/native
+Docker command to start right away.
 
 ```shell script
-pip3 install -r requirements.txt
-python3 util/start_server.py
+docker run -p 80:80 -p 5432:5432 -d buttercrab/web-mighty
 ```
 
 ## Manually start your server
@@ -21,9 +20,9 @@ python3 util/start_server.py
 
 1. [install sass](https://sass-lang.com/install)
 
-1. [install bulma](https://bulma.io/): download latest version and unzip to `public/static/res/bulma`
+1. [install bulma](https://bulma.io/): download latest version and unzip to `static/res/bulma`
 
-1. convert `public/static/res/scss/style.scss` to `public/static/res/css/style.css` using `sass`
+1. convert `static/res/scss/style.scss` to `static/res/css/style.css` using `sass`
 
 1. [install](https://www.postgresql.org/download/) and start your postgresql server
 

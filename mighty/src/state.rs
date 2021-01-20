@@ -1,13 +1,16 @@
 use crate::card::{Card, Pattern, Rush};
-use crate::rule::{card_policy::CardPolicy, Rule};
+use crate::rule::{card_policy::CardPolicy, election, Rule};
 use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "server")]
+use rand::seq::SliceRandom;
+
+#[cfg(any(feature = "client", feature = "server"))]
 use {
     crate::card::Color,
     crate::command::Command,
     crate::error::{Error, Result},
-    crate::rule::{election, friend},
-    rand::seq::SliceRandom,
+    crate::rule::friend,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Hash)]
@@ -138,7 +141,7 @@ impl State {
         }
     }
 
-    #[cfg(feature = "server")]
+    #[cfg(any(feature = "client", feature = "server"))]
     fn get_mighty(&self) -> Card {
         match self {
             State::InGame {
@@ -150,7 +153,7 @@ impl State {
         }
     }
 
-    #[cfg(feature = "server")]
+    #[cfg(any(feature = "client", feature = "server"))]
     fn check_card_valid(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame {
@@ -275,7 +278,7 @@ impl State {
             State::Election {
                 pledge,
                 done,
-                curr_user,
+                curr_user: _,
                 start_user,
                 deck,
                 left,
@@ -284,9 +287,6 @@ impl State {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
-                    if *curr_user != user_id && is_ordered {
-                        return Err(Error::InvalidUser);
-                    } // make valid users function and change
 
                     match x {
                         Some((c, p)) => {
@@ -426,10 +426,6 @@ impl State {
                 deck,
             } => match cmd {
                 Command::SelectFriend(drop_card, friend_func) => {
-                    if user_id != *president {
-                        return Err(Error::NotPresident);
-                    }
-
                     let mut deck = deck.clone();
                     for card in drop_card.iter() {
                         let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
@@ -480,9 +476,6 @@ impl State {
                     })
                 }
                 Command::ChangePledge(new_giruda) => {
-                    if user_id != *president {
-                        return Err(Error::NotPresident);
-                    }
                     if *giruda == new_giruda {
                         return Err(Error::SameGiruda);
                     }
@@ -537,10 +530,6 @@ impl State {
                 joker_call_effect,
             } => match cmd {
                 Command::Go(card, rush_type, user_joker_call) => {
-                    if user_id != *current_user {
-                        return Err(Error::InvalidUser);
-                    }
-
                     let mut friend = *friend;
                     let mut is_friend_known = *is_friend_known;
                     let mut deck = deck.clone();
@@ -818,14 +807,253 @@ impl State {
         }
     }
 
+    #[cfg(feature = "client")]
+    pub fn is_valid_command(&self, user_id: usize, cmd: Command, rule: &Rule) -> Result<()> {
+        match self {
+            State::Election {
+                pledge,
+                done,
+                curr_user: _,
+                start_user,
+                deck: _,
+                left: _,
+            } => match cmd {
+                Command::Pledge(x) => {
+                    let done = done.clone();
+                    let pledge = pledge.clone();
+
+                    match x {
+                        Some((c, p)) => {
+                            if p > rule.pledge.max {
+                                return Err(Error::InvalidPledge(true, rule.pledge.max));
+                            }
+                            if c == None && !rule.election.contains(election::Election::NO_GIRUDA_EXIST) {
+                                return Err(Error::InvalidPledge(true, 0));
+                            }
+                            if done[user_id] {
+                                return Err(Error::InvalidPledge(true, 0));
+                            }
+                            let start_user = if *start_user == None {
+                                user_id
+                            } else {
+                                start_user.unwrap()
+                            };
+                            let max_pledge = pledge
+                                .iter()
+                                .map(|j| match *j {
+                                    Some((_, p)) => p,
+                                    _ => 0,
+                                })
+                                .max()
+                                .unwrap();
+                            let max_pledge = std::cmp::max(max_pledge, rule.pledge.min);
+                            let offset = if c == None { rule.pledge.no_giruda_offset } else { 0 };
+                            let max_pledge = if start_user == user_id {
+                                (max_pledge as i8 + offset + rule.pledge.first_offset) as u8
+                            } else {
+                                (max_pledge as i8 + offset) as u8
+                            };
+                            if p < max_pledge {
+                                return Err(Error::InvalidPledge(false, max_pledge));
+                            }
+                            if p == max_pledge && rule.election.contains(election::Election::INCREASING) {
+                                return Err(Error::InvalidPledge(false, max_pledge));
+                            }
+
+                            Ok(())
+                        }
+                        _ => {
+                            if !rule.election.contains(election::Election::PASS_FIRST) && *start_user == None {
+                                return Err(Error::PassFirst);
+                            }
+
+                            Ok(())
+                        }
+                    }
+                }
+                _ => Err(Error::InvalidCommand("Command::Pledge")),
+            },
+            State::SelectFriend {
+                president,
+                giruda,
+                pledge,
+                deck,
+            } => match cmd {
+                Command::SelectFriend(drop_card, friend_func) => {
+                    let mut deck = deck.clone();
+                    for card in drop_card.iter() {
+                        let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
+                        deck[user_id].remove(idx);
+                    }
+                    match friend_func {
+                        FriendFunc::ByCard(c) => {
+                            if !rule.friend.contains(friend::Friend::CARD) {
+                                return Err(Error::InvalidFriendFunc);
+                            }
+                            let temp = deck
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, d)| d.contains(&c))
+                                .map(|(i, _)| i)
+                                .next();
+                            if temp.unwrap() == *president && !rule.friend.contains(friend::Friend::FAKE) {
+                                return Err(Error::InvalidFriendFunc);
+                            }
+                        }
+                        FriendFunc::None => {
+                            if !rule.friend.contains(friend::Friend::NONE) {
+                                return Err(Error::InvalidFriendFunc);
+                            }
+                        }
+                        _ => {}
+                    };
+                    Ok(())
+                }
+                Command::ChangePledge(new_giruda) => {
+                    if *giruda == new_giruda {
+                        return Err(Error::SameGiruda);
+                    }
+
+                    let new_pledge = if matches!(giruda, None) {
+                        ((*pledge) as i8 - rule.pledge.no_giruda_offset + rule.pledge.change_cost as i8) as u8
+                    } else if matches!(new_giruda, None) {
+                        ((*pledge) as i8 + rule.pledge.no_giruda_offset + rule.pledge.change_cost as i8) as u8
+                    } else {
+                        ((*pledge) as i8 + rule.pledge.change_cost as i8) as u8
+                    };
+
+                    if new_pledge > rule.pledge.max {
+                        return Err(Error::InvalidPledge(true, rule.pledge.max));
+                    }
+
+                    Ok(())
+                }
+                _ => Err(Error::InvalidCommand("Command::Pledge")),
+            },
+            State::InGame {
+                president: _,
+                friend_func: _,
+                friend: _,
+                is_friend_known: _,
+                giruda,
+                pledge: _,
+                deck,
+                score_deck: _,
+                turn_count,
+                placed_cards: _,
+                start_user,
+                current_user,
+                current_pattern,
+                joker_call_card,
+                joker_call_effect: _,
+            } => match cmd {
+                Command::Go(card, rush_type, user_joker_call) => {
+                    let deck = deck.clone();
+                    let turn_count = *turn_count;
+                    let start_user = *start_user;
+                    let mut current_pattern = *current_pattern;
+                    let joker_call_card = *joker_call_card;
+
+                    let joker_calls = vec![
+                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[0].0)) {
+                            rule.joker_call.cards[0].0
+                        } else {
+                            rule.joker_call.cards[0].1
+                        },
+                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[1].0)) {
+                            rule.joker_call.cards[1].0
+                        } else {
+                            rule.joker_call.cards[1].1
+                        },
+                    ];
+
+                    if joker_call_card != None
+                        && !deck[user_id]
+                            .iter()
+                            .all(|x| matches!(joker_call_card, Some(y) if y == *x) || card == *x)
+                    {
+                        return Err(Error::JokerCall);
+                    }
+
+                    deck[user_id].iter().position(|x| *x == card).ok_or(Error::NotInDeck)?;
+                    if turn_count == 0 || turn_count == 9 {
+                        if card == self.get_mighty() && self.check_card_valid(rule.card_policy.mighty)
+                            || matches!(rule.card_policy.card.get(&card), Some(y) if self.check_card_valid(*y))
+                        {
+                            return Err(Error::WrongCard);
+                        } else {
+                            match card {
+                                Card::Normal(t, _) => {
+                                    if Some(t) == *giruda && self.check_card_valid(rule.card_policy.giruda) {
+                                        return Err(Error::WrongCard);
+                                    }
+                                    if joker_calls.contains(&card)
+                                        && user_joker_call
+                                        && self.check_card_valid(rule.card_policy.joker_call)
+                                    {
+                                        return Err(Error::WrongCard);
+                                    }
+                                }
+                                Card::Joker(_) => {
+                                    if self.check_card_valid(rule.card_policy.joker) {
+                                        return Err(Error::WrongCard);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if *current_user == start_user {
+                        current_pattern = Rush::from(card);
+
+                        if !deck[user_id].iter().all(|x| match *x {
+                            Card::Normal(t, _) => *x == self.get_mighty() || matches!(giruda, Some(y) if t == *y),
+                            Card::Joker(_) => true,
+                        }) && matches!(giruda, Some(y) if Rush::from(*y) == current_pattern)
+                            && rule.card_policy.giruda.0 == CardPolicy::InvalidForFirst
+                        {
+                            return Err(Error::WrongCard);
+                        }
+
+                        if let Card::Joker(t) = card {
+                            current_pattern = rush_type;
+                            let containing = match t {
+                                Color::Black => Rush::black().contains(current_pattern),
+                                Color::Red => Rush::red().contains(current_pattern),
+                            };
+                            if !containing {
+                                return Err(Error::WrongPattern);
+                            }
+                        }
+                    } else if !deck[user_id].iter().all(|x| !current_pattern == Rush::from(*x))
+                        && !current_pattern == Rush::from(card)
+                    {
+                        return Err(Error::WrongCard);
+                    }
+
+                    Ok(())
+                }
+                _ => Err(Error::InvalidCommand("BasicCommand::Go")),
+            },
+            _ => Ok(()),
+        }
+    }
+
     /// Valid users to action next time.
     /// Result is 8-bit integer which contains 0 or 1 for each user.
     /// If all users all valid to action, the result would be `(1 << N) - 1`
-    pub fn valid_users(&self, _rule: &Rule) -> u8 {
-        unimplemented!()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        unimplemented!()
+    pub fn valid_users(&self, rule: &Rule) -> u8 {
+        match self {
+            State::Election { curr_user, .. } => {
+                if rule.election.contains(election::Election::ORDERED) {
+                    1 << *curr_user
+                } else {
+                    (1 << rule.user_cnt) - 1
+                }
+            }
+            State::SelectFriend { president, .. } => 1 << *president,
+            State::InGame { current_user, .. } => 1 << *current_user,
+            _ => 0,
+        }
     }
 }

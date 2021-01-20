@@ -1,4 +1,4 @@
-import init, * as wasm from '../../pkg/public.js';
+import init, * as wasm from '../pkg/public.js';
 
 async function run() {
     await init();

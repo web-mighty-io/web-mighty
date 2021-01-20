@@ -22,7 +22,7 @@ pub fn room_change_name(name: String) {
 }
 
 #[wasm_bindgen]
-pub fn room_change_rule() {
-    let rule = RULE.with(|rule| rule.borrow().clone());
+pub fn room_change_rule(rule: &JsValue) {
+    let rule = rule.into_serde().unwrap();
     USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeRule(rule)));
 }

@@ -1,7 +1,8 @@
 use crate::prelude::*;
-use mighty::prelude::*;
+use mighty::prelude::Rule;
 
 #[wasm_bindgen]
-pub fn new_rule() {
-    RULE.with(|rule| rule.replace(Rule::new()));
+pub fn new_mighty_rule() -> JsValue {
+    let rule = Rule::new();
+    JsValue::from_serde(&rule).unwrap()
 }

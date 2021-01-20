@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="html5">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web Mighty</title>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <link rel="stylesheet" href="res/css/style.css">
+</head>
+<body class="has-navbar-fixed-bottom">
+<nav class="navbar">
+    <div class="container">
+        <div class="navbar-brand">
+            <div class="navbar-item">
+                <h1 class="title">Web Mighty</h1>
+            </div>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a class="button is-dark" href="https://github.com/buttercrab/web-mighty">
+                        <span class="icon">
+                            <i class="fab fa-github"></i>
+                        </span>
+                        <span>GitHub</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<nav class="navbar is-fixed-bottom is-light">
+    <div class="container">
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="game.hbs" class="button is-success is-large">
+                        <span class="is-size-2">Play!</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<section class="section">
+    <div class="container">
+        <nav class="level">
+            <div class="level-left">
+                <div class="level-item">
+                    <p>
+                        <span class="title is-size-2">Room</span>
+                        <span class="title is-size-4 has-text-dark tab">Anyone join this room!!</span>
+                    </p>
+                </div>
+            </div>
+            <div class="level-right">
+                <div class="level-item">
+                    <p class="has-text-dark subtitle">
+                        #14
+                    </p>
+                </div>
+                <div class="level-item">
+                    <p class="tab-small"></p>
+                    <a href="main.hbs" class="icon is-medium">
+                        <i class="fas fa-sign-out-alt fa-2x"></i>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent">
+                <article class="tile is-child notification vertical-flex box">
+                    <div class="content">
+                        <div class="level">
+                            <div class="level-left">
+                                <div class="level-item">
+                                    <p class="title">Participants</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <div class="level-item">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <p class="subtitle">Invite</p>
+                                </div>
+                            </div>
+                        </div>
+                        <table class="table is-striped">
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>Name</th>
+                                <th>Points</th>
+                                <th>id</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <th><span class="icon"><i class="fas fa-crown"></i></span></th>
+                                <td>Hyunbin</td>
+                                <td>1403</td>
+                                <td>#1938</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <td>Jaeyong</td>
+                                <td>1392</td>
+                                <td>#321</td>
+                                <td><span class="icon"><i class="fas fa-sign-out-alt"></i></span></td>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <td>Myeongjin</td>
+                                <td>1302</td>
+                                <td>#5493</td>
+                                <td><span class="icon"><i class="fas fa-sign-out-alt"></i></span></td>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <td>Seongmin</td>
+                                <td>1549</td>
+                                <td>#2321</td>
+                                <td><span class="icon"><i class="fas fa-sign-out-alt"></i></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <p class="title is-size-3">Pending</p>
+                        <table class="table is-striped">
+                            <tbody>
+                            <tr>
+                                <th><span class="icon"><i class="fas fa-spinner fa-pulse"></i></span></th>
+                                <td>Hyunbin</td>
+                                <td>1403</td>
+                                <td>#1938</td>
+                                <td><span class="icon"><i class="fas fa-times"></i></span></td>
+                            </tr>
+                            <tr>
+                                <th><span class="icon"><i class="fas fa-spinner fa-pulse"></i></span></th>
+                                <td>Jaeyong</td>
+                                <td>1392</td>
+                                <td>#321</td>
+                                <td><span class="icon"><i class="fas fa-times"></i></span></td>
+                            </tr>
+                            <tr>
+                                <th><span class="icon"><i class="fas fa-spinner fa-pulse"></i></span></th>
+                                <td>Myeongjin</td>
+                                <td>1302</td>
+                                <td>#5493</td>
+                                <td><span class="icon"><i class="fas fa-times"></i></span></td>
+                            </tr>
+                            <tr>
+                                <th><span class="icon"><i class="fas fa-spinner fa-pulse"></i></span></th>
+                                <td>Seongmin</td>
+                                <td>1549</td>
+                                <td>#2321</td>
+                                <td><span class="icon"><i class="fas fa-times"></i></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+            <div class="tile is-vertical is-4 is-parent">
+                <article class="tile is-child notification scrollable-tile box">
+                    <p class="title">Chat</p>
+                    <div class="notification scroll" id="chat_area">
+                        <div class="content">
+                            Hyunbin has entered the chat <br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                            blah<br>
+                        </div>
+                    </div>
+                    <div class="field has-addons">
+                        <input type="text" class="input">
+                        <div class="control is-expanded">
+                        </div>
+                        <div class="control">
+                            <a href="" class="button is-success"><span class="icon"><i class="fas fa-paper-plane"></i></span></a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

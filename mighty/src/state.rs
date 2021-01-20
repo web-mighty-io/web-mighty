@@ -1,13 +1,17 @@
-use crate::card::Color;
 use crate::card::{Card, Pattern, Rush};
-use crate::command::Command;
-use crate::error::{Error, Result};
-use crate::rule::friend;
 use crate::rule::{card_policy::CardPolicy, election, Rule};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
 use rand::seq::SliceRandom;
+
+#[cfg(any(feature = "client", feature = "server"))]
+use {
+    crate::card::Color,
+    crate::command::Command,
+    crate::error::{Error, Result},
+    crate::rule::friend,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Hash)]
 pub enum FriendFunc {
@@ -137,6 +141,7 @@ impl State {
         }
     }
 
+    #[cfg(any(feature = "client", feature = "server"))]
     fn get_mighty(&self) -> Card {
         match self {
             State::InGame {
@@ -148,6 +153,7 @@ impl State {
         }
     }
 
+    #[cfg(any(feature = "client", feature = "server"))]
     fn check_card_valid(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame {

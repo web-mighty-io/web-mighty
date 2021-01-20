@@ -1,9 +1,9 @@
-name: build
+name: test
 on: [ push, pull_request ]
 
 jobs:
   ci:
-    name: build
+    name: test
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -14,18 +14,22 @@ jobs:
           - build: stable
             os: ubuntu-latest
             rust: stable
+            browsers: --node --firefox --chrome
 
           - build: beta
             os: ubuntu-latest
             rust: beta
+            browsers: --node --firefox --chrome
 
           - build: nightly
             os: ubuntu-latest
             rust: nightly
+            browsers: --node --firefox --chrome
 
           - build: macos
             os: macos-latest
             rust: stable
+            browsers: --node --firefox --chrome --safari
 
     steps:
       - uses: actions/checkout@v2
@@ -41,48 +45,55 @@ jobs:
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path config/Cargo.toml
+          command: test
+          args: --manifest-path config/Cargo.toml
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path mighty/Cargo.toml --features server
+          command: test
+          args: --manifest-path mighty/Cargo.toml --features server
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path mighty/Cargo.toml --features client
+          command: test
+          args: --manifest-path mighty/Cargo.toml --features client
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path public/Cargo.toml
+          command: test
+          args: --manifest-path public/Cargo.toml
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path server/Cargo.toml
+          command: test
+          args: --manifest-path server/Cargo.toml
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path server/Cargo.toml --features watch-file
+          command: test
+          args: --manifest-path server/Cargo.toml --features watch-file
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path types/Cargo.toml
+          command: test
+          args: --manifest-path types/Cargo.toml
 
       - name: Checking if it builds without errors
         uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --all-targets --manifest-path types/Cargo.toml --features server
-s
+          command: test
+          args: --manifest-path types/Cargo.toml --features server
+
+      - name: Testing wasm
+        run: |
+          if [ -f "${HOME}/.cargo/bin/wasm-pack" ]; then
+            rm ${HOME}/.cargo/bin/wasm-pack
+          fi
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          cd public && wasm-pack test ${{ matrix.browsers }} --headless

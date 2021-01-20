@@ -948,15 +948,18 @@ impl State {
                     let mut current_pattern = *current_pattern;
                     let joker_call_card = *joker_call_card;
 
-                    let joker_calls = vec![if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[0].0)) {
-                        rule.joker_call.cards[0].0
-                    } else {
-                        rule.joker_call.cards[0].1
-                    }, if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[1].0)) {
-                        rule.joker_call.cards[1].0
-                    } else {
-                        rule.joker_call.cards[1].1
-                    }];
+                    let joker_calls = vec![
+                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[0].0)) {
+                            rule.joker_call.cards[0].0
+                        } else {
+                            rule.joker_call.cards[0].1
+                        },
+                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[1].0)) {
+                            rule.joker_call.cards[1].0
+                        } else {
+                            rule.joker_call.cards[1].1
+                        },
+                    ];
 
                     if joker_call_card != None
                         && !deck[user_id]

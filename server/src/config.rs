@@ -92,17 +92,32 @@ impl Config {
     }
 
     pub fn get_pg_config(&self) -> PgConfig {
-        self.postgres.as_ref().map_or_else(
-            || {
-                let mut c = PgConfig::new();
-                c.host("localhost");
-                c.user("admin");
-                c.password("admin");
-                c.dbname("web_mighty");
-                c
-            },
-            |c| c.get_pg_config().unwrap().into(),
-        )
+        let mut conf = self.postgres
+            .as_ref()
+            .map_or_else(PgConfig::new, |c| c.get_pg_config().unwrap().into());
+
+        if conf.get_hosts().is_empty() {
+            conf.host("0.0.0.0");
+            conf.host("localhost");
+        }
+
+        if conf.get_ports().is_empty() {
+            conf.port(5432);
+        }
+
+        if let None = conf.get_dbname() {
+            conf.dbname("web_mighty");
+        }
+
+        if let None = conf.get_user() {
+            conf.user("admin");
+        }
+
+        if let None = conf.get_password() {
+            conf.password("admin");
+        }
+
+        conf
     }
 
     pub fn get_logger(&self) -> GlobalLoggerGuard {

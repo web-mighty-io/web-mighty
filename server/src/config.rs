@@ -92,7 +92,8 @@ impl Config {
     }
 
     pub fn get_pg_config(&self) -> PgConfig {
-        let mut conf = self.postgres
+        let mut conf = self
+            .postgres
             .as_ref()
             .map_or_else(PgConfig::new, |c| c.get_pg_config().unwrap().into());
 
@@ -105,15 +106,15 @@ impl Config {
             conf.port(5432);
         }
 
-        if let None = conf.get_dbname() {
+        if conf.get_dbname().is_none() {
             conf.dbname("web_mighty");
         }
 
-        if let None = conf.get_user() {
+        if conf.get_user().is_none() {
             conf.user("admin");
         }
 
-        if let None = conf.get_password() {
+        if conf.get_password().is_none() {
             conf.password("admin");
         }
 

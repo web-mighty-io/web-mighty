@@ -1072,40 +1072,35 @@ mod test {
     fn next_default_test1() {
         let rule = Rule::from(Preset::Default5);
         let mut state = State::new(&rule);
-        match state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 12))), &rule) {
-            Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13))),
-            _ => {}
+        if let Err(x) = state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 12))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13)))
         }
         state = state
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
-        match state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
-            Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13))),
-            _ => {}
+        if let Err(x) = state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13)))
         }
         state = state
             .next(1, Command::Pledge(Some((Some(Pattern::Clover), 14))), &rule)
             .unwrap();
-        match state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
-            Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidOrder)),
-            _ => {}
+        if let Err(x) = state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidOrder))
         }
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
         state = state.next(0, Command::Pledge(None), &rule).unwrap();
-        match state {
-            State::SelectFriend {
-                president,
-                giruda,
-                pledge,
-                deck: _,
-            } => {
-                assert_eq!(president, 1usize);
-                assert_eq!(pledge, 14u8);
-                assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
-            }
-            _ => {}
+        if let State::SelectFriend {
+            president,
+            giruda,
+            pledge,
+            deck: _,
+        } = state
+        {
+            assert_eq!(president, 1usize);
+            assert_eq!(pledge, 14u8);
+            assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
         }
     }
 }

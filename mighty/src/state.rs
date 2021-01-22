@@ -97,18 +97,16 @@ impl State {
                 .chunks(rule.card_cnt_per_user as usize)
                 .map(|v| v.to_vec())
                 .collect::<Vec<_>>();
-
             let is_not_missed_deal = deck
                 .iter()
                 .map(|v| {
                     if v.len() == rule.card_cnt_per_user as usize {
                         !rule.missed_deal.is_missed_deal(&v)
                     } else {
-                        false
+                        true
                     }
                 })
                 .all(|s| s);
-
             if is_not_missed_deal {
                 break deck;
             }
@@ -278,7 +276,7 @@ impl State {
             State::Election {
                 pledge,
                 done,
-                curr_user: _,
+                curr_user,
                 start_user,
                 deck,
                 left,
@@ -287,6 +285,9 @@ impl State {
                     let mut done = done.clone();
                     let mut pledge = pledge.clone();
                     let is_ordered = rule.election.contains(election::Election::ORDERED);
+                    if *curr_user != user_id && is_ordered {
+                        return Err(Error::InvalidOrder);
+                    }
 
                     match x {
                         Some((c, p)) => {
@@ -313,14 +314,13 @@ impl State {
                                 })
                                 .max()
                                 .unwrap();
-                            let max_pledge = std::cmp::max(max_pledge, rule.pledge.min);
                             let offset = if c == None { rule.pledge.no_giruda_offset } else { 0 };
                             let max_pledge = if start_user == user_id {
                                 (max_pledge as i8 + offset + rule.pledge.first_offset) as u8
                             } else {
                                 (max_pledge as i8 + offset) as u8
                             };
-                            if p < max_pledge {
+                            if p < std::cmp::max(max_pledge, rule.pledge.min) {
                                 return Err(Error::InvalidPledge(false, max_pledge));
                             }
                             if p == max_pledge && rule.election.contains(election::Election::INCREASING) {
@@ -1054,6 +1054,53 @@ impl State {
             State::SelectFriend { president, .. } => 1 << *president,
             State::InGame { current_user, .. } => 1 << *current_user,
             _ => 0,
+        }
+    }
+} //나중에 테스트 다 하고 바꾸기>
+
+#[cfg(test)]
+mod test {
+    #[cfg(feature = "server")]
+    use {
+        super::*,
+        crate::prelude::{Command, Error},
+        crate::rule::Preset,
+    };
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn next_default_test1() {
+        let rule = Rule::from(Preset::Default5);
+        let mut state = State::new(&rule);
+        if let Err(x) = state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 12))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13)))
+        }
+        state = state
+            .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
+            .unwrap();
+        if let Err(x) = state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13)))
+        }
+        state = state
+            .next(1, Command::Pledge(Some((Some(Pattern::Clover), 14))), &rule)
+            .unwrap();
+        if let Err(x) = state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidOrder))
+        }
+        state = state.next(2, Command::Pledge(None), &rule).unwrap();
+        state = state.next(3, Command::Pledge(None), &rule).unwrap();
+        state = state.next(4, Command::Pledge(None), &rule).unwrap();
+        state = state.next(0, Command::Pledge(None), &rule).unwrap();
+        if let State::SelectFriend {
+            president,
+            giruda,
+            pledge,
+            deck: _,
+        } = state
+        {
+            assert_eq!(president, 1usize);
+            assert_eq!(pledge, 14u8);
+            assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
         }
     }
 }

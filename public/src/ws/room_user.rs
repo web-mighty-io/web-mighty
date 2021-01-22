@@ -17,6 +17,11 @@ impl SessionTrait for User {
 }
 
 #[wasm_bindgen]
+pub fn room_start_game() {
+    USER.with(move |user| user.borrow().send(RoomUserToServer::Start));
+}
+
+#[wasm_bindgen]
 pub fn room_change_name(name: String) {
     USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeName(name)));
 }
@@ -25,4 +30,10 @@ pub fn room_change_name(name: String) {
 pub fn room_change_rule(rule: &JsValue) {
     let rule = rule.into_serde().unwrap();
     USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeRule(rule)));
+}
+
+#[wasm_bindgen]
+pub fn room_send_command(command: &JsValue) {
+    let command = command.into_serde().unwrap();
+    USER.with(move |user| user.borrow().send(RoomUserToServer::Command(command)));
 }

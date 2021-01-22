@@ -1060,9 +1060,14 @@ impl State {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::rule::Preset;
+    #[cfg(feature = "server")]
+    use {
+        super::*,
+        crate::prelude::{Command, Error},
+        crate::rule::Preset,
+    };
 
+    #[cfg(feature = "server")]
     #[test]
     fn next_default_test1() {
         let rule = Rule::from(Preset::Default5);

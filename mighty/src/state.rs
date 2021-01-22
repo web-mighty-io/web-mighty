@@ -1074,21 +1074,21 @@ mod test {
         let mut state = State::new(&rule);
         match state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 12))), &rule) {
             Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13))),
-            _ => assert!(false),
+            _ => {}
         }
         state = state
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
         match state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
             Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13))),
-            _ => assert!(false),
+            _ => {}
         }
         state = state
             .next(1, Command::Pledge(Some((Some(Pattern::Clover), 14))), &rule)
             .unwrap();
         match state.next(1, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
             Err(x) => assert_eq!(format!("{}", x), format!("{}", Error::InvalidOrder)),
-            _ => assert!(false),
+            _ => {}
         }
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
@@ -1105,7 +1105,7 @@ mod test {
                 assert_eq!(pledge, 14u8);
                 assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
             }
-            _ => assert!(false),
+            _ => {}
         }
     }
 }

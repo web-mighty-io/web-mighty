@@ -1,17 +1,27 @@
-DROP TABLE IF EXISTS game;
+DROP TABLE IF EXISTS curr_rooms;
 
-CREATE TABLE game
+CREATE TABLE curr_rooms
 (
-    id        UUID         NOT NULL,
-    room_id   UUID         NOT NULL,
-    room_name VARCHAR(255) NOT NULL,
-    users     INTEGER[]    NOT NULL, -- 0 if robot
-    is_rank   BOOLEAN      NOT NULL, -- type of game
-    rule      JSON         NOT NULL
+    uuid       UUID      NOT NULL,
+    id         INTEGER   NOT NULL,
+    users      INTEGER[] NOT NULL,
+    is_gaming  BOOLEAN   NOT NULL DEFAULT FALSE,
+    rule       JSON      NOT NULL
 );
 
-CREATE UNIQUE INDEX game_id_index ON game (id);
-CREATE INDEX game_room_id_index ON game (room_id);
+DROP TABLE IF EXISTS games;
+
+CREATE TABLE games
+(
+    id      UUID      NOT NULL,
+    room_id UUID      NOT NULL,
+    users   INTEGER[] NOT NULL, -- 0 if robot
+    is_rank BOOLEAN   NOT NULL, -- type of game
+    rule    JSON      NOT NULL
+);
+
+CREATE UNIQUE INDEX game_id_index ON games (id);
+CREATE INDEX game_room_id_index ON games (room_id);
 
 DROP TABLE IF EXISTS record;
 

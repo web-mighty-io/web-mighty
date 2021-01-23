@@ -27,6 +27,7 @@ mod dev {
     pub use crate::util::*;
     pub use crate::{bail, ensure, err, ignore, try_ctx};
     pub use actix_web::http::StatusCode;
+    pub use regex;
     pub use types::*;
 
     use r2d2_postgres::postgres::NoTls;

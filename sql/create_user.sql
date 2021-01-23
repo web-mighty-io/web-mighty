@@ -23,7 +23,7 @@ CREATE TABLE users
     name     VARCHAR(255)        NOT NULL,
     email    VARCHAR(255) UNIQUE NOT NULL, -- primary email
     rating   INT                          DEFAULT 0,
-    password CHAR(255)           NOT NULL, -- hashed password
+    password CHAR(32)            NOT NULL, -- hashed password
     gen_time TIMESTAMP                    DEFAULT now(),
     is_admin BOOLEAN                      DEFAULT FALSE
 );

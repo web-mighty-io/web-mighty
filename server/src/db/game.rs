@@ -69,7 +69,7 @@ pub struct MakeGameForm {
 pub fn make_game(form: MakeGameForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client
-        .prepare("INSERT INTO game (id, room_id, room_name, users, is_rank, rule) VALUES ($1, $2, $3, $4, $5, $6);")?;
+        .prepare("INSERT INTO games (id, room_id, room_name, users, is_rank, rule) VALUES ($1, $2, $3, $4, $5, $6);")?;
     let _ = client.query(
         &stmt,
         &[

@@ -15,13 +15,8 @@ mod constant {
 
     pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(2);
     pub const CLIENT_TIMEOUT: Duration = Duration::from_secs(4);
-    // const LAST_ACTIVITY_INTERVAL: Duration = Duration::from_secs(30);
-    // const CHECK_ACTIVITY_INTERVAL: Duration = Duration::from_secs(15);
     pub const RECONNECTION_TIME: Duration = Duration::from_secs(10);
     pub const ABSENT_TIME: Duration = Duration::from_secs(300);
-
-    // const MAX_CHAT_HISTORY: usize = 50;
-
     pub const TOKEN_VALID_DURATION: Duration = Duration::from_secs(24 * 60 * 60);
 }
 

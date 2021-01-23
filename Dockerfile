@@ -3,12 +3,12 @@
 # - compiling wasm
 FROM rust:latest AS rust-build
 
-# labels
-LABEL maintainer="Jaeyong Sung <jaeyong0201@gmail.com>"
-LABEL org.label-schema.name="buttercrab/web-mighty"
-LABEL org.label-schema.description="Mighty Card Game in Online"
+COPY ./config /app/config
+COPY ./mighty /app/mighty
+COPY ./public /app/public
+COPY ./server /app/server
+COPY ./types  /app/types
 
-COPY . /app
 RUN cargo install --root /app/build --path /app/server
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN wasm-pack build --target web -d /app/static/res/pkg /app/public
@@ -38,6 +38,11 @@ RUN python3 /app/minify_files.py --path /app/static --remove
 
 # main container
 FROM ubuntu:latest
+
+# labels
+LABEL maintainer="Jaeyong Sung <jaeyong0201@gmail.com>"
+LABEL org.label-schema.name="buttercrab/web-mighty"
+LABEL org.label-schema.description="Mighty Card Game in Online"
 
 ENV SERVE_PATH="/app/static"
 

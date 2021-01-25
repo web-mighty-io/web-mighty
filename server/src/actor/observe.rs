@@ -5,6 +5,7 @@ use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
 use types::{ObserveToClient, ObserveToServer};
 
+#[derive(Debug)]
 pub struct Observe {
     room: Addr<Room>,
 }

@@ -98,3 +98,29 @@ pub fn save_state(form: SaveStateForm, pool: Pool) -> Result<()> {
     let _ = client.query(&stmt, &[&form.game_id, &form.room_id, &form.number, &Json(form.state)])?;
     Ok(())
 }
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct GetRuleForm {
+    pub rule_hash: String,
+}
+
+pub fn get_rule(form: GetRuleForm, pool: Pool) -> Result<Rule> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("")?; // todo
+    let res = client.query(&stmt, &[&form.rule_hash])?;
+    ensure!(res.len() == 1, "no rule found");
+    let rule: Json<Rule> = res[0].get(0);
+    Ok(rule.0)
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct SaveRuleForm {
+    pub rule: Rule,
+}
+
+pub fn save_rule(form: SaveRuleForm, pool: Pool) -> Result<()> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("")?; // todo
+    let _ = client.query(&stmt, &[&Json(form.rule)]);
+    Ok(())
+}

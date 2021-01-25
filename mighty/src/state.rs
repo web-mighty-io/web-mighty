@@ -1,10 +1,8 @@
 use crate::card::{Card, Pattern, Rush};
 use crate::rule::{card_policy::CardPolicy, election, Rule};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "server")]
 use rand::seq::SliceRandom;
-
+use serde::{Deserialize, Serialize};
 #[cfg(any(feature = "client", feature = "server"))]
 use {
     crate::card::Color,

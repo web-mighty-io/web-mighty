@@ -23,6 +23,7 @@ pub trait SessionTrait: Sized + Unpin + 'static {
     }
 }
 
+#[derive(Debug)]
 pub struct Session<T>
 where
     T: SessionTrait,

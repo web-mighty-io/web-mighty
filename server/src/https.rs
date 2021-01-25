@@ -6,6 +6,9 @@ use actix_web::HttpResponse;
 use futures::future::{ok, Either, Ready};
 use futures::task::{Context, Poll};
 
+/// Transform of `RedirectHttps`
+///
+/// Make this if you want to use this middleware
 pub struct RedirectHttps {
     http_port: u16,
     https_port: u16,
@@ -13,6 +16,7 @@ pub struct RedirectHttps {
 }
 
 impl RedirectHttps {
+    /// If you don't want redirection, you can set `redirect` to false
     pub fn new(http_port: u16, https_port: u16, redirect: bool) -> RedirectHttps {
         RedirectHttps {
             http_port,
@@ -44,6 +48,7 @@ where
     }
 }
 
+/// Actual middleware of `RedirectHttps`
 pub struct RedirectHttpsMiddleware<S> {
     service: S,
     http_port: String,

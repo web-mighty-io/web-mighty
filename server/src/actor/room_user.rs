@@ -4,6 +4,7 @@ use crate::dev::*;
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
 
+#[derive(Debug)]
 pub struct RoomUser {
     user: Addr<User>,
 }

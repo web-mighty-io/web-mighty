@@ -6,6 +6,7 @@ use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
 use types::{MainToClient, MainToServer};
 
+#[derive(Debug)]
 pub struct Main {
     user: Addr<User>,
     hub: Addr<Hub>,

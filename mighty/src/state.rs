@@ -1093,14 +1093,7 @@ mod test {
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
         let mut drop_card = Vec::new();
-        if let State::SelectFriend {
-            president,
-            giruda: _,
-            pledge: _,
-            deck,
-        } = state.clone()
-        {
-            let deck = deck.clone();
+        if let State::SelectFriend { president, deck, .. } = state.clone() {
             drop_card = deck[president]
                 .choose_multiple(&mut rand::thread_rng(), 3)
                 .cloned()
@@ -1143,15 +1136,15 @@ mod test {
         let mut drop_card = Vec::new();
         if let State::SelectFriend {
             president,
-            giruda,
             pledge,
+            giruda,
             deck,
+            ..
         } = state.clone()
         {
             assert_eq!(president, 1usize);
             assert_eq!(pledge, 14u8);
             assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
-            let deck = deck.clone();
             drop_card = deck[president]
                 .choose_multiple(&mut rand::thread_rng(), 3)
                 .cloned()
@@ -1168,21 +1161,10 @@ mod test {
             .unwrap();
         for i in 0..50 {
             if let State::InGame {
-                president: _,
-                friend_func: _,
-                friend: _,
-                is_friend_known: _,
                 giruda,
-                pledge: _,
                 deck,
-                score_deck: _,
-                turn_count: _,
-                placed_cards: _,
-                start_user: _,
                 current_user,
-                current_pattern: _,
-                joker_call_card: _,
-                joker_call_effect: _,
+                ..
             } = state.clone()
             {
                 let card = deck[current_user]
@@ -1203,9 +1185,7 @@ mod test {
             winner,
             president,
             friend,
-            score: _,
-            pledge: _,
-            giruda: _,
+            ..
         } = state
         {
             assert!(winner == 6 || winner == 26);
@@ -1242,11 +1222,10 @@ mod test {
         if let State::SelectFriend {
             president,
             giruda,
-            pledge: _,
             deck,
+            ..
         } = state.clone()
         {
-            let deck = deck.clone();
             let drop_card = deck[president]
                 .choose_multiple(&mut rand::thread_rng(), 4)
                 .cloned()
@@ -1263,21 +1242,10 @@ mod test {
                 .unwrap();
             for i in 0..50 {
                 if let State::InGame {
-                    president: _,
-                    friend_func: _,
-                    friend: _,
-                    is_friend_known: _,
                     giruda,
-                    pledge: _,
                     deck,
-                    score_deck: _,
-                    turn_count: _,
-                    placed_cards: _,
-                    start_user: _,
                     current_user,
-                    current_pattern: _,
-                    joker_call_card: _,
-                    joker_call_effect: _,
+                    ..
                 } = state.clone()
                 {
                     let card = deck[current_user]

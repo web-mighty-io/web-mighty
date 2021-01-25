@@ -229,7 +229,7 @@ pub fn is_user_id_valid(user_id: &str) -> Result<()> {
 }
 
 pub fn is_password_valid(password: &str) -> Result<()> {
-    let pwd_regex = Regex::new(r"[a-z0-9]{512}$").unwrap();
+    let pwd_regex = Regex::new(r"[a-f0-9]{128}$").unwrap();
     ensure!(
         pwd_regex.is_match(password),
         StatusCode::UNAUTHORIZED,

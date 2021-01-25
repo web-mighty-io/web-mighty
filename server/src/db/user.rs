@@ -13,9 +13,9 @@ pub struct AddUserForm {
 }
 
 pub fn add_user(form: AddUserForm, pool: Pool) -> Result<()> {
-    let _ = is_user_id_valid(&form.user_id);
-    let _ = is_user_name_valid(&form.name);
-    let _ = is_password_valid(&form.password, &form.user_id);
+    let _ = is_user_id_valid(&form.user_id)?;
+    let _ = is_user_name_valid(&form.name)?;
+    let _ = is_password_valid(&form.password)?;
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 gen_time, email FROM pre_users WHERE id=$1 AND token=$2;")?;
     let res = client.query(&stmt, &[&form.user_id, &form.token])?;
@@ -60,11 +60,10 @@ pub fn change_user_info(form: ChangeInfoForm, pool: Pool) -> Result<()> {
     let username = form.name.clone().unwrap_or_else(|| row.get(0));
     let email = form.email.clone().unwrap_or_else(|| row.get(1));
     let password = form.new_password.clone().unwrap_or_else(|| form.password.clone());
-    let user_id: String = row.get(2);
 
-    let _ = is_user_name_valid(&username);
-    let _ = is_password_valid(&password, &user_id);
-    let _ = is_email_valid(&email);
+    let _ = is_user_name_valid(&username)?;
+    let _ = is_password_valid(&password)?;
+    let _ = is_email_valid(&email)?;
 
     let mut client = pool.get()?;
     let stmt = client.prepare("UPDATE users SET name=$1, email=$2, password=$3 WHERE no=$4;")?;
@@ -196,8 +195,8 @@ pub struct RegisterForm {
 }
 
 pub fn register_user(form: RegisterForm, pool: Pool) -> Result<()> {
-    let _ = is_user_id_valid(&form.user_id);
-    let _ = is_email_valid(&form.email);
+    let _ = is_user_id_valid(&form.user_id)?;
+    let _ = is_email_valid(&form.email)?;
     let mut client = pool.get()?;
     let stmt =
         client.prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")?;
@@ -210,9 +209,9 @@ pub fn register_user(form: RegisterForm, pool: Pool) -> Result<()> {
 }
 
 pub fn is_user_name_valid(user_name: &str) -> Result<()> {
-    let id_regex = Regex::new(r"[a-zA-z]{4,20}$").unwrap();
+    let not_id_regex = Regex::new(r"[^!@#$%^&*()_+-=:;'\[\]\{\}\\|<>?,./]{4,20}").unwrap();
     ensure!(
-        id_regex.is_match(user_name),
+        !not_id_regex.is_match(user_name),
         StatusCode::UNAUTHORIZED,
         "only english is allowed for user name"
     );
@@ -220,7 +219,7 @@ pub fn is_user_name_valid(user_name: &str) -> Result<()> {
 }
 
 pub fn is_user_id_valid(user_id: &str) -> Result<()> {
-    let id_regex = Regex::new(r"[a-zA-z0-9]{4,12}$").unwrap();
+    let id_regex = Regex::new(r"[a-zA-z0-9._\-]{4,12}$").unwrap();
     ensure!(
         id_regex.is_match(user_id),
         StatusCode::UNAUTHORIZED,
@@ -229,17 +228,12 @@ pub fn is_user_id_valid(user_id: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn is_password_valid(password: &str, user_id: &str) -> Result<()> {
-    let pwd_regex = Regex::new(r"[a-zA-z0-9]{4,12}$").unwrap();
+pub fn is_password_valid(password: &str) -> Result<()> {
+    let pwd_regex = Regex::new(r"[a-z0-9]{512}$").unwrap();
     ensure!(
         pwd_regex.is_match(password),
         StatusCode::UNAUTHORIZED,
-        "only english and number is allowed for password"
-    );
-    ensure!(
-        !password.contains(user_id),
-        StatusCode::UNAUTHORIZED,
-        "password can't contain user id"
+        "only english and number is allowed for sha512"
     );
     Ok(())
 }

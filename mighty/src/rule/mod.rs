@@ -6,6 +6,7 @@ pub mod friend;
 pub mod joker_call;
 pub mod missed_deal;
 pub mod pledge;
+pub mod timing;
 pub mod visibility;
 
 pub mod prelude {
@@ -30,6 +31,7 @@ use crate::rule::friend::Friend;
 use crate::rule::joker_call::JokerCall;
 use crate::rule::missed_deal::MissedDeal;
 use crate::rule::pledge::Pledge;
+use crate::rule::timing::Timing;
 use crate::rule::visibility::Visibility;
 use config::Config;
 use serde::{Deserialize, Serialize};
@@ -78,6 +80,7 @@ pub struct Rule {
     pub pattern_order: Vec<Pattern>,
     pub visibility: Visibility,
     pub next_dealer: Dealer,
+    pub timing: Timing,
 }
 
 impl From<Preset> for Rule {
@@ -184,6 +187,7 @@ impl Rule {
             pattern_order: vec![Pattern::Spade, Pattern::Diamond, Pattern::Heart, Pattern::Clover],
             visibility: Visibility::FRIEND,
             next_dealer: Dealer::Friend,
+            timing: Timing::new(),
         }
     }
 

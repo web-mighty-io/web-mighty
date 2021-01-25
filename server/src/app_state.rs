@@ -26,6 +26,8 @@ use {
 /// 2. `watcher`: Just to be alive whole time. (available in `watch-file` feature)
 /// 3. `resources`: Needs for resource files. All file except `.hbs` file is saved here. Can get from calling `get_resources()`.
 /// 4. `hub`: Websocket main server address.
+/// 5. `pool`: Database pool.
+/// 6. `mail`: Mail sender.
 pub struct AppState {
     #[cfg(not(feature = "watch-file"))]
     handlebars: Handlebars<'static>,
@@ -108,6 +110,8 @@ impl AppState {
     }
 }
 
+/// Function to get all handlebars
+/// It would search through `static` directory and save in the memory.
 fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
     let path = path.as_ref();
     let mut handlebars = Handlebars::new();
@@ -131,6 +135,8 @@ fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
     handlebars
 }
 
+/// Function to get resources
+/// It would search through `static` directory and save in the memory.
 fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, Vec<u8>> {
     let path = path.as_ref();
     let mut resources = HashMap::new();
@@ -159,6 +165,10 @@ fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, Vec<u8>> {
     resources
 }
 
+/// function to watch changes (available in `watch-file` feature)
+///
+/// It would watch files and if the file changes, it would apply to server.
+/// If the file is sass, it would compile to css.
 #[cfg(feature = "watch-file")]
 fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! {
     loop {

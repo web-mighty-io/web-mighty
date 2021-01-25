@@ -6,6 +6,7 @@ use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;
 use types::{ListToClient, ListToServer};
 
+#[derive(Debug)]
 pub struct List {
     hub: Addr<Hub>,
 }

@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 /// Temporary Presets
 ///
 /// After complete implementing server, this goes to database.
-#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Preset {
     // 기본 5마
     Default5,

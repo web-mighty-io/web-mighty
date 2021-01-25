@@ -1,13 +1,21 @@
 use crate::actor::room::Room;
 use crate::actor::user::User;
+use crate::db::game::{save_rule, SaveRuleForm};
 use crate::db::user::{get_user_info, GetInfoForm};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::Rule;
+use rand::distributions::{Distribution, Uniform};
+use rand::thread_rng;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+/// Hub Actor
+///
+/// This contains addresses of user and room.
+/// It will give or make addresses of user & room.
+#[derive(Debug)]
 pub struct Hub {
     room: HashMap<RoomId, Addr<Room>>,
     counter: u64,
@@ -19,7 +27,9 @@ impl Actor for Hub {
     type Context = Context<Self>;
 }
 
-#[derive(Clone, Message)]
+/// This would request the address of room.
+/// If the room doesn't exists, it would respond error.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<Addr<Room>>")]
 pub struct GetRoom(pub RoomId);
 
@@ -31,7 +41,9 @@ impl Handler<GetRoom> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// This would make room with `room_name`, `rule`, and `is_rank`.
+/// The `room_id` would generated with random value.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "RoomId")]
 pub struct MakeRoom(pub String, pub Rule, pub bool);
 
@@ -42,12 +54,14 @@ impl Handler<MakeRoom> for Hub {
         let room_uuid = RoomUuid(self.generate_uuid("room"));
         let room_id = self.generate_room_id();
         let user_cnt = msg.1.user_cnt as usize;
+        let rule = RuleHash::from_rule(&msg.1);
+        let _ = save_rule(SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
         let room = Room::new(
             RoomInfo {
                 uuid: room_uuid,
                 id: room_id,
                 name: msg.0,
-                rule: msg.1,
+                rule,
                 is_rank: msg.2,
                 head: UserNo(0),
                 user: vec![UserNo(0); user_cnt],
@@ -63,7 +77,8 @@ impl Handler<MakeRoom> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// Removes the room if exists
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct RemoveRoom(pub RoomId);
 
@@ -75,7 +90,9 @@ impl Handler<RemoveRoom> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// Returns the existing user or make new one.
+/// Returns error when `user_no` doesn't exists.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<Addr<User>>")]
 pub struct HubConnect(pub UserNo);
 
@@ -94,7 +111,8 @@ impl Handler<HubConnect> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// Returns address of user if user is present or returns error
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<Addr<User>>")]
 pub struct GetUser(pub UserNo);
 
@@ -106,7 +124,8 @@ impl Handler<GetUser> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// When user gets offline, this would remove user.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct HubDisconnect(pub UserNo);
 
@@ -118,7 +137,8 @@ impl Handler<HubDisconnect> for Hub {
     }
 }
 
-#[derive(Clone, Message)]
+/// This would make unique game id across the server
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "GameId")]
 pub struct MakeGameId;
 
@@ -140,6 +160,7 @@ impl Hub {
         }
     }
 
+    /// Generate random uuid
     pub fn generate_uuid(&mut self, tag: &str) -> Uuid {
         self.counter += 1;
         Uuid::new_v5(
@@ -154,9 +175,10 @@ impl Hub {
         )
     }
 
+    /// Generate random 6-digit `room_id`
     pub fn generate_room_id(&mut self) -> RoomId {
         loop {
-            let id = RoomId(rand::random());
+            let id = RoomId(Uniform::new(0, 999999).sample(&mut thread_rng()));
             if !self.room.contains_key(&id) {
                 break id;
             }

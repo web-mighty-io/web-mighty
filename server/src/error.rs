@@ -1,8 +1,12 @@
 use actix_web::http::StatusCode;
 use actix_web::ResponseError;
+pub use anyhow as _anyhow;
 use anyhow::Error as AnyError;
 use std::fmt::{self, Display, Formatter};
 
+/// Error of this server
+///
+/// By using `anyhow`, it can handle error easily & status code by using `StatusCode`.
 #[derive(Debug)]
 pub struct Error(pub StatusCode, pub AnyError);
 
@@ -27,4 +31,7 @@ where
     }
 }
 
+/// Result type of this server
+///
+/// It uses `Error` by default.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

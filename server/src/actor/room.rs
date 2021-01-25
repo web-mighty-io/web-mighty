@@ -1,20 +1,25 @@
 use crate::actor::hub::{MakeGameId, RemoveRoom};
 use crate::actor::user::{GotGameState, GotRoomInfo};
 use crate::actor::{hub, Hub, List, Observe, User};
-use crate::db::game::{save_state, SaveStateForm};
+use crate::db::game::{get_rule, save_rule, save_state, GetRuleForm, SaveRuleForm, SaveStateForm};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::{Command, Game, Rule};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Serialize, Deserialize)]
+/// Information of game
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameInfo {
     id: GameId,
     no: u32,
     game: Game,
 }
 
+/// Room Actor
+///
+/// This contains all the information for room
+#[derive(Debug)]
 pub struct Room {
     info: RoomInfo,
     game: Option<GameInfo>,
@@ -29,7 +34,9 @@ impl Actor for Room {
     type Context = Context<Self>;
 }
 
-#[derive(Clone, Message)]
+/// Joins to room
+/// This returns RoomInfo for receivers to check if they're joined successfully
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "RoomInfo")]
 pub enum RoomJoin {
     User(UserNo, Addr<User>),
@@ -42,21 +49,21 @@ impl Handler<RoomJoin> for Room {
 
     fn handle(&mut self, msg: RoomJoin, _: &mut Self::Context) -> Self::Result {
         match msg {
-            RoomJoin::User(user_id, addr) => {
+            RoomJoin::User(user_no, addr) => {
                 if self.info.is_game {
                     return self.info.clone();
                 }
                 let mut is_full = true;
                 for i in self.info.user.iter_mut() {
                     if i.0 == 0 {
-                        *i = user_id;
+                        *i = user_no;
                         is_full = false;
                     }
                 }
                 if is_full {
                     return self.info.clone();
                 }
-                self.user_addr.insert(user_id, addr);
+                self.user_addr.insert(user_no, addr);
                 self.set_head();
                 self.spread_info();
             }
@@ -73,7 +80,9 @@ impl Handler<RoomJoin> for Room {
     }
 }
 
-#[derive(Clone, Message)]
+/// Leaves room
+/// If the information is invalid or not present, it will do nothing.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub enum RoomLeave {
     User(UserNo),
@@ -111,6 +120,7 @@ impl Handler<RoomLeave> for Room {
                 if !self.observe.remove(&addr) {
                     return;
                 }
+                self.info.observer_cnt -= 1;
                 self.spread_info();
             }
             RoomLeave::List(addr) => {
@@ -120,7 +130,9 @@ impl Handler<RoomLeave> for Room {
     }
 }
 
-#[derive(Clone, Message)]
+/// Changes the name of the room.
+/// It won't be changed if the user is not head.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct ChangeName(pub UserNo, pub String);
 
@@ -136,7 +148,9 @@ impl Handler<ChangeName> for Room {
     }
 }
 
-#[derive(Clone, Message)]
+/// Changes the rule of the room.
+/// It won't be changed if the user is not head.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct ChangeRule(pub UserNo, pub Rule);
 
@@ -147,12 +161,15 @@ impl Handler<ChangeRule> for Room {
         if msg.0 != self.info.head || self.info.is_game {
             return;
         }
-        self.info.rule = msg.1;
+        self.info.rule = RuleHash::from_rule(&msg.1);
+        let _ = save_rule(SaveRuleForm { rule: msg.1 }, self.pool.clone());
         self.spread_info();
     }
 }
 
-#[derive(Clone, Message)]
+/// Starts the game.
+/// It won't be changed if the user is not head.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct StartGame(pub UserNo);
 
@@ -171,7 +188,15 @@ impl Handler<StartGame> for Room {
                     act.game = Some(GameInfo {
                         id,
                         no: 0,
-                        game: Game::new(act.info.rule.clone()),
+                        game: Game::new(
+                            get_rule(
+                                GetRuleForm {
+                                    rule_hash: act.info.rule.0.clone(),
+                                },
+                                act.pool.clone(),
+                            )
+                            .unwrap(),
+                        ),
                     });
                     act.info.is_game = true;
                     act.spread_info();
@@ -184,7 +209,8 @@ impl Handler<StartGame> for Room {
     }
 }
 
-#[derive(Clone, Message)]
+/// Process the game
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct Go(pub UserNo, pub Command);
 
@@ -228,7 +254,8 @@ impl Handler<Go> for Room {
     }
 }
 
-#[derive(Clone, Message)]
+/// Returns the information of this room.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "RoomInfo")]
 pub struct GetInfo;
 
@@ -286,8 +313,10 @@ impl Room {
             i.do_send(ObserveToClient::Room(self.info.clone()));
         }
 
+        let simple_info = SimpleRoomInfo::from(self.info.clone());
+
         for i in self.list.iter() {
-            i.do_send(ListToClient::Room(self.info.clone()));
+            i.do_send(ListToClient::Room(simple_info.clone()));
         }
     }
 

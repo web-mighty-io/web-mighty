@@ -1,3 +1,81 @@
+//! # Main Configuration
+//!
+//! - `postgres`: postgres connection configuration
+//!   * `user`: username (defaults to `admin`)
+//!   * `password`: password (defaults to `admin`)
+//!   * `dbname`: database name (defaults to `web_mighty`)
+//!   * `host`: host (defaults to `127.0.0.1`)
+//!   * `port`: port (defaults to `5432`)
+//!   * **see `deadpool_postgres::Config` for more configuration**
+//! - `host`: hostname of server (defaults to `localhost`)
+//! - `port`: port to use for http connection (defaults to `80`)
+//! - `https`: https configuration
+//!   * `port`: port to use for https connection (defaults to `443`)
+//!   * `key`: key file for ssl
+//!   * `cert`: cert file for ssl
+//!   * `redirect`: redirect http connection to https (defaults to `false`)
+//! - `log_path`: path to write log to (stdout if not present)
+//! - `verbose`: verbose level of log (1 ~ 6) (defaults to `4`)
+//! - `serve_path`: path to `static` directory (defaults `static`) **This wouldn't be necessary
+//!                 if you use docker of the way in `README.md`**
+//! - `secret`: random key for token (defaults to random) **note: generate through
+//!             `openssl rand -hex 16`**
+//! - `mail`: mail configuration
+//!   * `username`: username to mail server (defaults to `admin`)
+//!   * `password`: password to mail server (defaults to `admin`)
+//!   * `host`: host of mail server (defaults to `localhost:587`)
+//!
+//! # Examples
+//!
+//! ## `.toml` example
+//!
+//! ```toml
+//! host = "0.0.0.0"
+//! port = "8080"
+//! verbose = "2"
+//! secret = "a093c76bd2c5f4e7dff6360c78bcb57a"
+//!
+//! [postgres]
+//! user = "postgres"
+//! password = "secret"
+//! host = "0.0.0.0"
+//! dbname = "postgres"
+//!
+//! [https]
+//! port = "8443"
+//! key = "./key.pem"
+//! cert = "./cert.pem"
+//! redirect = true
+//!
+//! [mail]
+//! username = "admin"
+//! password = "secret"
+//! host = "0.0.0.0:587"
+//! ```
+//!
+//! ## Environment example
+//!
+//! ```env
+//! HOST="0.0.0.0"
+//! PORT="8080"
+//! VERBOSE="2"
+//! SECRET="a093c76bd2c5f4e7dff6360c78bcb57a"
+//!
+//! POSTGRES__USER="postgres"
+//! POSTGRES__PASSWORD="secret"
+//! POSTGRES__HOST="0.0.0.0"
+//! POSTGRES__DBNAME="postgres"
+//!
+//! HTTPS__PORT="8443"
+//! HTTPS__KEY="./key.pem"
+//! HTTPS__CERT="./cert.pem"
+//! HTTPS__REDIRECT="true"
+//!
+//! MAIL__USERNAME="admin"
+//! MAIL__PASSWORD="secret"
+//! MAIL__HOST="0.0.0.0:587"
+//! ```
+
 use crate::actor;
 use crate::dev::*;
 use config::{Environment, File};
@@ -13,54 +91,45 @@ use slog_term::{FullFormat, PlainDecorator, TermDecorator};
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
+/// Using `deadpoool_postgres::Config` just for serde
 type DpConfig = deadpool_postgres::Config;
 
+/// Main configuration struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    // postgres configuration
     pub postgres: Option<DpConfig>,
-    // host of server (default: localhost)
     pub host: Option<String>,
-    // port of server (default: 80)
     pub port: Option<u16>,
-    // https configuration (default: http only)
     pub https: Option<Https>,
-    // path to log (default: stdout)
     pub log_path: Option<String>,
-    // log verbose (default: 4)
     pub verbose: Option<usize>,
-    // path to static files (default: static)
     pub serve_path: Option<String>,
-    // secret key for auth (default: random)
-    // note: generate through `openssl rand -hex 16`
     pub secret: Option<String>,
-    // mail configuration
     pub mail: Option<Mail>,
 }
 
+/// Https configuration struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct Https {
-    // port for serving https (default: 443)
     pub port: Option<u16>,
-    // key file for https
     pub key: String,
-    // cert file for https
     pub cert: String,
-    // enable redirect http to https (default: false)
     pub redirect: Option<bool>,
 }
 
+/// Mail configuration struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct Mail {
-    // username to mail server (default: admin)
     pub username: Option<String>,
-    // password to mail server (default: main)
     pub password: Option<String>,
-    // host to mail server (default: localhost:587)
     pub host: Option<String>,
 }
 
 impl Config {
+    /// Generate `Config` from the given path.
+    ///
+    /// If `server.toml` doesn't exists, it gets from env variables.
+    /// If env variable doesn't exists, it uses default values.
     pub fn generate(path: PathBuf) -> Config {
         let mut s = ::config::Config::new();
         s.merge(File::from(path).required(false)).unwrap();
@@ -68,14 +137,18 @@ impl Config {
         s.try_into().unwrap()
     }
 
+    /// Function to get host
     pub fn get_host(&self) -> String {
         self.host.clone().unwrap_or_else(|| "localhost".to_owned())
     }
 
+    /// Function to get port
     pub fn get_port(&self) -> u16 {
         self.port.clone().unwrap_or(80)
     }
 
+    /// Function to get private key
+    /// If not present, it would generate random value.
     pub fn get_private_key(&self) -> Vec<u8> {
         if let Some(secret) = &self.secret {
             let mut hasher = Sha256::new();
@@ -87,10 +160,12 @@ impl Config {
         }
     }
 
+    /// Function to get serve path
     pub fn get_serve_path(&self) -> String {
         self.serve_path.clone().unwrap_or_else(|| "static".to_owned())
     }
 
+    /// Function to get postgres configuration
     pub fn get_pg_config(&self) -> PgConfig {
         let mut conf = self
             .postgres
@@ -98,8 +173,7 @@ impl Config {
             .map_or_else(PgConfig::new, |c| c.get_pg_config().unwrap().into());
 
         if conf.get_hosts().is_empty() {
-            conf.host("0.0.0.0");
-            conf.host("localhost");
+            conf.host("127.0.0.1");
         }
 
         if conf.get_ports().is_empty() {
@@ -121,6 +195,7 @@ impl Config {
         conf
     }
 
+    /// Function to get logger (using `slog`)
     pub fn get_logger(&self) -> GlobalLoggerGuard {
         let drain = if let Some(log_path) = &self.log_path {
             let decorator = PlainDecorator::new(
@@ -148,6 +223,7 @@ impl Config {
         guard
     }
 
+    /// Function to get mail configuration
     pub fn get_mail(&self) -> actor::Mail {
         let mail = self.mail.clone().unwrap_or(Mail {
             username: None,
@@ -161,18 +237,17 @@ impl Config {
         )
     }
 
-    // # Https part
-    //
-    // from this part, is would assert that self.https is not none
-
+    /// Function to get https port (assuming https is enabled)
     pub fn get_https_port(&self) -> u16 {
         self.https.as_ref().unwrap().port.unwrap_or(443)
     }
 
+    /// Function to get rediect option (assuming https is enabled)
     pub fn get_redirect(&self) -> bool {
         self.https.as_ref().unwrap().redirect.unwrap_or(false)
     }
 
+    /// Function to get ssl builder (assuming https is enabled)
     pub fn get_ssl_builder(&self) -> SslAcceptorBuilder {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder

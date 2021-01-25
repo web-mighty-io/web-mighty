@@ -8,6 +8,8 @@ use mighty::prelude::State;
 use std::collections::HashSet;
 use std::time::SystemTime;
 
+/// Joined Room Information
+#[derive(Debug)]
 pub struct JoinedRoom {
     addr: Addr<Room>,
     info: RoomInfo,
@@ -15,6 +17,10 @@ pub struct JoinedRoom {
     disconn: u8,
 }
 
+/// User Actor
+///
+/// Main & Room connections connect to this actor
+#[derive(Debug)]
 pub struct User {
     info: UserInfo,
     status: UserStatus,
@@ -30,7 +36,10 @@ impl Actor for User {
     type Context = Context<Self>;
 }
 
-#[derive(Clone, Message)]
+/// Connects to user
+///
+/// `Subscribe` is for status subscription for other user.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<()>")]
 pub enum UserConnect {
     Room(Addr<Session<RoomUser>>),
@@ -60,7 +69,8 @@ impl Handler<UserConnect> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Disconnects to user
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub enum UserDisconnect {
     Room(Addr<Session<RoomUser>>),
@@ -102,7 +112,9 @@ impl Handler<UserDisconnect> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Joins to the room
+/// It would respond `room_info` so that the client can know if the client is joined.
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct UserJoin(pub RoomId);
 
@@ -146,7 +158,8 @@ impl Handler<UserJoin> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Leaves the room
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct UserLeave;
 
@@ -161,7 +174,8 @@ impl Handler<UserLeave> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Commands that user sent
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct UserCommand(pub RoomUserToServer);
 
@@ -191,7 +205,8 @@ impl Handler<UserCommand> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Request for room info
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct GotRoomInfo(pub RoomInfo);
 
@@ -210,7 +225,8 @@ impl Handler<GotRoomInfo> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Passing game state to user
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct GotGameState(pub State);
 
@@ -227,7 +243,8 @@ impl Handler<GotGameState> for User {
     }
 }
 
-#[derive(Clone, Message)]
+/// Update for absent
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
 pub struct Update;
 

@@ -200,19 +200,31 @@ impl State {
                 Card::Normal(c2, n2) => {
                     if let Some(giruda) = giruda {
                         if *c1 == giruda && *c2 == giruda {
-                            return n1 > n2;
+                            if *n1 == 0 {
+                                return false;
+                            } else if *n2 == 0 {
+                                return true;
+                            } else {
+                                return n1 < n2;
+                            }
                         } else if *c1 == giruda || *c2 == giruda {
                             return *c2 == giruda;
                         }
                     }
 
                     if cur_pat.contains(Rush::from(*c1)) && cur_pat.contains(Rush::from(*c2)) {
-                        n1 > n2
+                        if *n1 == 0 {
+                            false
+                        } else if *n2 == 0 {
+                            true
+                        } else {
+                            n1 < n2
+                        }
                     } else if cur_pat.contains(Rush::from(*c1)) || cur_pat.contains(Rush::from(*c2)) {
                         cur_pat.contains(Rush::from(*c2))
                     } else {
                         // actually this is meaningless
-                        n1 > n2
+                        true
                     }
                 }
 
@@ -425,6 +437,9 @@ impl State {
             } => match cmd {
                 Command::SelectFriend(drop_card, friend_func) => {
                     let mut deck = deck.clone();
+                    if drop_card.len() != deck[user_id].len() - deck[(user_id + 1) % (rule.user_cnt as usize)].len() {
+                        return Err(Error::DropCard);
+                    }
                     for card in drop_card.iter() {
                         let idx = deck[user_id].iter().position(|x| *x == *card).ok_or(Error::NotInDeck)?;
                         deck[user_id].remove(idx);
@@ -463,7 +478,7 @@ impl State {
                         giruda: *giruda,
                         pledge: *pledge,
                         deck,
-                        score_deck: Vec::new(),
+                        score_deck: vec![Vec::new(); 5],
                         turn_count: 0,
                         placed_cards: vec![(Card::Normal(Pattern::Spade, 0), CardPolicy::Valid); 5],
                         start_user: *president,
@@ -501,7 +516,10 @@ impl State {
                     user_id,
                     Command::SelectFriend(
                         deck[user_id]
-                            .choose_multiple(&mut rand::thread_rng(), 4)
+                            .choose_multiple(
+                                &mut rand::thread_rng(),
+                                deck[user_id].len() - deck[(user_id + 1) % (rule.user_cnt as usize)].len(),
+                            )
                             .cloned()
                             .collect(),
                         FriendFunc::None,
@@ -548,21 +566,13 @@ impl State {
 
                     let mut joker_calls = Vec::new();
                     let mut is_noeffect = false;
-                    joker_calls.push(
-                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[0].0)) {
-                            rule.joker_call.cards[0].0
+                    for cards in &rule.joker_call.cards {
+                        joker_calls.push(if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(cards.0)) {
+                            cards.0
                         } else {
-                            rule.joker_call.cards[0].1
-                        },
-                    );
-
-                    joker_calls.push(
-                        if matches!(*giruda, Some(y) if Rush::from(y) == Rush::from(rule.joker_call.cards[1].0)) {
-                            rule.joker_call.cards[1].0
-                        } else {
-                            rule.joker_call.cards[1].1
-                        },
-                    );
+                            cards.1
+                        });
+                    }
 
                     if joker_call_card != None {
                         if !deck[user_id]
@@ -746,23 +756,25 @@ impl State {
                             let president = *president;
                             let pledge = *pledge;
 
-                            let mut score = score_deck[president].len() as u8;
+                            let mut score = score_deck.iter().map(|x| x.len() as u8).sum();
                             let mut winner = 1 << president;
                             if let Some(f) = friend {
-                                score += score_deck[f].len() as u8;
+                                score -= score_deck[f].len() as u8;
                                 winner += 1 << f;
                             }
+                            score = 20 - score + score_deck[president].len() as u8;
                             if score == 20 {
-                                mul *= 2;
-                            }
-                            if score <= 10 {
                                 mul *= 2;
                             }
 
                             if score >= pledge {
                                 score = mul * (score - 10);
                             } else {
-                                score = pledge + score - 20;
+                                score = if score <= 10 {
+                                    2 * (pledge - score)
+                                } else {
+                                    pledge - score
+                                };
                                 winner = (1 << 5) - winner;
                             }
 
@@ -1063,7 +1075,37 @@ mod test {
         super::*,
         crate::prelude::{Command, Error},
         crate::rule::Preset,
+        rand::prelude::IteratorRandom,
     };
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn compare_cards_test() {
+        let rule = Rule::from(Preset::Default5);
+        let mut state = State::new(&rule);
+        state = state
+            .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
+            .unwrap();
+        state = state.next(1, Command::Pledge(None), &rule).unwrap();
+        state = state.next(2, Command::Pledge(None), &rule).unwrap();
+        state = state.next(3, Command::Pledge(None), &rule).unwrap();
+        state = state.next(4, Command::Pledge(None), &rule).unwrap();
+        let mut drop_card = Vec::new();
+        if let State::SelectFriend { president, deck, .. } = state.clone() {
+            drop_card = deck[president]
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .cloned()
+                .collect();
+        }
+        state = state
+            .next(0, Command::SelectFriend(drop_card, FriendFunc::ByUser(1)), &rule)
+            .unwrap();
+        assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 0), &Card::Normal(Pattern::Spade, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 2)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 2), &Card::Normal(Pattern::Clover, 1)));
+        // more (민규 will do it?)
+    }
 
     #[cfg(feature = "server")]
     #[test]
@@ -1089,16 +1131,136 @@ mod test {
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
         state = state.next(0, Command::Pledge(None), &rule).unwrap();
+        let mut drop_card = Vec::new();
         if let State::SelectFriend {
             president,
-            giruda,
             pledge,
-            deck: _,
-        } = state
+            giruda,
+            deck,
+            ..
+        } = state.clone()
         {
             assert_eq!(president, 1usize);
             assert_eq!(pledge, 14u8);
             assert_eq!(format!("{:?}", giruda.unwrap()), format!("{:?}", Pattern::Clover));
+            drop_card = deck[president]
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .cloned()
+                .collect();
+        }
+        if let Err(x) = state.next(1, Command::ChangePledge(Some(Pattern::Clover)), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::SameGiruda))
+        }
+        state = state
+            .next(1, Command::ChangePledge(Some(Pattern::Spade)), &rule)
+            .unwrap();
+        state = state
+            .next(1, Command::SelectFriend(drop_card, FriendFunc::ByUser(2)), &rule)
+            .unwrap();
+        for i in 0..50 {
+            if let State::InGame {
+                giruda,
+                deck,
+                current_user,
+                ..
+            } = state.clone()
+            {
+                let card = deck[current_user]
+                    .iter()
+                    .filter(|c| match c {
+                        Card::Normal(t, _) => Some(*t) != giruda || i >= 5,
+                        _ => true,
+                    })
+                    .choose(&mut rand::thread_rng())
+                    .cloned()
+                    .unwrap();
+                state = state
+                    .next(current_user, Command::Go(card, Rush::empty(), false), &rule)
+                    .unwrap();
+            }
+        }
+        if let State::GameEnded {
+            winner,
+            president,
+            friend,
+            ..
+        } = state
+        {
+            assert!(winner == 6 || winner == 26);
+            assert_eq!(president, 1);
+            assert_eq!(friend, Some(2));
         }
     }
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn next_gshs5_test1() {
+        let rule = Rule::from(Preset::GSHS5);
+        let mut state = State::new(&rule);
+        if let Err(x) = state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 14)))
+        }
+        state = state.next(0, Command::Pledge(None), &rule).unwrap();
+        state = state
+            .next(3, Command::Pledge(Some((Some(Pattern::Clover), 14))), &rule)
+            .unwrap();
+        if let Err(x) = state.next(2, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
+            assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 13)))
+        }
+        state = state
+            .next(2, Command::Pledge(Some((Some(Pattern::Spade), 14))), &rule)
+            .unwrap();
+        state = state
+            .next(2, Command::Pledge(Some((Some(Pattern::Clover), 14))), &rule)
+            .unwrap();
+        state = state.next(1, Command::Pledge(None), &rule).unwrap();
+        state = state.next(4, Command::Pledge(None), &rule).unwrap();
+        state = state.next(3, Command::Pledge(None), &rule).unwrap();
+        state = state.next(2, Command::Pledge(None), &rule).unwrap();
+        if let State::SelectFriend {
+            president,
+            giruda,
+            deck,
+            ..
+        } = state.clone()
+        {
+            let drop_card = deck[president]
+                .choose_multiple(&mut rand::thread_rng(), 4)
+                .cloned()
+                .collect();
+            if let Err(x) = state.next(president, Command::ChangePledge(giruda), &rule) {
+                assert_eq!(format!("{}", x), format!("{}", Error::SameGiruda))
+            }
+            state = state
+                .next(
+                    president,
+                    Command::SelectFriend(drop_card, FriendFunc::ByUser(0)),
+                    &rule,
+                )
+                .unwrap();
+            for i in 0..50 {
+                if let State::InGame {
+                    giruda,
+                    deck,
+                    current_user,
+                    ..
+                } = state.clone()
+                {
+                    let card = deck[current_user]
+                        .iter()
+                        .filter(|c| match c {
+                            Card::Normal(t, _) => Some(*t) != giruda || i >= 5,
+                            _ => true,
+                        })
+                        .choose(&mut rand::thread_rng())
+                        .cloned()
+                        .unwrap();
+                    state = state
+                        .next(current_user, Command::Go(card, Rush::empty(), false), &rule)
+                        .unwrap();
+                }
+            }
+        }
+    }
+    // not random and real data test should be applied
 }

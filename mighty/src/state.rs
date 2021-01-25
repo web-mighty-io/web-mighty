@@ -1116,6 +1116,7 @@ mod test {
         // more (민규 will do it?)
     }
 
+    #[cfg(feature = "server")]
     #[test]
     fn next_default_test1() {
         let rule = Rule::from(Preset::Default5);
@@ -1213,6 +1214,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "server")]
     #[test]
     fn next_gshs5_test1() {
         let rule = Rule::from(Preset::GSHS5);

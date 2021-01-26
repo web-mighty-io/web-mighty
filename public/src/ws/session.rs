@@ -246,7 +246,7 @@ where
                     } else if let Some(msg_list) = unsent_msg.get_mut(&tag) {
                         msg_list.push(val);
                     } else {
-                        unsent_msg.insert(tag, Vec::new());
+                        unsent_msg.insert(tag, vec![val]);
                     }
                 };
 

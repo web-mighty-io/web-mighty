@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::ws::session::{Context, SessionTrait};
 use types::{MainToClient, MainToServer};
 
@@ -10,7 +11,8 @@ impl SessionTrait for Main {
         "main"
     }
 
-    fn receive(&mut self, msg: String, _: &Context<Self>) {
-        let _: MainToClient = serde_json::from_str(&*msg).unwrap();
+    fn receive(&mut self, msg: String, _: &Context<Self>) -> (&str, JsValue) {
+        let msg: MainToClient = serde_json::from_str(&*msg).unwrap();
+        ("todo", JsValue::from_serde(&msg).unwrap())
     }
 }

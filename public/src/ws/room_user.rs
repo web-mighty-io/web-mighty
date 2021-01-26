@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::ws::session::{Context, SessionTrait};
+use js_sys::Function;
 use types::{RoomUserToClient, RoomUserToServer};
 
 pub struct User;
@@ -11,9 +12,18 @@ impl SessionTrait for User {
         "room"
     }
 
-    fn receive(&mut self, msg: String, _: &Context<Self>) {
-        let _: RoomUserToClient = serde_json::from_str(&*msg).unwrap();
+    fn receive(&mut self, msg: String, _: &Context<Self>) -> (&str, JsValue) {
+        let msg: RoomUserToClient = serde_json::from_str(&*msg).unwrap();
+        match msg {
+            RoomUserToClient::Room(info) => ("room_info", JsValue::from_serde(&info).unwrap()),
+            RoomUserToClient::Game(state) => ("game_state", JsValue::from_serde(&state).unwrap()),
+        }
     }
+}
+
+#[wasm_bindgen]
+pub fn room_on(tag: String, callback: Function) {
+    USER.with(move |user| user.borrow().on(tag, callback));
 }
 
 #[wasm_bindgen]

@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::ws::session::{Context, SessionTrait};
 use types::{ListToClient, ListToServer};
 
@@ -10,7 +11,8 @@ impl SessionTrait for List {
         "list"
     }
 
-    fn receive(&mut self, msg: String, _: &Context<Self>) {
-        let _: ListToClient = serde_json::from_str(&*msg).unwrap();
+    fn receive(&mut self, msg: String, _: &Context<Self>) -> (&str, JsValue) {
+        let msg: ListToClient = serde_json::from_str(&*msg).unwrap();
+        ("list", JsValue::from_serde(&msg).unwrap())
     }
 }

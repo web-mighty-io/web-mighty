@@ -33,9 +33,12 @@
 //!     }
 //! }
 //! ```
+//!
+//! ```js
+//! ```
 
 use crate::prelude::*;
-use js_sys::{Function, JsString};
+use js_sys::JsString;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
@@ -200,7 +203,24 @@ where
         thread::spawn(move || {
             let mut callback: HashMap<String, Function> = HashMap::new();
             let mut unsent_msg: HashMap<String, Vec<JsValue>> = HashMap::new();
+
+            let call = |tag: &str,
+                        val: JsValue,
+                        callback: &mut HashMap<String, Function>,
+                        unsent_msg: &mut HashMap<String, Vec<JsValue>>| {
+                let tag = tag.to_owned();
+
+                if let Some(func) = callback.get(&tag) {
+                    let _ = func.call1(&JsValue::null(), &val);
+                } else if let Some(msg_list) = unsent_msg.get_mut(&tag) {
+                    msg_list.push(val);
+                } else {
+                    unsent_msg.insert(tag, vec![val]);
+                }
+            };
+
             inner.started(&ctx);
+            call("connected", JsValue::null(), &mut callback, &mut unsent_msg);
 
             'outer: loop {
                 let ws = WebSocket::new(&*url).unwrap();
@@ -234,21 +254,6 @@ where
                 }) as Box<dyn FnMut(MessageEvent)>);
                 ws.set_onopen(Some(onopen.as_ref().unchecked_ref()));
                 onopen.forget();
-
-                let call = |tag: &str,
-                            val: JsValue,
-                            callback: &mut HashMap<String, Function>,
-                            unsent_msg: &mut HashMap<String, Vec<JsValue>>| {
-                    let tag = tag.to_owned();
-
-                    if let Some(func) = callback.get(&tag) {
-                        let _ = func.call1(&JsValue::null(), &val);
-                    } else if let Some(msg_list) = unsent_msg.get_mut(&tag) {
-                        msg_list.push(val);
-                    } else {
-                        unsent_msg.insert(tag, vec![val]);
-                    }
-                };
 
                 'inner: loop {
                     if let Ok(msg) = receiver.recv() {

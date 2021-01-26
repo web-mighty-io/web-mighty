@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use crate::ws::session::{Context, SessionTrait};
-use js_sys::Function;
 use types::{RoomUserToClient, RoomUserToServer};
 
 pub struct User;
@@ -38,12 +37,16 @@ pub fn room_change_name(name: String) {
 
 #[wasm_bindgen]
 pub fn room_change_rule(rule: &JsValue) {
-    let rule = rule.into_serde().unwrap();
-    USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeRule(rule)));
+    USER.with(move |user| {
+        user.borrow()
+            .send(RoomUserToServer::ChangeRule(rule.into_serde().unwrap()))
+    });
 }
 
 #[wasm_bindgen]
 pub fn room_send_command(command: &JsValue) {
-    let command = command.into_serde().unwrap();
-    USER.with(move |user| user.borrow().send(RoomUserToServer::Command(command)));
+    USER.with(move |user| {
+        user.borrow()
+            .send(RoomUserToServer::Command(command.into_serde().unwrap()))
+    });
 }

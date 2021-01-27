@@ -260,6 +260,27 @@ impl Handler<Update> for User {
     }
 }
 
+/// change
+#[derive(Debug, Clone, Message)]
+#[rtype(result = "()")]
+pub struct ChangeRating(pub i32);
+
+impl Handler<ChangeRating> for User {
+    type Result = ();
+
+    fn handle(&mut self, msg: ChangeRating, _: &mut Self::Context) -> Self::Result {
+        if msg.0 < 0 {
+            if (-msg.0) as u32 > self.info.rating {
+                self.info.rating = 0;
+            } else {
+                self.info.rating -= (-msg.0) as u32;
+            }
+        } else {
+            self.info.rating += msg.0 as u32;
+        }
+    }
+}
+
 impl User {
     pub fn new(info: UserInfo, hub: Addr<Hub>) -> User {
         User {

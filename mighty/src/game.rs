@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct Game {
-    rule: Rule,
-    state: State,
+    pub rule: Rule,
+    pub state: State,
     valid_users: u8,
 }
 

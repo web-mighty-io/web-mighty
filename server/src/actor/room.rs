@@ -1,10 +1,10 @@
 use crate::actor::hub::{MakeGameId, RemoveRoom};
-use crate::actor::user::{GotGameState, GotRoomInfo};
+use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo};
 use crate::actor::{hub, Hub, List, Observe, User};
 use crate::db::game::{get_rule, save_rule, save_state, GetRuleForm, SaveRuleForm, SaveStateForm};
 use crate::dev::*;
 use actix::prelude::*;
-use mighty::prelude::{Command, Game, Rule};
+use mighty::prelude::{Command, Game, Rule, State};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -246,7 +246,27 @@ impl Handler<Go> for Room {
         );
 
         if finished {
-            // todo: apply rating system
+            if self.info.is_rank {
+                if let Some(game) = &mut self.game {
+                    if let State::GameEnded {
+                        winner,
+                        president,
+                        score,
+                        ..
+                    } = game.game.state
+                    {
+                        for (i, &userno) in self.info.user.iter().enumerate() {
+                            let score = if (1 << i) & winner > 0 {
+                                score as i32
+                            } else {
+                                -(score as i32)
+                            };
+                            let score = if i == president { 2 * score } else { score };
+                            self.user_addr.get(&userno).unwrap().do_send(ChangeRating(score));
+                        }
+                    }
+                }
+            }
             self.info.is_game = false;
             self.game = None;
             self.spread_info();
@@ -331,4 +351,8 @@ impl Room {
             i.do_send(ObserveToClient::Game(state.clone()));
         }
     }
+
+    /*fn calculate_rating(&self, score: i32) -> i32 {
+
+    }*/
 }

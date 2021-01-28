@@ -2,11 +2,10 @@ use crate::actor::hub::GetRoom;
 use crate::actor::room::{ChangeName, ChangeRule, Go, RoomJoin, RoomLeave, StartGame};
 use crate::actor::{Hub, Main, Room, RoomUser};
 use crate::dev::*;
-use actix::clock::Duration;
 use actix::prelude::*;
 use mighty::prelude::State;
 use std::collections::HashSet;
-use std::time::SystemTime;
+use std::time::{SystemTime, Duration};
 
 /// Joined Room Information
 #[derive(Debug)]

@@ -5,7 +5,7 @@ use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::State;
 use std::collections::HashSet;
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 /// Joined Room Information
 #[derive(Debug)]

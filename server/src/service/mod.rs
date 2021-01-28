@@ -28,6 +28,7 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
         )
         .service(post::login)
         .service(post::logout)
+        .service(post::pre_register)
         .service(post::register)
         .service(delete::delete_user);
 }

@@ -21,6 +21,7 @@
 //! - `secret`: random key for token (defaults to random) **note: generate through
 //!             `openssl rand -hex 16`**
 //! - `mail`: mail configuration
+//!   * `from`: email to send from (defaults to `{username}@{host}` or `{username}`)
 //!   * `username`: username to mail server (defaults to `admin`)
 //!   * `password`: password to mail server (defaults to `admin`)
 //!   * `host`: host of mail server (defaults to `localhost:587`)
@@ -48,9 +49,10 @@
 //! redirect = true
 //!
 //! [mail]
+//! from = "noreply@example.com"
 //! username = "admin"
 //! password = "secret"
-//! host = "0.0.0.0:587"
+//! host = "0.0.0.0"
 //! ```
 //!
 //! ## Environment example
@@ -71,9 +73,10 @@
 //! HTTPS__CERT="./cert.pem"
 //! HTTPS__REDIRECT="true"
 //!
+//! MAIL__FROM="noreply@example.com"
 //! MAIL__USERNAME="admin"
 //! MAIL__PASSWORD="secret"
-//! MAIL__HOST="0.0.0.0:587"
+//! MAIL__HOST="0.0.0.0"
 //! ```
 
 use crate::actor;
@@ -120,6 +123,7 @@ pub struct Https {
 /// Mail configuration struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct Mail {
+    pub from: Option<String>,
     pub username: Option<String>,
     pub password: Option<String>,
     pub host: Option<String>,
@@ -226,15 +230,24 @@ impl Config {
     /// Function to get mail configuration
     pub fn get_mail(&self) -> actor::Mail {
         let mail = self.mail.clone().unwrap_or(Mail {
+            from: None,
             username: None,
             password: None,
             host: None,
         });
-        actor::Mail::new(
-            mail.username.unwrap_or_else(|| "admin".to_owned()),
-            mail.password.unwrap_or_else(|| "admin".to_owned()),
-            mail.host.unwrap_or_else(|| "localhost:587".to_owned()),
-        )
+
+        let host = mail.host.unwrap_or_else(|| "localhost".to_owned());
+        let username = mail.username.unwrap_or_else(|| "admin".to_owned());
+        let password = mail.password.unwrap_or_else(|| "admin".to_owned());
+        let from = mail.from.unwrap_or_else(|| {
+            if username.contains('@') {
+                username.clone()
+            } else {
+                format!("{}@{}", username, host)
+            }
+        });
+
+        actor::Mail::new(from, username, password, host, hex::encode(self.get_private_key()))
     }
 
     /// Function to get https port (assuming https is enabled)

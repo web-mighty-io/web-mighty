@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::db::user::{login_user, register_user, LoginForm, RegisterForm};
+use crate::db::user::{login_user, pre_register_user, register_user, LoginForm, PreRegisterForm, RegisterForm};
 use crate::dev::*;
 use actix_identity::Identity;
 use actix_web::{http, post, web, HttpResponse, Responder};
@@ -32,6 +32,18 @@ pub async fn login(
 pub async fn logout(id: Identity) -> impl Responder {
     id.forget();
     HttpResponse::Ok()
+}
+
+#[post("/pre-register")]
+pub async fn pre_register(
+    form: web::Form<PreRegisterForm>,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let _ = pre_register_user((*form).clone(), state.pool.clone())?;
+    Ok(HttpResponse::Found()
+        .header(http::header::LOCATION, "/")
+        .finish()
+        .into_body())
 }
 
 #[post("/register")]

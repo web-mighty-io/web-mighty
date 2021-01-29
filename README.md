@@ -7,11 +7,13 @@
 
 ## Run your own server
 
-Docker command to start right away.
+Docker command to start right away. 
 
 ```shell script
-docker run -p 80:80 -p 5432:5432 -d buttercrab/web-mighty
+docker run -e HOST="0.0.0.0" -e POSTGRES__HOST="" -p 8080:80 -d buttercrab/web-mighty
 ```
+
+Go to [localhost](http://localhost:8080)
 
 ## Manually start your server
 

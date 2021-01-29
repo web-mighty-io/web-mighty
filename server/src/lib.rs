@@ -184,20 +184,10 @@ pub mod internal {
         let opts: Opts = Opts::parse();
         let path = opts
             .config
-            .or_else(|| std::env::var_os("CONFIG_PATH").map(PathBuf::from));
+            .or_else(|| std::env::var_os("CONFIG_PATH").map(PathBuf::from))
+            .unwrap_or_else(|| PathBuf::from("server.toml"));
 
-        let builder = Config::builder();
-        let builder = if let Some(path) = path {
-            builder.add_file(path)
-        } else {
-            builder
-                .add_file("server.json")
-                .add_file("server.toml")
-                .add_file("server.yaml")
-                .add_file("server.hjson")
-                .add_file("server.ini")
-        };
-        let conf = builder.add_env().build();
+        let conf = Config::builder().add_file(path).add_env().build();
 
         if conf.https.is_some() {
             main_https(conf).await
@@ -480,7 +470,7 @@ pub mod path {
     ///
     /// assert_eq!(join("hello/..", "world"), PathBuf::from("world"));
     /// assert_eq!(join("hello/..", "./world"), PathBuf::from("world"));
-    /// assert_eq!(join("hello/./world", "../world"), PathBuf::from("hello/world"));
+    /// assert_eq!(join("hello/./world.json", "../world"), PathBuf::from("hello/world"));
     /// ```
     pub fn join<P: AsRef<Path>, Q: AsRef<Path>>(base: P, path: Q) -> PathBuf {
         let base = base.as_ref();

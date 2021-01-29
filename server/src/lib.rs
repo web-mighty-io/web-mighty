@@ -102,11 +102,10 @@ pub mod internal {
         #[clap(
             short = 'c',
             long = "config",
-            default_value = "server.toml",
             parse(from_os_str),
-            about = ".toml configuration file path"
+            about = "configuration file path (json, toml, yaml, hjson, ini files supported) (defaults to find server.*)"
         )]
-        config: PathBuf,
+        config: Option<PathBuf>,
     }
 
     /// Main function with https enabled
@@ -114,16 +113,15 @@ pub mod internal {
     /// Gets values from `conf` and serve
     #[cfg(not(tarpaulin_include))]
     async fn main_https(conf: Config) -> std::io::Result<()> {
-        let _guard = conf.get_logger();
-        let http_port = conf.get_port();
-        let https_port = conf.get_https_port();
-        let host = conf.get_host();
+        let http_port = conf.port;
+        let https_port = conf.https.as_ref().unwrap().port;
+        let host = conf.host.clone();
         let mail = conf.get_mail();
-        let serve_path = conf.get_serve_path();
+        let serve_path = conf.serve_path.clone();
         let ssl_builder = conf.get_ssl_builder();
         let pg_config = conf.get_pg_config();
-        let private_key = conf.get_private_key();
-        let redirect = conf.get_redirect();
+        let private_key = conf.secret.clone();
+        let redirect = conf.https.as_ref().unwrap().redirect;
 
         let state = AppState::new(serve_path, pg_config, mail);
 
@@ -151,13 +149,12 @@ pub mod internal {
     /// Gets value from `conf` and serve
     #[cfg(not(tarpaulin_include))]
     async fn main_http(conf: Config) -> std::io::Result<()> {
-        let _guard = conf.get_logger();
-        let host = conf.get_host();
-        let http_port = conf.get_port();
+        let host = conf.host.clone();
+        let http_port = conf.port;
         let mail = conf.get_mail();
-        let serve_path = conf.get_serve_path();
+        let serve_path = conf.serve_path.clone();
         let pg_config = conf.get_pg_config();
-        let private_key = conf.get_private_key();
+        let private_key = conf.secret.clone();
 
         let state = AppState::new(serve_path, pg_config, mail);
 
@@ -185,12 +182,22 @@ pub mod internal {
     #[cfg(not(tarpaulin_include))]
     pub async fn main() -> std::io::Result<()> {
         let opts: Opts = Opts::parse();
-        let path = if let Some(path) = std::env::var_os("CONFIG") {
-            PathBuf::from(path)
+        let path = opts
+            .config
+            .or_else(|| std::env::var_os("CONFIG_PATH").map(PathBuf::from));
+
+        let builder = Config::builder();
+        let builder = if let Some(path) = path {
+            builder.add_file(path)
         } else {
-            opts.config
+            builder
+                .add_file("server.json")
+                .add_file("server.toml")
+                .add_file("server.yaml")
+                .add_file("server.hjson")
+                .add_file("server.ini")
         };
-        let conf = Config::generate(path);
+        let conf = builder.add_env().build();
 
         if conf.https.is_some() {
             main_https(conf).await
@@ -387,4 +394,109 @@ macro_rules! ignore {
             _ => return $ret,
         }
     };
+}
+
+/// # Path module
+///
+/// Useful functions for path manipulation.
+pub mod path {
+    use std::env;
+    use std::path::{Path, PathBuf};
+
+    /// This compresses the input path.
+    /// `Path::join` just pushes second path to first one.
+    /// Therefore joining `/hello/..` and `world` results to `/hello/../world`
+    ///
+    /// This function compresses the result of joined path.
+    /// `.` will be removed and `..` will make the path to go parent.
+    ///
+    /// If input is absolute path, `/..` will be ignored.
+    /// If input is relative path, `..` in front will be remain same.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use server::path::compress;
+    /// use std::path::PathBuf;
+    ///
+    /// assert_eq!(compress("/../world/./"), PathBuf::from("/world"));
+    /// assert_eq!(compress("hello/../../world"), PathBuf::from("../world"));
+    /// ```
+    pub fn compress<P: AsRef<Path>>(from: P) -> PathBuf {
+        let from = from.as_ref();
+        let mut path = PathBuf::new();
+        let is_absolute = from.is_absolute();
+
+        for i in from.iter() {
+            match &*i.to_string_lossy() {
+                "." => {}
+                ".." => {
+                    if let Some(parent) = path.parent() {
+                        path = parent.to_path_buf();
+                    } else if !is_absolute {
+                        path = path.join("..")
+                    }
+                }
+                _ => {
+                    path = path.join(i);
+                }
+            }
+        }
+
+        path
+    }
+
+    /// Changes the path to absolute path.
+    /// If input path is relative, it concat with current directory path.
+    /// If input path is absolute, it returns input.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use server::path::to_absolute_path;
+    /// use std::env;
+    /// use std::path::PathBuf;
+    ///
+    /// env::set_current_dir("/hello");
+    /// assert_eq!(to_absolute_path("world"), PathBuf::from("/hello/world"));
+    /// assert_eq!(to_absolute_path("/world"), PathBuf::from("/world"));
+    /// ```
+    pub fn to_absolute_path<P: AsRef<Path>>(from: P) -> PathBuf {
+        let from = from.as_ref();
+        if from.is_relative() {
+            compress(env::current_dir().unwrap().join(from))
+        } else {
+            from.to_path_buf()
+        }
+    }
+
+    /// Join two paths and compress
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use server::path::join;
+    /// use std::path::PathBuf;
+    ///
+    /// assert_eq!(join("hello/..", "world"), PathBuf::from("world"));
+    /// assert_eq!(join("hello/..", "./world"), PathBuf::from("world"));
+    /// assert_eq!(join("hello/./world", "../world"), PathBuf::from("hello/world"));
+    /// ```
+    pub fn join<P: AsRef<Path>, Q: AsRef<Path>>(base: P, path: Q) -> PathBuf {
+        let base = base.as_ref();
+        let path = path.as_ref();
+        compress(base.join(path))
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[test]
+        fn compress_test() {
+            assert_eq!(compress("/hello/../world/./"), PathBuf::from("/world"));
+            assert_eq!(compress("/../world/./"), PathBuf::from("/world"));
+            assert_eq!(compress("hello/../../world"), PathBuf::from("../world"));
+        }
+    }
 }

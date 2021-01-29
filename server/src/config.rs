@@ -109,7 +109,7 @@ pub struct Builder {
 impl Builder {
     pub fn add_file<P: AsRef<Path>>(mut self, path: P) -> Builder {
         let path = to_absolute_path(path.as_ref().to_path_buf());
-        self.builders.push((path.clone(), ConfigBuilder::from_file(path)));
+        self.builders.push((join(&path, ".."), ConfigBuilder::from_file(path)));
         self
     }
 

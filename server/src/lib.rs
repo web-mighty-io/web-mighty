@@ -480,7 +480,7 @@ pub mod path {
     ///
     /// assert_eq!(join("hello/..", "world"), PathBuf::from("world"));
     /// assert_eq!(join("hello/..", "./world"), PathBuf::from("world"));
-    /// assert_eq!(join("hello/./world", "../world"), PathBuf::from("hello/world"));
+    /// assert_eq!(join("hello/./world.json", "../world"), PathBuf::from("hello/world"));
     /// ```
     pub fn join<P: AsRef<Path>, Q: AsRef<Path>>(base: P, path: Q) -> PathBuf {
         let base = base.as_ref();

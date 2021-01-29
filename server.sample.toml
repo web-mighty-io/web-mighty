@@ -29,6 +29,7 @@ port = "5432"
 # dbname to save data
 dbname = "web_mighty"
 
+# remove https part if you want only http
 [https]
 # port of https server
 port = "443"

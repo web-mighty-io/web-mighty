@@ -21,7 +21,7 @@ docker run -p 80:80 -p 5432:5432 -d buttercrab/web-mighty
 4.  [install bulma](https://bulma.io/): download latest version and unzip to `static/res/bulma`
 5.  convert `static/res/scss/style.scss` to `static/res/css/style.css` using `sass`
 6.  [install](https://www.postgresql.org/download/) and start your postgresql server
-7.  run `cd public && wasm-pack build --target web --release`
+7.  run `wasm-pack build --target web --release -d staic/res/pkg public`
 8.  run `cargo install --root build --path server`
 9.  make `server.toml` based from `server.sample.toml`
 10. run `./build/bin/server`

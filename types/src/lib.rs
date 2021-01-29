@@ -154,6 +154,7 @@ pub struct UserInfo {
     pub no: UserNo,
     pub id: String,
     pub name: String,
+    pub email: String,
     pub rating: u32,
     pub room: Option<RoomId>,
     pub is_admin: bool,

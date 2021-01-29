@@ -1,7 +1,7 @@
 # building in rust
 # - compiling server
 # - compiling wasm
-FROM rust:latest AS rust-build
+FROM rust:1.49 AS rust-build
 
 COPY ./config /app/config
 COPY ./mighty /app/mighty
@@ -15,7 +15,7 @@ RUN wasm-pack build --target web -d /app/static/res/pkg /app/public
 
 # building in sass
 # - compiling sass files
-FROM node:latest AS node-build
+FROM node:15.7 AS node-build
 
 COPY ./static /app/static
 RUN npm install -g sass
@@ -26,7 +26,7 @@ RUN sass /app/static/res/scss/style.scss /app/static/res/css/style.css
 RUN rm -rf /app/static/res/bulma /app/static/res/scss
 
 # minifying css & js files
-FROM python:latest AS python-build
+FROM python:3.9 AS python-build
 
 COPY --from=node-build /app/static /app/static
 COPY --from=rust-build /app/static/res/pkg/*.js /app/static/res/pkg
@@ -37,7 +37,7 @@ RUN python3 -m pip install -r /app/requirements.txt
 RUN python3 /app/minify_files.py --path /app/static --remove
 
 # main container
-FROM ubuntu:latest
+FROM ubuntu:focal
 
 # labels
 LABEL maintainer="Jaeyong Sung <jaeyong0201@gmail.com>"
@@ -48,6 +48,8 @@ ENV SERVE_PATH="/app/static"
 
 COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=python-build /app/static /app/static
-RUN apt-get update && apt-get install libssl-dev -y
+RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev=1.1.1f-1ubuntu2.1 \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 ENTRYPOINT ["/app/bin/server"]

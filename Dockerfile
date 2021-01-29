@@ -48,7 +48,7 @@ ENV SERVE_PATH="/app/static"
 
 COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=python-build /app/static /app/static
-RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev=1.1 \
+RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev=1.1.1f-1ubuntu2.1 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

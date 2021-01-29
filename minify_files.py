@@ -20,8 +20,9 @@ def print_info(msg: str) -> None:
 
 def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
     """
-    From [stack overflow](https://stackoverflow.com/a/59803793) answer
+    Fast Directory Scanning
 
+    From [stack overflow](https://stackoverflow.com/a/59803793) answer
     Searches all files with extensions below path
     """
     subfolders, files = [], []

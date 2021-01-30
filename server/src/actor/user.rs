@@ -116,7 +116,7 @@ impl Handler<UserDisconnect> for User {
 /// It would respond `room_info` so that the client can know if the client is joined.
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
-pub struct UserJoin(pub RoomId);
+pub struct UserJoin(pub RoomId, pub Addr<Session<Main>>);
 
 impl Handler<UserJoin> for User {
     type Result = ();
@@ -143,7 +143,7 @@ impl Handler<UserJoin> for User {
                                         disconn: 0,
                                     });
                                 } else {
-                                    // todo
+                                    msg.1.do_send(MainToClient::UserInfo(act.info.clone()));
                                 }
                             }
 

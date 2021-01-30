@@ -87,7 +87,7 @@ pub struct LoginForm {
 
 pub fn login_user(form: LoginForm, pool: Pool) -> Result<u32> {
     let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 no FROM users WHERE id=$1 AND password=$2;")?;
+    let stmt = client.prepare("SELECT 1 no FROM users WHERE (id=$1 AND password=$2) OR (email=$1 AND password=$2);")?;
     let res = client.query(&stmt, &[&form.user_id, &form.password])?;
     let row = res
         .first()

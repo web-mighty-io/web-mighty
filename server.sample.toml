@@ -1,41 +1,51 @@
 # Server configuration toml file
 #
-# Copy this file to `server.toml`
+# Copy this file to `server.toml` and change it.
+# Below are default configuration when you don't specify.
 
-[server]
 # host of this server
-host = "0.0.0.0"
+host = "localhost"
 # port of http server
-port = 80
-# secret key for cookie identification
-secret = "xxxx"
-# path to files to serve
-public = "static"
-
-# remove this part if you are not using https
-[server.https]
-# port of https server
-port = 443
-# key file path for tls connection
-key = "key.pem"
-# cert file path for tls connection
-cert = "cert.pem"
-
-[server.log]
-# path to log
-# if you want to log to stdout, remove this
-file = "server.log"
-# verbose level (defaults to 4)
-verbose = 4
+port = "80"
+# verbose level
+verbose = "4"
+# secret key for cookie identification (random for default)
+secret = "a093c76bd2c5f4e7dff6360c78bcb57a"
+# path to static files (no need to change this)
+serve_path = "static"
+# uncomment log_path to log to file
+# log_path = "server.log"
 
 # for this configuration, see https://docs.rs/deadpool-postgres/latest/deadpool_postgres/config/struct.Config.html
 [postgres]
-dbname = "postgres"
-user = "username"
-password = "secret"
+# username for db
+user = "admin"
+# password for db
+password = "admin"
+# host of db
+host = "127.0.0.1"
+# port of db
+port = "5432"
+# dbname to save data
+dbname = "web_mighty"
 
-# mail server smtp relay using lettre crate
+# remove https part if you want only http
+[https]
+# port of https server
+port = "443"
+# key file path for tls connection
+key = "./key.pem"
+# cert file path for tls connection
+cert = "./cert.pem"
+# true if redirect http connection to https
+redirect = false
+
 [mail]
+# email address to send from
+from = "admin@localhost"
+# username to login
 username = "admin"
-password = "secret"
+# password to login
+password = "admin"
+# host of smtp server
 host = "localhost"

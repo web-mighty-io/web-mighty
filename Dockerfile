@@ -11,7 +11,7 @@ COPY ./types  /app/types
 
 RUN cargo install --root /app/build --path /app/server
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-RUN wasm-pack build --target web -d /app/static/res/pkg /app/public
+RUN wasm-pack build --target web --release -d /app/static/res/pkg /app/public
 
 # building in sass
 # - compiling sass files

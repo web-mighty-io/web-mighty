@@ -87,16 +87,11 @@ pub struct LoginForm {
 
 pub fn login_user(form: LoginForm, pool: Pool) -> Result<u32> {
     let mut client = pool.get()?;
-    let stmt1 = client.prepare("SELECT 1 no FROM users WHERE id=$1 AND password=$2;")?;
-    let res1 = client.query(&stmt1, &[&form.user_id, &form.password])?;
-    let stmt2 = client.prepare("SELECT 1 no FROM users WHERE email=$1 AND password=$2;")?;
-    let res2 = client.query(&stmt2, &[&form.user_id, &form.password])?;
-    let row = if let Some(x) = res1.first() {
-        Ok(x)
-    } else {
-        res2.first()
-            .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))
-    }?;
+    let stmt = client.prepare("SELECT 1 no FROM users WHERE (id=$1 AND password=$2) OR (email=$1 AND password=$2);")?;
+    let res = client.query(&stmt, &[&form.user_id, &form.password])?;
+    let row = res
+        .first()
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
     Ok(row.get(0))
 }
 

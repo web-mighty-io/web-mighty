@@ -2,7 +2,6 @@ use crate::dev::*;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
-use uuid::Uuid;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct PreRegisterForm {
@@ -30,7 +29,9 @@ pub struct RegenerateTokenForm {
     pub email: String,
 }
 
-pub fn regenerate_user_token(form: RegenerateTokenForm, pool: Pool) -> Result<Uuid> {
+// todo: fix this
+// todo: generate random string and insert to db
+pub fn regenerate_user_token(form: RegenerateTokenForm, pool: Pool) -> Result<String> {
     let mut client = pool.get()?;
     let stmt = client.prepare(
         "UPDATE pre_users SET token = UUID_GENERATE_V4(), gen_time = NOW() WHERE id=$1 AND email=$2 RETURNING token;",
@@ -47,7 +48,7 @@ pub struct RegisterForm {
     pub user_id: String,
     pub name: String,
     pub password: String,
-    pub token: Uuid,
+    pub token: String,
 }
 
 pub fn register_user(form: RegisterForm, pool: Pool) -> Result<()> {

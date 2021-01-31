@@ -22,6 +22,40 @@ $info: $blue;
 $success: $green;
 $input-focus-border-color: $dark;
 
+$_colors: (
+  "primary": $primary,
+  "link": $link,
+  "dark": $dark,
+  "light": $light,
+  "info": $info,
+  "success": $success,
+);
+
+@function color-below($color) {
+  @if lightness($color) > 40 {
+    @return darken($color, 20%);
+  } @else {
+    @return lighten($color, 15%);
+  }
+}
+
+@each $color_name, $color in $_colors {
+  .button.is-#{$color_name} {
+    transition: 0.2s ease-out;
+    box-shadow: 0 0 color-below($color) !important;
+  }
+
+  .button.is-#{$color_name}:hover, .button.is-#{$color_name}:hover:focus {
+    transform: translateY(-10px);
+    box-shadow: 0 10px color-below($color) !important;
+  }
+
+  .button.is-#{$color_name}:active, .button.is-#{$color_name}:active:focus {
+    transform: translateY(-5px);
+    box-shadow: 0 5px color-below($color) !important;
+  }
+}
+
 .is-horizontal-center {
   justify-content: center;
 }
@@ -40,9 +74,13 @@ $input-focus-border-color: $dark;
   color: #fff !important;
 }
 
-.tab { margin-left: 30px; }
+.tab {
+  margin-left: 30px;
+}
 
-.tab-small { margin-left: 20px; }
+.tab-small {
+  margin-left: 20px;
+}
 
 .scroll {
   overflow-y: auto;

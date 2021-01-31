@@ -13,7 +13,7 @@ pub struct LoginQuery {
 #[post("/login")]
 pub async fn login(
     id: Identity,
-    form: web::Form<LoginForm>,
+    form: web::Json<LoginForm>,
     state: web::Data<AppState>,
     query: web::Query<LoginQuery>,
 ) -> Result<HttpResponse, Error> {
@@ -35,7 +35,7 @@ pub async fn logout(id: Identity) -> impl Responder {
 }
 
 #[post("/pre-register")]
-pub async fn pre_register(form: web::Form<PreRegisterForm>, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn pre_register(form: web::Json<PreRegisterForm>, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
     let _ = pre_register_user((*form).clone(), state.pool.clone())?;
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")
@@ -46,7 +46,7 @@ pub async fn pre_register(form: web::Form<PreRegisterForm>, state: web::Data<App
 #[post("/register")]
 pub async fn register(
     id: Identity,
-    form: web::Form<RegisterForm>,
+    form: web::Json<RegisterForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let _ = register_user((*form).clone(), state.pool.clone())?;

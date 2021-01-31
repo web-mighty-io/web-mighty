@@ -1,10 +1,10 @@
 use crate::prelude::*;
-use crate::ws::session::{Context, SessionTrait};
+use crate::ws::session::{Context, Session, SessionTrait};
 use types::{ListToClient, ListToServer};
 
-pub struct List;
+pub struct ListSession;
 
-impl SessionTrait for List {
+impl SessionTrait for ListSession {
     type Sender = ListToServer;
 
     fn tag() -> &'static str {
@@ -18,22 +18,30 @@ impl SessionTrait for List {
 }
 
 #[wasm_bindgen]
-pub fn list_on(tag: String, callback: Function) {
-    LIST.with(move |list| list.borrow().on(tag, callback));
+pub struct List {
+    session: Session<ListSession>,
 }
 
 #[wasm_bindgen]
-pub fn list_subscribe(room_id: &JsValue) {
-    LIST.with(move |list| {
-        list.borrow()
-            .send(ListToServer::Subscribe(room_id.into_serde().unwrap()))
-    });
-}
+impl List {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<List> {
+        Ok(List {
+            session: ListSession.start()?,
+        })
+    }
 
-#[wasm_bindgen]
-pub fn list_unsubscribe(room_id: &JsValue) {
-    LIST.with(move |list| {
-        list.borrow()
-            .send(ListToServer::Unsubscribe(room_id.into_serde().unwrap()))
-    });
+    pub fn on(&self, tag: String, callback: Function) {
+        self.session.on(tag, callback);
+    }
+
+    pub fn subscribe(&self, room_id: &JsValue) {
+        self.session
+            .send(ListToServer::Subscribe(room_id.into_serde().unwrap()));
+    }
+
+    pub fn unsubscribe(&self, room_id: &JsValue) {
+        self.session
+            .send(ListToServer::Unsubscribe(room_id.into_serde().unwrap()));
+    }
 }

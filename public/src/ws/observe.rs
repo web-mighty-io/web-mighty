@@ -1,10 +1,10 @@
 use crate::prelude::*;
-use crate::ws::session::{Context, SessionTrait};
+use crate::ws::session::{Context, Session, SessionTrait};
 use types::{ObserveToClient, ObserveToServer};
 
-pub struct Observe;
+pub struct ObserveSession;
 
-impl SessionTrait for Observe {
+impl SessionTrait for ObserveSession {
     type Sender = ObserveToServer;
 
     fn tag() -> &'static str {
@@ -21,6 +21,20 @@ impl SessionTrait for Observe {
 }
 
 #[wasm_bindgen]
-pub fn observe_on(tag: String, callback: Function) {
-    OBSERVE.with(move |observe| observe.borrow().on(tag, callback));
+pub struct Observe {
+    session: Session<ObserveSession>,
+}
+
+#[wasm_bindgen]
+impl Observe {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<Observe> {
+        Ok(Observe {
+            session: ObserveSession.start()?,
+        })
+    }
+
+    pub fn on(&self, tag: String, callback: Function) {
+        self.session.on(tag, callback);
+    }
 }

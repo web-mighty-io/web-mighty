@@ -23,12 +23,12 @@ $success: $green;
 $input-focus-border-color: $dark;
 
 $_colors: (
-        "primary": $primary,
-        "link": $link,
-        "dark": $dark,
-        "light": $light,
-        "info": $info,
-        "success": $success,
+  "primary": $primary,
+  "link": $link,
+  "dark": $dark,
+  "light": $light,
+  "info": $info,
+  "success": $success,
 );
 
 @function color-below($color) {

@@ -51,8 +51,11 @@ impl Main {
         self.session.send(MainToServer::Update);
     }
 
-    pub fn subscribe(&self, user_no: &JsValue) {
-        self.session
-            .send(MainToServer::Subscribe(user_no.into_serde().unwrap()));
+    pub fn subscribe(&self, user_no: UserNo) {
+        self.session.send(MainToServer::Subscribe(user_no));
+    }
+
+    pub fn unsubscribe(&self, user_no: UserNo) {
+        self.session.send(MainToServer::Unsubscribe(user_no));
     }
 }

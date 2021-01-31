@@ -1,8 +1,13 @@
-import init, * as wasm from "../pkg/public.js";
+import "../pkg/public.js";
+
+let main;
 
 await (async function () {
-    await init();
+    await run();
 
-    document.addEventListener('mousemove', myListener, false);
-
+    main = new Main();
 })();
+
+export let ws = {
+    main
+};

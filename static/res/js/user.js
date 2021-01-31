@@ -1,8 +1,8 @@
 export let user = {
-    login: async function (username, password) {
+    async login(username, password) {
 
     },
-    register: async function (username, email) {
+    async register(username, email) {
 
     }
 };

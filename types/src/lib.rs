@@ -1,22 +1,24 @@
 #![cfg(not(tarpaulin_include))]
 
-#[cfg(feature = "server")]
-use actix::prelude::*;
 use bitflags::bitflags;
 use mighty::prelude::{Command, Rule, State};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::fmt;
-use std::fmt::Display;
-use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::fmt::{self, Display};
 #[cfg(feature = "client")]
 use wasm_bindgen::prelude::*;
+#[cfg(feature = "server")]
+use {
+    actix::prelude::*,
+    sha2::{Digest, Sha256},
+    std::str::FromStr,
+    std::time::{SystemTime, UNIX_EPOCH},
+};
 
 #[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 struct CopyableHash(u64, u64, u64, u64);
 
+#[cfg(feature = "server")]
 impl FromStr for CopyableHash {
     type Err = anyhow::Error;
 
@@ -74,6 +76,7 @@ impl CopyableHash {
         ]
     }
 
+    #[cfg(feature = "server")]
     fn from_vec(data: Vec<u8>) -> CopyableHash {
         CopyableHash(
             (data[0] as u64) << 56
@@ -111,6 +114,7 @@ impl CopyableHash {
         )
     }
 
+    #[cfg(feature = "server")]
     pub fn generate<S: AsRef<str>>(s: S) -> CopyableHash {
         let mut hasher = Sha256::new();
         hasher.update(s.as_ref().as_bytes());
@@ -125,6 +129,7 @@ impl CopyableHash {
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct RoomUid(CopyableHash);
 
+#[cfg(feature = "server")]
 impl FromStr for RoomUid {
     type Err = anyhow::Error;
 
@@ -139,6 +144,7 @@ impl Display for RoomUid {
     }
 }
 
+#[cfg(feature = "server")]
 impl RoomUid {
     pub fn generate<S: AsRef<str>>(s: S) -> RoomUid {
         RoomUid(CopyableHash::generate(s))
@@ -160,9 +166,16 @@ impl RoomUid {
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct RoomId(pub u32);
 
+#[cfg(feature = "server")]
 impl From<u32> for RoomId {
     fn from(u: u32) -> Self {
         RoomId(u)
+    }
+}
+
+impl Display for RoomId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -173,6 +186,7 @@ impl From<u32> for RoomId {
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct GameId(CopyableHash);
 
+#[cfg(feature = "server")]
 impl FromStr for GameId {
     type Err = anyhow::Error;
 
@@ -187,6 +201,7 @@ impl Display for GameId {
     }
 }
 
+#[cfg(feature = "server")]
 impl GameId {
     pub fn generate<S: AsRef<str>>(s: S) -> GameId {
         GameId(CopyableHash::generate(s))
@@ -210,9 +225,16 @@ impl GameId {
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct UserNo(pub u32);
 
+#[cfg(feature = "server")]
 impl From<u32> for UserNo {
     fn from(u: u32) -> Self {
         UserNo(u)
+    }
+}
+
+impl Display for UserNo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -223,6 +245,7 @@ impl From<u32> for UserNo {
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct RuleHash(CopyableHash);
 
+#[cfg(feature = "server")]
 impl FromStr for RuleHash {
     type Err = anyhow::Error;
 
@@ -237,6 +260,7 @@ impl Display for RuleHash {
     }
 }
 
+#[cfg(feature = "server")]
 impl RuleHash {
     pub fn generate(rule: &Rule) -> RuleHash {
         RuleHash(CopyableHash::generate(serde_json::to_string(rule).unwrap()))

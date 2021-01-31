@@ -6,21 +6,156 @@ use bitflags::bitflags;
 use mighty::prelude::{Command, Rule, State};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use uuid::Uuid;
+use std::fmt;
+use std::fmt::Display;
+use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(feature = "client")]
+use wasm_bindgen::prelude::*;
 
-/// Unique room id.
+#[cfg_attr(feature = "client", wasm_bindgen)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
+struct CopyableHash(u64, u64, u64, u64);
+
+impl FromStr for CopyableHash {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() == 64 {
+            let data = hex::decode(s)?;
+            Ok(CopyableHash::from_vec(data))
+        } else {
+            Err(anyhow::Error::msg("invalid length"))
+        }
+    }
+}
+
+impl Display for CopyableHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(self.to_vec()))
+    }
+}
+
+impl CopyableHash {
+    pub fn to_vec(&self) -> Vec<u8> {
+        vec![
+            ((self.0 & 0xff_00_00_00_00_00_00_00) >> 56) as u8,
+            ((self.0 & 0x00_ff_00_00_00_00_00_00) >> 48) as u8,
+            ((self.0 & 0x00_00_ff_00_00_00_00_00) >> 40) as u8,
+            ((self.0 & 0x00_00_00_ff_00_00_00_00) >> 32) as u8,
+            ((self.0 & 0x00_00_00_00_ff_00_00_00) >> 24) as u8,
+            ((self.0 & 0x00_00_00_00_00_ff_00_00) >> 16) as u8,
+            ((self.0 & 0x00_00_00_00_00_00_ff_00) >> 8) as u8,
+            (self.0 & 0x00_00_00_00_00_00_00_ff) as u8,
+            ((self.1 & 0xff_00_00_00_00_00_00_00) >> 56) as u8,
+            ((self.1 & 0x00_ff_00_00_00_00_00_00) >> 48) as u8,
+            ((self.1 & 0x00_00_ff_00_00_00_00_00) >> 40) as u8,
+            ((self.1 & 0x00_00_00_ff_00_00_00_00) >> 32) as u8,
+            ((self.1 & 0x00_00_00_00_ff_00_00_00) >> 24) as u8,
+            ((self.1 & 0x00_00_00_00_00_ff_00_00) >> 16) as u8,
+            ((self.1 & 0x00_00_00_00_00_00_ff_00) >> 8) as u8,
+            (self.1 & 0x00_00_00_00_00_00_00_ff) as u8,
+            ((self.2 & 0xff_00_00_00_00_00_00_00) >> 56) as u8,
+            ((self.2 & 0x00_ff_00_00_00_00_00_00) >> 48) as u8,
+            ((self.2 & 0x00_00_ff_00_00_00_00_00) >> 40) as u8,
+            ((self.2 & 0x00_00_00_ff_00_00_00_00) >> 32) as u8,
+            ((self.2 & 0x00_00_00_00_ff_00_00_00) >> 24) as u8,
+            ((self.2 & 0x00_00_00_00_00_ff_00_00) >> 16) as u8,
+            ((self.2 & 0x00_00_00_00_00_00_ff_00) >> 8) as u8,
+            (self.2 & 0x00_00_00_00_00_00_00_ff) as u8,
+            ((self.3 & 0xff_00_00_00_00_00_00_00) >> 56) as u8,
+            ((self.3 & 0x00_ff_00_00_00_00_00_00) >> 48) as u8,
+            ((self.3 & 0x00_00_ff_00_00_00_00_00) >> 40) as u8,
+            ((self.3 & 0x00_00_00_ff_00_00_00_00) >> 32) as u8,
+            ((self.3 & 0x00_00_00_00_ff_00_00_00) >> 24) as u8,
+            ((self.3 & 0x00_00_00_00_00_ff_00_00) >> 16) as u8,
+            ((self.3 & 0x00_00_00_00_00_00_ff_00) >> 8) as u8,
+            (self.3 & 0x00_00_00_00_00_00_00_ff) as u8,
+        ]
+    }
+
+    fn from_vec(data: Vec<u8>) -> CopyableHash {
+        CopyableHash(
+            (data[0] as u64) << 56
+                | (data[1] as u64) << 48
+                | (data[2] as u64) << 40
+                | (data[3] as u64) << 32
+                | (data[4] as u64) << 24
+                | (data[5] as u64) << 16
+                | (data[6] as u64) << 8
+                | data[7] as u64,
+            (data[8] as u64) << 56
+                | (data[9] as u64) << 48
+                | (data[10] as u64) << 40
+                | (data[11] as u64) << 32
+                | (data[12] as u64) << 24
+                | (data[13] as u64) << 16
+                | (data[14] as u64) << 8
+                | data[15] as u64,
+            (data[16] as u64) << 56
+                | (data[17] as u64) << 48
+                | (data[18] as u64) << 40
+                | (data[19] as u64) << 32
+                | (data[20] as u64) << 24
+                | (data[21] as u64) << 16
+                | (data[22] as u64) << 8
+                | data[23] as u64,
+            (data[24] as u64) << 56
+                | (data[25] as u64) << 48
+                | (data[26] as u64) << 40
+                | (data[27] as u64) << 32
+                | (data[28] as u64) << 24
+                | (data[29] as u64) << 16
+                | (data[30] as u64) << 8
+                | data[31] as u64,
+        )
+    }
+
+    pub fn generate<S: AsRef<str>>(s: S) -> CopyableHash {
+        let mut hasher = Sha256::new();
+        hasher.update(s.as_ref().as_bytes());
+        let res = hasher.finalize();
+        CopyableHash::from_vec(res[..].to_vec())
+    }
+}
+
+/// Unique room id from sha256
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
-pub struct RoomUuid(pub Uuid);
+pub struct RoomUid(CopyableHash);
 
-impl From<Uuid> for RoomUuid {
-    fn from(u: Uuid) -> Self {
-        RoomUuid(u)
+impl FromStr for RoomUid {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(RoomUid(CopyableHash::from_str(s)?))
+    }
+}
+
+impl Display for RoomUid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl RoomUid {
+    pub fn generate<S: AsRef<str>>(s: S) -> RoomUid {
+        RoomUid(CopyableHash::generate(s))
+    }
+
+    pub fn generate_random() -> RoomUid {
+        RoomUid::generate(format!(
+            "room-{}-{}",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+            rand::random::<u8>()
+        ))
     }
 }
 
 /// Short 6-digit room id during room is alive.
 /// If room is removed, then this id is useless and can be representing other room.
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct RoomId(pub u32);
@@ -33,13 +168,36 @@ impl From<u32> for RoomId {
 
 /// Unique game id.
 /// Every game would have game id even though they're in same room.
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
-pub struct GameId(pub Uuid);
+pub struct GameId(CopyableHash);
 
-impl From<Uuid> for GameId {
-    fn from(u: Uuid) -> Self {
-        GameId(u)
+impl FromStr for GameId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(GameId(CopyableHash::from_str(s)?))
+    }
+}
+
+impl Display for GameId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl GameId {
+    pub fn generate<S: AsRef<str>>(s: S) -> GameId {
+        GameId(CopyableHash::generate(s))
+    }
+
+    pub fn generate_random() -> GameId {
+        GameId::generate(format!(
+            "game-{}-{}",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+            rand::random::<u8>()
+        ))
     }
 }
 
@@ -47,6 +205,7 @@ impl From<Uuid> for GameId {
 /// It starts with 10.
 /// If the value is 0, it represents no user.
 /// If the value if 1~9, it will be bot(ghost).
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
 pub struct UserNo(pub u32);
@@ -59,28 +218,28 @@ impl From<u32> for UserNo {
 
 /// Unique rule hash
 /// It uses sha256 to hash.
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Deserialize, Serialize)]
+#[cfg_attr(feature = "client", wasm_bindgen)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
-pub struct RuleHash(pub String);
+pub struct RuleHash(CopyableHash);
 
-impl RuleHash {
-    pub fn from_rule(r: &Rule) -> Self {
-        let mut hasher = Sha256::new();
-        let s = serde_json::to_string(r).unwrap();
-        hasher.update(s.as_bytes());
-        let res = hasher.finalize();
-        RuleHash(hex::encode(res))
+impl FromStr for RuleHash {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(RuleHash(CopyableHash::from_str(s)?))
     }
 }
 
-/// Token for mail
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
-#[cfg_attr(feature = "server", derive(MessageResponse))]
-pub struct Token(pub Uuid);
+impl Display for RuleHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
-impl From<Uuid> for Token {
-    fn from(u: Uuid) -> Self {
-        Token(u)
+impl RuleHash {
+    pub fn generate(rule: &Rule) -> RuleHash {
+        RuleHash(CopyableHash::generate(serde_json::to_string(rule).unwrap()))
     }
 }
 
@@ -99,7 +258,7 @@ impl From<Uuid> for Token {
 #[cfg_attr(feature = "server", derive(Message, MessageResponse))]
 #[cfg_attr(feature = "server", rtype(result = "()"))]
 pub struct RoomInfo {
-    pub uuid: RoomUuid,
+    pub uid: RoomUid,
     pub id: RoomId,
     pub name: String,
     pub rule: RuleHash,

@@ -1,9 +1,9 @@
 use crate::prelude::*;
-use crate::ws::session::{Context, SessionTrait};
+use crate::ws::session::{Context, Session, SessionTrait};
 use serde::Serialize;
 use types::{MainToClient, MainToServer, UserNo, UserStatus};
 
-pub struct Main;
+pub struct MainSession;
 
 #[derive(Debug, Clone, Serialize)]
 struct Status {
@@ -11,7 +11,7 @@ struct Status {
     status: UserStatus,
 }
 
-impl SessionTrait for Main {
+impl SessionTrait for MainSession {
     type Sender = MainToServer;
 
     fn tag() -> &'static str {
@@ -30,27 +30,29 @@ impl SessionTrait for Main {
 }
 
 #[wasm_bindgen]
-pub fn main_on(tag: String, callback: Function) {
-    MAIN.with(move |main| main.borrow().on(tag, callback));
+pub struct Main {
+    session: Session<MainSession>,
 }
 
 #[wasm_bindgen]
-pub fn main_update() {
-    MAIN.with(|main| main.borrow().send(MainToServer::Update));
-}
+impl Main {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<Main> {
+        Ok(Main {
+            session: MainSession.start()?,
+        })
+    }
 
-#[wasm_bindgen]
-pub fn main_subscribe(user_no: &JsValue) {
-    MAIN.with(move |main| {
-        main.borrow()
-            .send(MainToServer::Subscribe(user_no.into_serde().unwrap()))
-    });
-}
+    pub fn on(&self, tag: String, callback: Function) {
+        self.session.on(tag, callback);
+    }
 
-#[wasm_bindgen]
-pub fn main_unsubscribe(user_no: &JsValue) {
-    MAIN.with(move |main| {
-        main.borrow()
-            .send(MainToServer::Unsubscribe(user_no.into_serde().unwrap()))
-    });
+    pub fn update(&self) {
+        self.session.send(MainToServer::Update);
+    }
+
+    pub fn subscribe(&self, user_no: &JsValue) {
+        self.session
+            .send(MainToServer::Subscribe(user_no.into_serde().unwrap()));
+    }
 }

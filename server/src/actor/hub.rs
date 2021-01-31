@@ -8,8 +8,6 @@ use mighty::prelude::Rule;
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
-use uuid::Uuid;
 
 /// Hub Actor
 ///
@@ -51,14 +49,14 @@ impl Handler<MakeRoom> for Hub {
     type Result = RoomId;
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
-        let room_uuid = RoomUuid(self.generate_uuid("room"));
+        let room_uuid = RoomUid::generate_random();
         let room_id = self.generate_room_id();
         let user_cnt = msg.1.user_cnt as usize;
-        let rule = RuleHash::from_rule(&msg.1);
+        let rule = RuleHash::generate(&msg.1);
         let _ = save_rule(SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
         let room = Room::new(
             RoomInfo {
-                uuid: room_uuid,
+                uid: room_uuid,
                 id: room_id,
                 name: msg.0,
                 rule,
@@ -137,19 +135,6 @@ impl Handler<HubDisconnect> for Hub {
     }
 }
 
-/// This would make unique game id across the server
-#[derive(Debug, Clone, Message)]
-#[rtype(result = "GameId")]
-pub struct MakeGameId;
-
-impl Handler<MakeGameId> for Hub {
-    type Result = GameId;
-
-    fn handle(&mut self, _: MakeGameId, _: &mut Self::Context) -> Self::Result {
-        GameId(self.generate_uuid("game"))
-    }
-}
-
 impl Hub {
     pub fn new(pool: Pool) -> Hub {
         Hub {
@@ -158,21 +143,6 @@ impl Hub {
             users: HashMap::new(),
             pool,
         }
-    }
-
-    /// Generate random uuid
-    pub fn generate_uuid(&mut self, tag: &str) -> Uuid {
-        self.counter += 1;
-        Uuid::new_v5(
-            &Uuid::NAMESPACE_OID,
-            format!(
-                "{}-{}-{}",
-                tag,
-                SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
-                self.counter,
-            )
-            .as_ref(),
-        )
     }
 
     /// Generate random 6-digit `room_id`

@@ -1,6 +1,9 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "client")]
+use wasm_bindgen::prelude::*;
 
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, Copy, Hash, Ord, PartialOrd)]
 pub enum Pattern {
     #[serde(rename = "s")]
@@ -13,6 +16,7 @@ pub enum Pattern {
     Clover,
 }
 
+#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, Copy, Hash, Ord, PartialOrd)]
 pub enum Color {
     #[serde(rename = "b")]
@@ -40,6 +44,7 @@ impl Color {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "client", wasm_bindgen)]
     #[derive(Serialize, Deserialize)]
     pub struct Rush: u8 {
         const SPADE   = 0b0001;

@@ -21,7 +21,7 @@ impl Actor for Mail {
 pub struct SendVerification {
     email: String,
     id: String,
-    token: Token,
+    token: String,
 }
 
 impl Handler<SendVerification> for Mail {

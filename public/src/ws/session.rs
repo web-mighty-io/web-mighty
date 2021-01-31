@@ -34,8 +34,12 @@
 //! }
 //! ```
 //!
-//! ```js
-//! ```
+//! # For js callback
+//!
+//! - `start`: when websocket is connected for the first time.
+//! - `reconnect`: when websocket is reconnected due to disconnection for some reason.
+//! - `disconnect`: when websocket is disconnected for any reason except stopping connection.
+//! - `stop`: when websocket connection is totally stopped.
 
 use crate::prelude::*;
 use js_sys::JsString;
@@ -61,7 +65,7 @@ pub trait SessionTrait: Sized + Send + 'static {
     fn started(&mut self, _: &Context<Self>) {}
 
     /// This function will be called when the connection is reopened.
-    fn restarted(&mut self, _: &Context<Self>) {}
+    fn reconnected(&mut self, _: &Context<Self>) {}
 
     /// This function should not be overridden.
     /// This function starts the Session.
@@ -220,7 +224,7 @@ where
             };
 
             inner.started(&ctx);
-            call("connected", JsValue::null(), &mut callback, &mut unsent_msg);
+            call("start", JsValue::null(), &mut callback, &mut unsent_msg);
 
             'outer: loop {
                 let ws = WebSocket::new(&*url).unwrap();
@@ -259,8 +263,8 @@ where
                     if let Ok(msg) = receiver.recv() {
                         match msg {
                             Message::ReStarted => {
-                                inner.restarted(&ctx);
-                                call("reconnected", JsValue::null(), &mut callback, &mut unsent_msg);
+                                inner.reconnected(&ctx);
+                                call("reconnect", JsValue::null(), &mut callback, &mut unsent_msg);
                             }
                             Message::Send(msg) => {
                                 let _ = ws.send_with_str(&*msg);
@@ -285,7 +289,7 @@ where
                             Message::Reconnect => {
                                 inner.disconnected(&ctx);
                                 let _ = ws.close();
-                                call("disconnected", JsValue::null(), &mut callback, &mut unsent_msg);
+                                call("disconnect", JsValue::null(), &mut callback, &mut unsent_msg);
                                 break 'inner;
                             }
                             Message::Stop => {

@@ -1,10 +1,10 @@
 use crate::prelude::*;
-use crate::ws::session::{Context, SessionTrait};
+use crate::ws::session::{Context, Session, SessionTrait};
 use types::{RoomUserToClient, RoomUserToServer};
 
-pub struct User;
+pub struct UserSession;
 
-impl SessionTrait for User {
+impl SessionTrait for UserSession {
     type Sender = RoomUserToServer;
 
     fn tag() -> &'static str {
@@ -21,32 +21,20 @@ impl SessionTrait for User {
 }
 
 #[wasm_bindgen]
-pub fn room_on(tag: String, callback: Function) {
-    USER.with(move |user| user.borrow().on(tag, callback));
+pub struct User {
+    session: Session<UserSession>,
 }
 
 #[wasm_bindgen]
-pub fn room_start_game() {
-    USER.with(move |user| user.borrow().send(RoomUserToServer::Start));
-}
+impl User {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<User> {
+        Ok(User {
+            session: UserSession.start()?,
+        })
+    }
 
-#[wasm_bindgen]
-pub fn room_change_name(name: String) {
-    USER.with(move |user| user.borrow().send(RoomUserToServer::ChangeName(name)));
-}
-
-#[wasm_bindgen]
-pub fn room_change_rule(rule: &JsValue) {
-    USER.with(move |user| {
-        user.borrow()
-            .send(RoomUserToServer::ChangeRule(rule.into_serde().unwrap()))
-    });
-}
-
-#[wasm_bindgen]
-pub fn room_send_command(command: &JsValue) {
-    USER.with(move |user| {
-        user.borrow()
-            .send(RoomUserToServer::Command(command.into_serde().unwrap()))
-    });
+    pub fn on(&self, tag: String, callback: Function) {
+        self.session.on(tag, callback);
+    }
 }

@@ -1,7 +1,5 @@
-mod global;
 pub mod ws;
 
-use mighty::prelude::Rule;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -18,7 +16,6 @@ macro_rules! console_log {
 mod prelude {
     pub type Result<T, E = JsValue> = std::result::Result<T, E>;
     pub use crate::console_log;
-    pub use crate::global::*;
     pub use js_sys::Function;
     pub use wasm_bindgen::prelude::*;
     pub use wasm_bindgen::JsValue;
@@ -29,11 +26,6 @@ mod prelude {
     }
 }
 
-#[wasm_bindgen]
-pub fn new_mighty_rule() -> JsValue {
-    let rule = Rule::new();
-    JsValue::from_serde(&rule).unwrap()
-}
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {

@@ -1,4 +1,4 @@
-use crate::actor::hub::{MakeGameId, RemoveRoom};
+use crate::actor::hub::RemoveRoom;
 use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo};
 use crate::actor::{hub, Hub, List, Observe, User};
 use crate::db::game::{get_rule, save_rule, save_state, GetRuleForm, SaveRuleForm, SaveStateForm};
@@ -161,7 +161,7 @@ impl Handler<ChangeRule> for Room {
         if msg.0 != self.info.head || self.info.is_game {
             return;
         }
-        self.info.rule = RuleHash::from_rule(&msg.1);
+        self.info.rule = RuleHash::generate(&msg.1);
         let _ = save_rule(SaveRuleForm { rule: msg.1 }, self.pool.clone());
         self.spread_info();
     }
@@ -176,36 +176,26 @@ pub struct StartGame(pub UserNo);
 impl Handler<StartGame> for Room {
     type Result = ();
 
-    fn handle(&mut self, msg: StartGame, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: StartGame, _: &mut Self::Context) -> Self::Result {
         if msg.0 != self.info.head || self.info.is_game {
             return;
         }
-        self.hub
-            .send(MakeGameId)
-            .into_actor(self)
-            .then(|res, act, _| {
-                if let Ok(id) = res {
-                    act.game = Some(GameInfo {
-                        id,
-                        no: 0,
-                        game: Game::new(
-                            get_rule(
-                                GetRuleForm {
-                                    rule_hash: act.info.rule.0.clone(),
-                                },
-                                act.pool.clone(),
-                            )
-                            .unwrap(),
-                        ),
-                    });
-                    act.info.is_game = true;
-                    act.spread_info();
-                    act.spread_game();
-                }
-
-                fut::ready(())
-            })
-            .wait(ctx);
+        self.game = Some(GameInfo {
+            id: GameId::generate_random(),
+            no: 0,
+            game: Game::new(
+                get_rule(
+                    GetRuleForm {
+                        rule_hash: self.info.rule,
+                    },
+                    self.pool.clone(),
+                )
+                .unwrap(),
+            ),
+        });
+        self.info.is_game = true;
+        self.spread_info();
+        self.spread_game();
     }
 }
 
@@ -237,8 +227,8 @@ impl Handler<Go> for Room {
         let game = self.game.as_ref().unwrap();
         let _ = save_state(
             SaveStateForm {
-                game_id: game.id.0,
-                room_id: self.info.uuid.0,
+                game_id: game.id,
+                room_id: self.info.uid,
                 number: game.no,
                 state: game.game.get_state(),
             },

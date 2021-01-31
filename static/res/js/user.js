@@ -1,5 +1,5 @@
 export let user = {
-    async login(username, password, on_error) {
+    async login(username, password, onError) {
         let res = await fetch("/login", {
             method: "post",
             headers: {
@@ -7,19 +7,19 @@ export let user = {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                user_id: username,
-                password: password,
+                "user_id": username,
+                password,
             })
         });
         if (res.ok) {
             let params = new URLSearchParams(window.location.search);
-            let redirect_to = "/";
+            let redirect = "/";
             if (params.has("back")) {
-                redirect_to = params.get("back");
+                redirect = params.get("back");
             }
-            window.location.replace(redirect_to);
+            window.location.replace(redirect);
         } else {
-            on_error(res.text());
+            onError(res.text());
         }
 
     },

@@ -2,8 +2,8 @@ use crate::dev::*;
 use mighty::prelude::{Rule, State};
 use postgres::types::Json;
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ChangeRatingForm {
@@ -98,7 +98,15 @@ pub struct SaveStateForm {
 pub fn save_state(form: SaveStateForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("INSERT INTO record (game_id, room_id, number, state) VALUES ($1, $2, $3, $4);")?;
-    let _ = client.query(&stmt, &[&form.game_id.to_string(), &form.room_id.to_string(), &form.number, &Json(form.state)])?;
+    let _ = client.query(
+        &stmt,
+        &[
+            &form.game_id.to_string(),
+            &form.room_id.to_string(),
+            &form.number,
+            &Json(form.state),
+        ],
+    )?;
     Ok(())
 }
 

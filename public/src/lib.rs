@@ -26,7 +26,6 @@ mod prelude {
     }
 }
 
-
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     Ok(())

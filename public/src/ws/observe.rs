@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::ws::session::{Context, SessionTrait, Session};
+use crate::ws::session::{Context, Session, SessionTrait};
 use types::{ObserveToClient, ObserveToServer};
 
 pub struct ObserveSession;
@@ -22,7 +22,7 @@ impl SessionTrait for ObserveSession {
 
 #[wasm_bindgen]
 pub struct Observe {
-    session: Session<ObserveSession>
+    session: Session<ObserveSession>,
 }
 
 #[wasm_bindgen]
@@ -37,5 +37,4 @@ impl Observe {
     pub fn on(&self, tag: String, callback: Function) {
         self.session.on(tag, callback);
     }
-
 }

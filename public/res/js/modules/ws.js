@@ -1,4 +1,4 @@
-import "../pkg/index.js";
+import "../pkg/client.js";
 
 let main;
 

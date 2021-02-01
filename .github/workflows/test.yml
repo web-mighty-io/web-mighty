@@ -108,4 +108,4 @@ jobs:
             rm ${HOME}/.cargo/bin/wasm-pack
           fi
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          cd public && wasm-pack test ${{ matrix.browsers }} --headless
+          cd client && wasm-pack test ${{ matrix.browsers }} --headless

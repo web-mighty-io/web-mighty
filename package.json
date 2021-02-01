@@ -10,7 +10,7 @@
     "build-wasm": "wasm-pack build --target web --release -d ../public/res/js/pkg client",
     "build": "npm run build-wasm && npm run build-sass && cargo install --root build --path server",
     "watch": "npm run build-watch && ./build/bin/server",
-    "run": "npm run build && ./build/bin/server",
+    "run": "npm run build && ./build/bin/server"
   },
   "repository": {
     "type": "git",

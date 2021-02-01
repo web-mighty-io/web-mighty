@@ -26,7 +26,7 @@ WORKDIR /app
 
 RUN npm install \
  && npx sass /app/public/res/scss/style.scss /app/public/res/css/style.css --no-source-map \
- && npx webpack --env=docker
+ && npx webpack --env=docker \
  && rm -rf /app/public/res/scss /app/public/js
 
 # minifying css & js files

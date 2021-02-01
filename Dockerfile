@@ -21,7 +21,6 @@ COPY public /app/public
 COPY --from=rust-build /app/public/js/pkg/*.js /app/public/js/pkg
 COPY --from=rust-build /app/public/js/pkg/*.wasm /app/public/js/pkg
 COPY ./package.json /app
-COPY ./webpack.config.js /app
 
 WORKDIR /app
 

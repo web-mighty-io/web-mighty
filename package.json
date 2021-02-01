@@ -28,7 +28,7 @@
   "homepage": "https://web-mighty.io",
   "devDependencies": {
     "sass": "^1.32.5",
-    "wasm-pack": "^0.0.0"
+    "wasm-pack": "^0.9.1"
   },
   "dependencies": {
     "bulma": "^0.9.2",

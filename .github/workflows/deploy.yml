@@ -30,7 +30,7 @@ jobs:
       - name: Sleep for 60 seconds
         uses: jakejarvis/wait-action@master
         with:
-          time: '60s'
+          time: '10s'
 
       - name: Deploy to kubernetes
         uses: appleboy/ssh-action@master

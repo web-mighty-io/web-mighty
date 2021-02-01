@@ -21,6 +21,5 @@ export let user = {
         } else {
             onError(res.text());
         }
-
     },
 };

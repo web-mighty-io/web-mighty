@@ -3,7 +3,7 @@
 //! # Example
 //!
 //! ```
-//! use public::ws::session::{Context, SessionTrait};
+//! use client::ws::session::{Context, SessionTrait};
 //! use serde::{Deserialize, Serialize};
 //! use wasm_bindgen::JsValue;
 //!

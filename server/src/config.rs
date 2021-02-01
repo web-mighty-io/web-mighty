@@ -16,7 +16,7 @@
 //!   * `redirect`: redirect http connection to https (defaults to `false`)
 //! - `log_path`: path to write log to (stdout if not present)
 //! - `verbose`: verbose level of log (1 ~ 6) (defaults to `4`)
-//! - `serve_path`: path to `static` directory (defaults `static`) **This wouldn't be necessary
+//! - `serve_path`: path to `public` directory (defaults `public`) **This wouldn't be necessary
 //!                 if you use docker of the way in `README.md`**
 //! - `secret`: random key for token (defaults to random) **note: generate through
 //!             `openssl rand -hex 16`**
@@ -212,7 +212,7 @@ impl Builder {
         for (p, c) in self.builders.iter() {
             serve_path = serve_path.or_else(|| c.serve_path.as_ref().map(|c| join(p, c)));
         }
-        let serve_path = serve_path.unwrap_or_else(|| to_absolute_path("static"));
+        let serve_path = serve_path.unwrap_or_else(|| to_absolute_path("public"));
 
         let mut secret = None;
         for (_, c) in self.builders.iter() {

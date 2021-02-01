@@ -1,22 +1,32 @@
 codecov:
-  require_ci_to_pass: yes
+  require_ci_to_pass: true
 
 coverage:
   status:
-    core:
+    client:
+      flags: client
+    config:
+      flags: config
+    mighty:
       flags: mighty
-    public:
-      flags: public
     server:
       flags: server
+    types:
+      flags: types
 
 flags:
-  core:
+  client:
+    paths:
+      - client/src
+  config:
+    paths:
+      - config/src
+  mighty:
     paths:
       - mighty/src
-  public:
-    paths:
-      - public/src
   server:
     paths:
       - server/src
+  types:
+    paths:
+      - types/src

@@ -72,11 +72,11 @@ jobs:
           command: test
           args: --manifest-path mighty/Cargo.toml --features client
 
-      - name: Checking if it builds without errors - public (default feature)
+      - name: Checking if it builds without errors - client (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path public/Cargo.toml
+          args: --manifest-path client/Cargo.toml
 
       - name: Checking if it builds without errors - server (default feature)
         uses: actions-rs/cargo@v1
@@ -108,4 +108,4 @@ jobs:
             rm ${HOME}/.cargo/bin/wasm-pack
           fi
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          cd public && wasm-pack test ${{ matrix.browsers }} --headless
+          cd client && wasm-pack test ${{ matrix.browsers }} --headless

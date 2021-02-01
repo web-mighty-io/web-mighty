@@ -68,11 +68,11 @@ jobs:
           command: clippy
           args: --all-targets --manifest-path mighty/Cargo.toml --features client -- -D warnings
 
-      - name: Checking if it builds without warnings - public (default feature)
+      - name: Checking if it builds without warnings - client (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --manifest-path public/Cargo.toml -- -D warnings
+          args: --all-targets --manifest-path client/Cargo.toml -- -D warnings
 
       - name: Checking if it builds without warnings - server (default feature)
         uses: actions-rs/cargo@v1

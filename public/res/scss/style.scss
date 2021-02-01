@@ -4,6 +4,8 @@
 
 $family-sans-serif: "Raleway", sans-serif;
 
+// Colors
+
 $dark-blue: #21243d;
 $light-pink: #ff7c7c;
 $yellow: #ffd082;
@@ -31,7 +33,9 @@ $_colors: (
   "success": $success,
 );
 
-@function color-below($color) {
+// Buttons
+
+@function button-below-color($color) {
   @if lightness($color) > 40 {
     @return darken($color, 20%);
   } @else {
@@ -42,19 +46,21 @@ $_colors: (
 @each $color_name, $color in $_colors {
   .button.is-#{$color_name} {
     transition: 0.2s ease-out;
-    box-shadow: 0 0 color-below($color) !important;
+    box-shadow: 0 0 button-below-color($color) !important;
   }
 
   .button.is-#{$color_name}:hover, .button.is-#{$color_name}:hover:focus {
     transform: translateY(-10px);
-    box-shadow: 0 10px color-below($color) !important;
+    box-shadow: 0 10px button-below-color($color) !important;
   }
 
   .button.is-#{$color_name}:active, .button.is-#{$color_name}:active:focus {
     transform: translateY(-5px);
-    box-shadow: 0 5px color-below($color) !important;
+    box-shadow: 0 5px button-below-color($color) !important;
   }
 }
+
+// Others
 
 .is-horizontal-center {
   justify-content: center;
@@ -101,4 +107,4 @@ aside {
   float: right;
 }
 
-@import "../bulma/bulma.sass";
+@import "../../../node_modules/bulma/bulma.sass";

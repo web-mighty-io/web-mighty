@@ -209,10 +209,10 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                     let stripped_path = &*stripped_path.to_string_lossy();
                     let stripped_path = stripped_path.to_owned().replace(MAIN_SEPARATOR, "/");
                     let mut resources = data.resources.lock().unwrap();
-                    if resources.contains_key(&stripped_path) {
-                        if let Ok(content) = fs::read(&path) {
-                            resources.insert(stripped_path, content);
-                        }
+                    if let Ok(content) = fs::read(&path) {
+                        resources.insert(stripped_path, content);
+                    } else {
+                        resources.remove(&stripped_path);
                     }
                     drop(resources);
                 }

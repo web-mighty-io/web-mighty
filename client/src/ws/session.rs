@@ -46,7 +46,6 @@ use js_sys::JsString;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
-use std::thread;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::{MessageEvent, WebSocket};
@@ -204,7 +203,8 @@ where
         let context = Context { sender };
 
         let ctx = context.clone();
-        thread::spawn(move || {
+
+        let inner = Closure::wrap(Box::new(move || {
             let mut callback: HashMap<String, Function> = HashMap::new();
             let mut unsent_msg: HashMap<String, Vec<JsValue>> = HashMap::new();
 
@@ -302,7 +302,10 @@ where
                     }
                 }
             }
-        });
+        }) as Box<dyn FnMut()>);
+
+        window()?.set_timeout_with_callback(inner.as_ref().unchecked_ref())?;
+        inner.forget();
 
         Ok(Session { context })
     }

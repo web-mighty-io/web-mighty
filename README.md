@@ -24,11 +24,11 @@ Go to [localhost:8080](http://localhost:8080) and have fun!
 
 ## Manually start your server
 
-1. [install rust](https://www.rust-lang.org/tools/install)
-2. [install wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
-3. [install npm](https://www.npmjs.com/get-npm)
-4. run `npm i && npm build`
-6. [install](https://www.postgresql.org/download/) and start your postgres server
-7. run `cargo install --root build --path server`
-8. make `server.toml` based from `server.sample.toml`
-9. run `./build/bin/server`
+1.  [install rust](https://www.rust-lang.org/tools/install)
+2.  [install wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
+3.  [install npm](https://www.npmjs.com/get-npm)
+4.  run `npm i && npm build`
+5.  [install](https://www.postgresql.org/download/) and start your postgres server
+6.  run `cargo install --root build --path server`
+7.  make `server.toml` based from `server.sample.toml`
+8.  run `./build/bin/server`

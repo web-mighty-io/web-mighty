@@ -1,5 +1,5 @@
-let ws = import ("../pkg/index").then(wasm => {
-    wasm.run()
+let ws = import ("../pkg/index").then((wasm) => {
+    wasm.run();
 
     return {
         main: new wasm.Main()

@@ -1,9 +1,9 @@
 const glob = require("glob");
 const path = require("path");
-const FileManagerPlugin = require('filemanager-webpack-plugin');
+const FileManagerPlugin = require("filemanager-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
-module.exports = env => {
+module.exports = (env) => {
     let plugins = [
         new FileManagerPlugin({
             events: {
@@ -34,7 +34,7 @@ module.exports = env => {
         mode: "production",
         entry: glob.sync("./public/js/*.js").reduce((acc, item) => {
             const path = item.split("/");
-            const name = path[path.length - 1].split(".").slice(0, -1).join(".")
+            const name = path[path.length - 1].split(".").slice(0, -1).join(".");
             acc[name] = item;
             return acc;
         }, {}),

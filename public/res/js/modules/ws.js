@@ -1,13 +1,16 @@
-import "../pkg/client.js";
+import init, * as wasm from "../pkg/client.js";
 
 let main;
 
 await (async function () {
-    await run();
+    await init();
+    await wasm.run();
 
-    main = new Main();
+    main = new wasm.Main();
 })();
 
-export let ws = {
+let ws = {
     main
 };
+
+export default ws;

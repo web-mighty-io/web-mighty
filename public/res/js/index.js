@@ -1,6 +1,6 @@
-import "./modules/ws.js";
+import ws from "./modules/ws.js";
 
-main.on("start", function() {
-    console.log("Hello");
-})
+ws.main.on("start", function () {
+    alert("Hello");
+});
 

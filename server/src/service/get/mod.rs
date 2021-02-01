@@ -108,7 +108,12 @@ pub async fn register(id: Identity, state: web::Data<AppState>) -> impl Responde
 pub async fn resource(state: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
     let resources = state.get_resources();
     if let Some(body) = resources.get(&file) {
-        HttpResponse::Ok().body(body.clone())
+        HttpResponse::Ok()
+            .header(
+                http::header::CONTENT_TYPE,
+                mime_guess::from_path(&file).first_or(mime::TEXT_PLAIN_UTF_8),
+            )
+            .body(body.clone())
     } else {
         HttpResponse::NotFound().finish()
     }

@@ -26,11 +26,9 @@ Go to [localhost:8080](http://localhost:8080) and have fun!
 
 1.  [install rust](https://www.rust-lang.org/tools/install)
 2.  [install wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
-3.  [install sass](https://sass-lang.com/install)
-4.  [install bulma](https://bulma.io/): download latest version and unzip to `static/res/bulma`
-5.  convert `static/res/scss/style.scss` to `static/res/css/style.css` using `sass`
-6.  [install](https://www.postgresql.org/download/) and start your postgresql server
-7.  run `wasm-pack build --target web --release -d staic/res/pkg public`
-8.  run `cargo install --root build --path server`
-9.  make `server.toml` based from `server.sample.toml`
-10. run `./build/bin/server`
+3.  [install npm](https://www.npmjs.com/get-npm)
+4.  run `npm i && npm build`
+5.  [install](https://www.postgresql.org/download/) and start your postgres server
+6.  run `cargo install --root build --path server`
+7.  make `server.toml` based from `server.sample.toml`
+8.  run `./build/bin/server`

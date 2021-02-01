@@ -4,7 +4,7 @@
 **/*.rs.bk
 
 # Wasm files
-public/bin
+client/bin
 wasm-pack.log
 
 # minified files
@@ -18,7 +18,7 @@ wasm-pack.log
 
 # generated files
 **/bulma
-static/res/css
+public/res/css
 
 # python virtual env files
 venv
@@ -47,3 +47,7 @@ build
 
 # configuration file
 server.toml
+
+# npm
+node_modules
+package-lock.json

@@ -111,7 +111,7 @@ impl AppState {
 }
 
 /// Function to get all handlebars
-/// It would search through `static` directory and save in the memory.
+/// It would search through `public` directory and save in the memory.
 fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
     let path = path.as_ref();
     let mut handlebars = Handlebars::new();
@@ -136,7 +136,7 @@ fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
 }
 
 /// Function to get resources
-/// It would search through `static` directory and save in the memory.
+/// It would search through `public` directory and save in the memory.
 fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, Vec<u8>> {
     let path = path.as_ref();
     let mut resources = HashMap::new();

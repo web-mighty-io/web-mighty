@@ -72,11 +72,11 @@ jobs:
           command: test
           args: --manifest-path mighty/Cargo.toml --features client
 
-      - name: Checking if it builds without errors - public (default feature)
+      - name: Checking if it builds without errors - client (default feature)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path public/Cargo.toml
+          args: --manifest-path client/Cargo.toml
 
       - name: Checking if it builds without errors - server (default feature)
         uses: actions-rs/cargo@v1

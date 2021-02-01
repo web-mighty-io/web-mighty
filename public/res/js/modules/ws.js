@@ -1,4 +1,4 @@
-import "../pkg/public.js";
+import "../pkg/index.js";
 
 let main;
 

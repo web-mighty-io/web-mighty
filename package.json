@@ -1,0 +1,37 @@
+{
+  "name": "web-mighty",
+  "version": "1.0.0",
+  "description": "Mighty Card Game",
+  "main": "index.js",
+  "scripts": {
+    "config": "cp -n server.sample.toml server.toml && echo \"Change server.toml\"",
+    "build-sass": "sass public/res/scss/style.scss public/res/css/style.css --no-source-map",
+    "build-watch": "npm run build-wasm && npm run build-sass && cargo install --root build --path server --features watch-file",
+    "build-wasm": "wasm-pack build --target web --release -d ../public/res/js/pkg client",
+    "build": "npm run build-wasm && npm run build-sass && cargo install --root build --path server",
+    "watch": "npm run build-watch && ./build/bin/server",
+    "run": "npm run build && ./build/bin/server",
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/web-mighty-io/web-mighty.git"
+  },
+  "keywords": [
+    "mighty-card-game",
+    "wasm"
+  ],
+  "author": "Jaeyong Sung <jaeyong0201@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/web-mighty-io/web-mighty/issues"
+  },
+  "homepage": "https://web-mighty.io",
+  "devDependencies": {
+    "sass": "^1.32.5",
+    "wasm-pack": "^0.0.0"
+  },
+  "dependencies": {
+    "bulma": "^0.9.2",
+    "ifvisible.js": "^1.0.6"
+  }
+}

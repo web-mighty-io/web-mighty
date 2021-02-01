@@ -11,8 +11,8 @@ port = "80"
 verbose = "4"
 # secret key for cookie identification (random for default)
 secret = "a093c76bd2c5f4e7dff6360c78bcb57a"
-# path to static files (no need to change this)
-serve_path = "static"
+# path to public files (no need to change this)
+serve_path = "public"
 # uncomment log_path to log to file
 # log_path = "server.log"
 

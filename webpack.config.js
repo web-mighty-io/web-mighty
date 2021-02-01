@@ -26,7 +26,6 @@ module.exports = env => {
             new WasmPackPlugin({
                 crateDirectory: path.resolve(__dirname, "client"),
                 outDir: path.resolve(__dirname, "public", "js", "pkg"),
-                forceMode: "production",
             })
         );
     }

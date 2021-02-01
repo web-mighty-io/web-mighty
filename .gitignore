@@ -51,3 +51,6 @@ server.toml
 # npm
 node_modules
 package-lock.json
+
+# webpack
+public/res/js

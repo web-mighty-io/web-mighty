@@ -1,4 +1,4 @@
-let ws = import ("../pkg/index").then((wasm) => {
+let ws = import ("../pkg/index.js").then((wasm) => {
     wasm.run();
 
     return {

@@ -20,8 +20,8 @@ FROM node:15.7 AS node-build
 COPY                   ./public                  /app/public
 COPY                   ./package.json            /app
 COPY                   ./webpack.config.js       /app
-COPY --from=rust-build /app/public/js/pkg/*.js   /app/public/js/pkg
-COPY --from=rust-build /app/public/js/pkg/*.wasm /app/public/js/pkg
+COPY --from=rust-build /app/public/js/pkg/*.js   /app/public/js/pkg/
+COPY --from=rust-build /app/public/js/pkg/*.wasm /app/public/js/pkg/
 
 WORKDIR /app
 

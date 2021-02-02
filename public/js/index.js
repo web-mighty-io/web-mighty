@@ -1,7 +1,7 @@
-import ws from "./modules/ws.js";
+import websocket from "./modules/websocket.js";
 
-let ws_ = await ws;
+let ws = (await websocket)(["main"]);
 
-ws_.main.on("start", function () {
+ws.main.on("start", function () {
     alert("Hello");
 })

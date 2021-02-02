@@ -22,7 +22,7 @@ mod app_state;
 mod config;
 mod db;
 pub mod error;
-mod https;
+mod middlewares;
 mod service;
 
 /// # Constant module
@@ -85,7 +85,7 @@ pub mod prelude {
 pub mod internal {
     use crate::app_state::AppState;
     use crate::config::Config;
-    use crate::https::RedirectHttps;
+    use crate::middlewares::https::RedirectHttps;
     use crate::service::{config_services, p404};
     use actix_identity::{CookieIdentityPolicy, IdentityService};
     use actix_web::middleware::Logger;

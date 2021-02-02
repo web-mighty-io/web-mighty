@@ -30,6 +30,7 @@ impl<S, B> Transform<S> for RedirectHttps
 where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
     S::Future: 'static,
+    B: 'static,
 {
     type Request = S::Request;
     type Response = S::Response;
@@ -60,6 +61,7 @@ impl<S, B> Service for RedirectHttpsMiddleware<S>
 where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
     S::Future: 'static,
+    B: 'static,
 {
     type Request = S::Request;
     type Response = S::Response;
@@ -79,8 +81,14 @@ where
                 .host()
                 .to_owned()
                 .replacen(&*self.http_port, &*self.https_port, 1);
-            let uri = req.uri().to_owned();
-            let url = format!("https://{}{}", host, uri);
+
+            let path = req.uri().path();
+            let url = if let Some(query) = req.uri().query() {
+                format!("https://{}{}?{}", host, path, query)
+            } else {
+                format!("https://{}{}", host, path)
+            };
+
             Either::Right(ok(req.into_response(
                 HttpResponse::MovedPermanently()
                     .header(header::LOCATION, url)

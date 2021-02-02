@@ -2,10 +2,11 @@ use crate::actor::{Hub, Mail};
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web::web;
-use handlebars::Handlebars;
+use handlebars::{Handlebars, RenderError};
 use ignore::WalkBuilder;
 use r2d2_postgres::postgres::NoTls;
 use r2d2_postgres::PostgresConnectionManager;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, MAIN_SEPARATOR};
@@ -87,14 +88,22 @@ impl AppState {
 
     #[cfg(not(feature = "watch-file"))]
     #[inline(always)]
-    pub fn get_handlebars(&self) -> &Handlebars<'static> {
+    fn get_handlebars(&self) -> &Handlebars<'static> {
         &self.handlebars
     }
 
     #[cfg(feature = "watch-file")]
     #[inline(always)]
-    pub fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
+    fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
         self.handlebars.lock().unwrap()
+    }
+
+    pub fn render<T>(&self, name: &str, data: &T) -> Result<String, RenderError>
+    where
+        T: Serialize,
+    {
+        let hbs = self.get_handlebars();
+        hbs.render(name, data)
     }
 
     #[cfg(not(feature = "watch-file"))]

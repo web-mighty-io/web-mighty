@@ -89,7 +89,7 @@ pub mod internal {
     use crate::service::{config_services, p404};
     use actix_identity::{CookieIdentityPolicy, IdentityService};
     use actix_web::middleware::Logger;
-    use actix_web::{App, HttpServer, web};
+    use actix_web::{web, App, HttpServer};
     use clap::Clap;
     use std::path::PathBuf;
 

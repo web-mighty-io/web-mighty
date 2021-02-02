@@ -5,7 +5,8 @@ use crate::app_state::AppState;
 use crate::db::user::{get_user_info, GetInfoForm};
 use crate::dev::*;
 use actix_identity::Identity;
-use actix_web::{get, http, web, HttpResponse, Responder};
+use actix_web::http::header;
+use actix_web::{get, web, HttpResponse, Responder};
 use serde_json::{json, Map};
 
 #[get("/admin")]
@@ -16,7 +17,10 @@ pub async fn admin(id: Identity, state: web::Data<AppState>) -> Result<HttpRespo
         if info.is_admin {
             let handlebars = state.get_handlebars();
             let body = handlebars.render("admin.hbs", &json!({ "id": id })).unwrap();
-            Ok(HttpResponse::Ok().body(body))
+            Ok(HttpResponse::Ok()
+                .set(header::CacheControl(vec![header::CacheDirective::Private]))
+                .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+                .body(body))
         } else {
             Ok(HttpResponse::NotFound().finish())
         }
@@ -30,11 +34,17 @@ pub async fn index(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("main.hbs", &json!({ "id": id })).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     } else {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("index.hbs", &json!({})).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     }
 }
 
@@ -43,10 +53,13 @@ pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("list.hbs", &json!({ "id": id })).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     } else {
         HttpResponse::Found()
-            .header(http::header::LOCATION, "/login?back=list")
+            .header(header::LOCATION, "/login?back=%2Flist")
             .finish()
     }
 }
@@ -54,11 +67,14 @@ pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
 #[get("/login")]
 pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(http::header::LOCATION, "/").finish()
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
     } else {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("login.hbs", &json!({})).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     }
 }
 
@@ -66,7 +82,10 @@ pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
 pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> impl Responder {
     let handlebars = state.get_handlebars();
     let body = handlebars.render("mail.hbs", &json!({ "token": token })).unwrap();
-    HttpResponse::Ok().body(body)
+    HttpResponse::Ok()
+        .set(header::CacheControl(vec![header::CacheDirective::Private]))
+        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .body(body)
 }
 
 #[get("/observe/{room_id}")]
@@ -83,24 +102,33 @@ pub async fn observe(
 
     let handlebars = state.get_handlebars();
     let body = handlebars.render("observe.hbs", &val).unwrap();
-    HttpResponse::Ok().body(body)
+    HttpResponse::Ok()
+        .set(header::CacheControl(vec![header::CacheDirective::Private]))
+        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .body(body)
 }
 
 #[get("/ranking")]
 pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
     let handlebars = state.get_handlebars();
     let body = handlebars.render("ranking.hbs", &json!({})).unwrap();
-    HttpResponse::Ok().body(body)
+    HttpResponse::Ok()
+        .set(header::CacheControl(vec![header::CacheDirective::Private]))
+        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .body(body)
 }
 
 #[get("/register")]
 pub async fn register(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(http::header::LOCATION, "/").finish()
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
     } else {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("register.hbs", &json!({})).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     }
 }
 
@@ -109,10 +137,10 @@ pub async fn resource(state: web::Data<AppState>, web::Path(file): web::Path<Str
     let resources = state.get_resources();
     if let Some(body) = resources.get(&file) {
         HttpResponse::Ok()
-            .header(
-                http::header::CONTENT_TYPE,
+            .set(header::CacheControl(vec![header::CacheDirective::Public]))
+            .set(header::ContentType(
                 mime_guess::from_path(&file).first_or(mime::TEXT_PLAIN_UTF_8),
-            )
+            ))
             .body(body.clone())
     } else {
         HttpResponse::NotFound().finish()
@@ -124,10 +152,13 @@ pub async fn room(id: Identity, state: web::Data<AppState>, web::Path(room_id): 
     if let Some(id) = id.identity() {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("game.hbs", &json!({ "id": id })).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     } else {
         HttpResponse::Found()
-            .header(http::header::LOCATION, format!("/login?back=room_{}", room_id))
+            .header(header::LOCATION, format!("/login?back=%2Froom%2F{}", room_id))
             .finish()
     }
 }
@@ -137,10 +168,13 @@ pub async fn setting(id: Identity, state: web::Data<AppState>) -> impl Responder
     if let Some(id) = id.identity() {
         let handlebars = state.get_handlebars();
         let body = handlebars.render("setting.hbs", &json!({ "id": id })).unwrap();
-        HttpResponse::Ok().body(body)
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
     } else {
         HttpResponse::Found()
-            .header(http::header::LOCATION, "/login?back=setting".to_owned())
+            .header(header::LOCATION, "/login?back=%2Fsetting".to_owned())
             .finish()
     }
 }
@@ -166,5 +200,8 @@ pub async fn user_info(
 
     let handlebars = state.get_handlebars();
     let body = handlebars.render("user.hbs", &val).unwrap();
-    Ok(HttpResponse::Ok().body(body))
+    Ok(HttpResponse::Ok()
+        .set(header::CacheControl(vec![header::CacheDirective::Private]))
+        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .body(body))
 }

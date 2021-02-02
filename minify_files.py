@@ -20,6 +20,8 @@ def print_info(msg: str) -> None:
 
 def run_fast_scandir(path: str, ext: List[str]) -> (List[str], List[str]):
     """
+    Fast Directory Scanning
+
     From [stack overflow](https://stackoverflow.com/a/59803793) answer
     Searches all files with extensions below path
     """
@@ -84,7 +86,7 @@ def minify_files() -> None:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Minify files')
-    parser.add_argument('--path', type=str, help='path to static files (defaults to `static`)', default='static')
+    parser.add_argument('--path', type=str, help='path to public files (defaults to `public`)', default='public')
     parser.add_argument('--remove', type=bool, help='remove original files (defaults to `False`)', default=False,
                         const=True, nargs='?')
     args = parser.parse_args()

@@ -13,8 +13,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 rand = { version = "0.8", optional = true }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
 
 [features]
 default = []
 server = ["rand"]
-client = []
+client = ["wasm-bindgen"]

@@ -12,12 +12,15 @@ mighty = { path = "../mighty" }
 bitflags = "1.2"
 hex = "0.4"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.9"
-uuid = { version = "0.8", features = ["serde"] }
 
-actix = { version = "0.11.0-beta.1", optional = true }
+actix = { version = "0.10", optional = true }
+anyhow = { version = "1", optional = true }
+rand = { version = "0.8", optional = true }
+serde_json = { version = "1", optional = true }
+sha2 = { version = "0.9", optional = true }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
 
 [features]
 default = []
-server = ["actix"]
+server = ["actix", "anyhow", "serde_json", "sha2", "rand"]
+client = ["wasm-bindgen"]

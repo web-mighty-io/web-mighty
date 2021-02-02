@@ -1,5 +1,5 @@
 [package]
-name = "public"
+name = "client"
 version = "0.1.0"
 authors = ["buttercrab <jaeyong0201@gmail.com>"]
 edition = "2018"
@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 mighty = { path = "../mighty", features = ["client"] }
-types = { path = "../types" }
+types = { path = "../types", features = ["client"] }
 
 bitflags = "1.2"
 js-sys = "0.3"

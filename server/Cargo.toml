@@ -24,11 +24,15 @@ deadpool-postgres = "0.7"
 derive_more = "0.99"
 futures = "0.3"
 handlebars = "3.5"
+hex = "0.4"
 ignore = "0.4"
+jsonwebtoken = "7"
 lettre = "0.10.0-alpha.4"
 log = "0.4"
+mime = "0.3"
+mime_guess = "2"
 openssl = "0.10"
-postgres = { version = "0.19", features = ["with-uuid-0_8", "with-serde_json-1"] }
+postgres = { version = "0.19", features = ["with-serde_json-1"] }
 r2d2_postgres = "0.18"
 rand = "0.8"
 regex = "1"
@@ -40,7 +44,6 @@ slog-term = "2.6"
 slog-async = "2.5"
 slog-scope = "4.3"
 slog-stdlog = "4.1"
-uuid = { version = "0.8", features = ["serde", "v5"] }
 walkdir = "2"
 
 notify = { version = "4.0.15", optional = true }

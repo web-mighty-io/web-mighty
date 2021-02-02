@@ -1066,17 +1066,12 @@ impl State {
             _ => 0,
         }
     }
-} //나중에 테스트 다 하고 바꾸기>
+}
 
 #[cfg(test)]
 mod test {
     #[cfg(feature = "server")]
-    use {
-        super::*,
-        crate::prelude::{Command, Error},
-        crate::rule::Preset,
-        rand::prelude::IteratorRandom,
-    };
+    use {super::*, crate::prelude::Command, crate::rule::Preset, rand::prelude::IteratorRandom};
 
     #[cfg(feature = "server")]
     #[test]

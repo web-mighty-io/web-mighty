@@ -2,10 +2,11 @@ use crate::actor::{Hub, Mail};
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web::web;
-use handlebars::Handlebars;
+use handlebars::{Handlebars, RenderError};
 use ignore::WalkBuilder;
 use r2d2_postgres::postgres::NoTls;
 use r2d2_postgres::PostgresConnectionManager;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, MAIN_SEPARATOR};
@@ -87,14 +88,22 @@ impl AppState {
 
     #[cfg(not(feature = "watch-file"))]
     #[inline(always)]
-    pub fn get_handlebars(&self) -> &Handlebars<'static> {
+    fn get_handlebars(&self) -> &Handlebars<'static> {
         &self.handlebars
     }
 
     #[cfg(feature = "watch-file")]
     #[inline(always)]
-    pub fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
+    fn get_handlebars(&self) -> MutexGuard<'_, Handlebars<'static>> {
         self.handlebars.lock().unwrap()
+    }
+
+    pub fn render<T>(&self, name: &str, data: &T) -> Result<String, RenderError>
+    where
+        T: Serialize,
+    {
+        let hbs = self.get_handlebars();
+        hbs.render(name, data)
     }
 
     #[cfg(not(feature = "watch-file"))]
@@ -111,7 +120,7 @@ impl AppState {
 }
 
 /// Function to get all handlebars
-/// It would search through `static` directory and save in the memory.
+/// It would search through `public` directory and save in the memory.
 fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
     let path = path.as_ref();
     let mut handlebars = Handlebars::new();
@@ -136,7 +145,7 @@ fn make_handlebars<P: AsRef<Path>>(path: P) -> Handlebars<'static> {
 }
 
 /// Function to get resources
-/// It would search through `static` directory and save in the memory.
+/// It would search through `public` directory and save in the memory.
 fn get_resources<P: AsRef<Path>>(path: P) -> HashMap<String, Vec<u8>> {
     let path = path.as_ref();
     let mut resources = HashMap::new();
@@ -209,10 +218,10 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                     let stripped_path = &*stripped_path.to_string_lossy();
                     let stripped_path = stripped_path.to_owned().replace(MAIN_SEPARATOR, "/");
                     let mut resources = data.resources.lock().unwrap();
-                    if resources.contains_key(&stripped_path) {
-                        if let Ok(content) = fs::read(&path) {
-                            resources.insert(stripped_path, content);
-                        }
+                    if let Ok(content) = fs::read(&path) {
+                        resources.insert(stripped_path, content);
+                    } else {
+                        resources.remove(&stripped_path);
                     }
                     drop(resources);
                 }

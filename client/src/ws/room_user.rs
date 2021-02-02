@@ -37,4 +37,21 @@ impl User {
     pub fn on(&self, tag: String, callback: Function) {
         self.session.on(tag, callback);
     }
+
+    pub fn start(&self) {
+        self.session.send(RoomUserToServer::Start);
+    }
+
+    pub fn change_name(&self, name: String) {
+        self.session.send(RoomUserToServer::ChangeName(name));
+    }
+
+    pub fn change_rule(&self, rule: &JsValue) {
+        self.session
+            .send(RoomUserToServer::ChangeRule(rule.into_serde().unwrap()))
+    }
+
+    pub fn command(&self, cmd: &JsValue) {
+        self.session.send(RoomUserToServer::Command(cmd.into_serde().unwrap()))
+    }
 }

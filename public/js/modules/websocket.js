@@ -42,25 +42,34 @@ let websocket = import ("../pkg/index.js").then((wasm) => {
 
     const websockets = {
         "list": {
-            session: wasm.List,
+            construct: function () {
+                new wasm.List()
+            },
             init: function (_) {
             }
         },
         "main": {
-            session: wasm.Main,
+            construct: function () {
+                new wasm.Main();
+            },
             init: function (main) {
+                // todo: fix this
                 ifvisible.onEvery(200, function () {
                     main.update();
                 });
             }
         },
         "observe": {
-            session: wasm.Observe,
+            construct: function () {
+                new wasm.Observe();
+            },
             init: function (_) {
             }
         },
         "user": {
-            session: wasm.User,
+            construct: function () {
+                new wasm.User();
+            },
             init: function (_) {
             }
         },
@@ -72,24 +81,28 @@ let websocket = import ("../pkg/index.js").then((wasm) => {
         };
 
         for (let i in config.connections) {
-            res[i] = new websockets[i]();
-            websockets[i].init(res[i]);
+            let v = config.connections[i];
 
-            res[i].on("disconnect", function () {
-                if (res.disconnected.size === 0) {
-                    config.onDisconnect();
-                }
+            if (websockets.hasOwnProperty(v)) {
+                res[v] = websockets[v].construct();
+                websockets[v].init(res[v]);
 
-                res.disconnected.add(i);
-            });
+                res[v].on("disconnect", function () {
+                    if (res.disconnected.size === 0) {
+                        config.onDisconnect();
+                    }
 
-            res[i].on("reconnect", function () {
-                res.disconnected.delete(i);
+                    res.disconnected.add(v);
+                });
 
-                if (res.disconnected.size === 0) {
-                    config.onReconnect();
-                }
-            });
+                res[v].on("reconnect", function () {
+                    res.disconnected.delete(v);
+
+                    if (res.disconnected.size === 0) {
+                        config.onReconnect();
+                    }
+                });
+            }
         }
 
         return res;

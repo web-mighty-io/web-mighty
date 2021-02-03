@@ -1,4 +1,5 @@
 use crate::actor::{Hub, Mail};
+use crate::db;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web::web;
@@ -51,6 +52,8 @@ impl AppState {
     pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail) -> web::Data<AppState> {
         let manager = PostgresConnectionManager::new(config, NoTls);
         let pool = Pool::new(manager).unwrap();
+        db::init(pool.clone()).expect("db init failed");
+
         web::Data::new(AppState {
             handlebars: make_handlebars(&path),
             resources: get_resources(&path),
@@ -70,6 +73,8 @@ impl AppState {
 
         let manager = PostgresConnectionManager::new(config, NoTls);
         let pool = Pool::new(manager).unwrap();
+        db::init(pool.clone()).expect("db init failed");
+
         let state = web::Data::new(AppState {
             handlebars: Mutex::new(make_handlebars(&path)),
             watcher,

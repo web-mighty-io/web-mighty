@@ -1,3 +1,4 @@
+use crate::actor::session::{Session, SessionTrait};
 use crate::actor::user::{UserCommand, UserConnect, UserDisconnect};
 use crate::actor::User;
 use crate::dev::*;

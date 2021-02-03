@@ -1,4 +1,5 @@
 use crate::actor::hub::RemoveRoom;
+use crate::actor::session::Session;
 use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo};
 use crate::actor::{hub, Hub, List, Observe, User};
 use crate::db::game::{get_rule, save_rule, save_state, GetRuleForm, SaveRuleForm, SaveStateForm};

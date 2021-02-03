@@ -1,5 +1,6 @@
 use crate::actor::hub::GetRoom;
 use crate::actor::room::{ChangeName, ChangeRule, Go, RoomJoin, RoomLeave, StartGame};
+use crate::actor::session::Session;
 use crate::actor::{Hub, Main, Room, RoomUser};
 use crate::dev::*;
 use actix::clock::Duration;

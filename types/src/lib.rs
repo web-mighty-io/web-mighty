@@ -217,9 +217,9 @@ impl GameId {
 }
 
 /// Unique user id.
-/// It starts with 10.
+/// It starts with 100.
 /// If the value is 0, it represents no user.
-/// If the value if 1~9, it will be bot(ghost).
+/// If the value if 1~99, it will be bot(ghost).
 #[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "server", derive(MessageResponse))]
@@ -269,7 +269,7 @@ impl RuleHash {
 
 /// Information of room
 ///
-/// - `uuid`: uuid of room
+/// - `uid`: uid of room
 /// - `id`: id of room
 /// - `name`: name of room
 /// - `rule`: mighty rule of room

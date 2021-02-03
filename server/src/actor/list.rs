@@ -1,5 +1,6 @@
 use crate::actor::hub::GetRoom;
 use crate::actor::room::{RoomJoin, RoomLeave};
+use crate::actor::session::{Session, SessionTrait};
 use crate::actor::Hub;
 use crate::dev::*;
 use actix::prelude::*;

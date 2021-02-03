@@ -42,15 +42,15 @@ let websocket = import ("../pkg/index.js").then((wasm) => {
 
     const websockets = {
         "list": {
-            construct: function () {
-                new wasm.List()
+            construct() {
+                return new wasm.List();
             },
             init: function (_) {
             }
         },
         "main": {
-            construct: function () {
-                new wasm.Main();
+            construct() {
+                return new wasm.Main();
             },
             init: function (main) {
                 // todo: fix this
@@ -60,15 +60,15 @@ let websocket = import ("../pkg/index.js").then((wasm) => {
             }
         },
         "observe": {
-            construct: function () {
-                new wasm.Observe();
+            construct() {
+                return new wasm.Observe();
             },
             init: function (_) {
             }
         },
         "user": {
-            construct: function () {
-                new wasm.User();
+            construct() {
+                return new wasm.User();
             },
             init: function (_) {
             }

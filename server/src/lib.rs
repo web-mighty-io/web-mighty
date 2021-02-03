@@ -53,7 +53,6 @@ mod constant {
 /// This module contains useful things can be used in this crate. Put `use crate::dev::*` to
 /// shorten the code.
 mod dev {
-    pub use crate::actor::session::*;
     pub use crate::constant::*;
     pub use crate::error::{Error, Result};
     pub use crate::{bail, ensure, err, ignore, try_ctx};

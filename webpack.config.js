@@ -12,11 +12,6 @@ module.exports = (env) => {
                         path.resolve(__dirname, "public", "res", "js")
                     ]
                 },
-                onEnd: {
-                    delete: [
-                        path.resolve(__dirname, "public", "js", "pkg")
-                    ]
-                }
             }
         })
     ];

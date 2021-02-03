@@ -1,4 +1,5 @@
 use crate::actor::hub::{GetRoom, HubConnect};
+use crate::actor::session::SessionTrait;
 use crate::actor::{List, Main, Observe, RoomUser};
 use crate::app_state::AppState;
 use crate::dev::*;

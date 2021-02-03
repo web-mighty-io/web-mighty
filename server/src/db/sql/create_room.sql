@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS records
     time    TIMESTAMP DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS record_game_id_index ON record (game_id);
-CREATE INDEX IF NOT EXISTS record_room_id_index ON record (room_id);
-CREATE INDEX IF NOT EXISTS record_time_index ON record (time);
+CREATE INDEX IF NOT EXISTS record_game_id_index ON records (game_id);
+CREATE INDEX IF NOT EXISTS record_room_id_index ON records (room_id);
+CREATE INDEX IF NOT EXISTS record_time_index ON records (time);
 
 CREATE TABLE IF NOT EXISTS ratings
 (
@@ -44,14 +44,14 @@ CREATE TABLE IF NOT EXISTS ratings
     time    TIMESTAMP DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS rating_user_id_index ON rating (user_no);
-CREATE INDEX IF NOT EXISTS rating_game_id_index ON rating (game_id);
-CREATE INDEX IF NOT EXISTS rating_time_index ON rating (time);
+CREATE INDEX IF NOT EXISTS rating_user_id_index ON ratings (user_no);
+CREATE INDEX IF NOT EXISTS rating_game_id_index ON ratings (game_id);
+CREATE INDEX IF NOT EXISTS rating_time_index ON ratings (time);
 
 CREATE TABLE IF NOT EXISTS rules
 (
     rule_hash CHAR(64) NOT NULL UNIQUE,
-    rule      JSON     NOT NULL UNIQUE,
+    rule      JSON     NOT NULL,
     name      VARCHAR(255)
 );
 

@@ -36,7 +36,8 @@ pub async fn logout(id: Identity) -> impl Responder {
 
 #[post("/pre-register")]
 pub async fn pre_register(form: web::Json<PreRegisterForm>, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
-    let _ = pre_register_user((*form).clone(), state.pool.clone())?;
+    let form = pre_register_user((*form).clone(), state.pool.clone())?;
+    state.mail.do_send(form);
     Ok(HttpResponse::Found()
         .header(http::header::LOCATION, "/")
         .finish()

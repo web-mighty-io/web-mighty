@@ -10,6 +10,7 @@ pub struct Mail {
     smtp: SmtpTransport,
     from: Mailbox,
     secret: String,
+    host: String,
 }
 
 impl Actor for Mail {
@@ -19,9 +20,9 @@ impl Actor for Mail {
 #[derive(Debug, Clone, Message, Serialize, Deserialize)]
 #[rtype(result = "Result<()>")]
 pub struct SendVerification {
-    email: String,
-    id: String,
-    token: String,
+    pub email: String,
+    pub user_id: String,
+    pub token: String,
 }
 
 impl Handler<SendVerification> for Mail {
@@ -33,24 +34,37 @@ impl Handler<SendVerification> for Mail {
             &msg,
             &EncodingKey::from_secret(self.secret.as_ref()),
         )?;
+        let url = format!("{}/mail/{}", self.host, token);
+
         let msg = lettre::Message::builder()
             .from(self.from.clone())
             .to(msg.email.parse().unwrap())
             .subject("Finish signing up to web-mighty.io")
-            .body(format!("{}{}", msg.id, token))?;
-        // todo
+            .body(format!(
+                r##"<p>Hello {}! Go to <a href="{}">{}</a></p>"##,
+                msg.user_id, url, url
+            ))?;
+        // todo: change body of email
         self.smtp.send(&msg)?;
         Ok(())
     }
 }
 
 impl Mail {
-    pub fn new(from: String, username: String, password: String, host: String, secret: String) -> Mail {
+    pub fn new(
+        from: String,
+        username: String,
+        password: String,
+        host: String,
+        server_host: String,
+        secret: String,
+    ) -> Mail {
         let cred = Credentials::new(username, password);
         Mail {
             smtp: SmtpTransport::relay(&*host).unwrap().credentials(cred).build(),
             from: from.parse().unwrap(),
             secret,
+            host: server_host,
         }
     }
 }

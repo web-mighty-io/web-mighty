@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS curr_rooms
 (
-    uid       CHAR(64)  NOT NULL UNIQUE,
-    id        INTEGER   NOT NULL UNIQUE,
-    name      CHAR(64)  NOT NULL,
-    master   INTEGER   NOT NULL,
-    users     INTEGER[] NOT NULL,
-    pre_users INTEGER[],
-    is_gaming BOOLEAN   NOT NULL DEFAULT FALSE,
-    rule      CHAR(64)  NOT NULL
+    uid       CHAR(64)    NOT NULL UNIQUE,
+    id        INTEGER     NOT NULL UNIQUE,
+    name      VARCHAR(63) NOT NULL,
+    head      INTEGER     NOT NULL,
+    users     INTEGER[]   NOT NULL,
+    pre_users INTEGER[], -- pending users
+    is_gaming BOOLEAN     NOT NULL DEFAULT FALSE,
+    rule      CHAR(64)    NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS curr_rooms_uid_index ON curr_rooms (uid);
@@ -15,12 +15,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS curr_rooms_id_index ON curr_rooms (id);
 
 CREATE TABLE IF NOT EXISTS games
 (
-    id      CHAR(64)  NOT NULL UNIQUE,
-    room_id CHAR(64)  NOT NULL,
-    room_name CHAR(64) NOT NULL,
-    users   INTEGER[] NOT NULL, -- 1~99 if robot
-    is_rank BOOLEAN   NOT NULL, -- type of game
-    rule    CHAR(64)  NOT NULL
+    id        CHAR(64)  NOT NULL UNIQUE,
+    room_id   CHAR(64)  NOT NULL,
+    room_name CHAR(64)  NOT NULL,
+    users     INTEGER[] NOT NULL, -- 1~99 if robot
+    is_rank   BOOLEAN   NOT NULL, -- type of game
+    rule      CHAR(64)  NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS game_id_index ON games (id);

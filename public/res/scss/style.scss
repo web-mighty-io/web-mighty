@@ -1,8 +1,8 @@
 @charset "utf-8";
 
-@import url('https://fonts.googleapis.com/css?family=Raleway:400,700');
+@import url("https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
-$family-sans-serif: "Raleway", sans-serif;
+$family-sans-serif: "Cabin", sans-serif;
 
 // Colors
 
@@ -13,11 +13,13 @@ $light-blue: #88e1f2;
 $blue: #3298dc;
 $beige: #e8e6da;
 $green: #48c774;
+$ivory: #fffff0;
+$dark-brown: #1c1c17;
 
 $primary: $dark-blue;
 $link: $light-pink;
-$dark: hsl(0, 0%, 48%);
-$light: hsl(0, 0%, 80%);
+$dark: $dark-brown;
+$light: $ivory;
 $grey-light: $beige;
 $footer-background-color: $light;
 $info: $blue;
@@ -35,35 +37,54 @@ $_colors: (
 
 // Buttons
 
-@function button-below-color($color) {
+@function pillar-color($color) {
   @if lightness($color) > 40 {
     @return darken($color, 20%);
   } @else {
-    @return lighten($color, 15%);
+    @return lighten($color, 20%);
+  }
+}
+
+@function findColorInvert($color) {
+  @if lightness($color) > 40 {
+    @return rgba(#000, 0.7);
+  } @else {
+    @return #fff;
   }
 }
 
 @each $color_name, $color in $_colors {
   .button.is-#{$color_name} {
     transition: 0.2s ease-out;
-    box-shadow: 0 0 button-below-color($color) !important;
+    box-shadow: 0 0 pillar-color($color) !important;
   }
 
   .button.is-#{$color_name}:hover, .button.is-#{$color_name}:hover:focus {
     transform: translateY(-10px);
-    box-shadow: 0 10px button-below-color($color) !important;
+    box-shadow: 0 7px pillar-color($color) !important;
   }
 
   .button.is-#{$color_name}:active, .button.is-#{$color_name}:active:focus {
     transform: translateY(-5px);
-    box-shadow: 0 5px button-below-color($color) !important;
+    box-shadow: 0 3.5px pillar-color($color) !important;
   }
+
+  .box.is-#{$color_name} {
+    background: $color;
+    color: findColorInvert($color);
+    box-shadow: 0 10px pillar-color($color) !important;
+  }
+}
+
+.box {
+  box-shadow: 0 7px pillar-color(white) !important;
 }
 
 // Others
 
 .is-horizontal-center {
   justify-content: center;
+  text-align: center;
 }
 
 .box-is-primary {

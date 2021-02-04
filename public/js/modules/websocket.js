@@ -35,7 +35,7 @@
  * ws.main.start();
  */
 
-import "../../../node_modules/ifvisible.js/src/ifvisible.js";
+import ifvisible from "../../../node_modules/ifvisible.js/src/ifvisible.js";
 
 let websocket = import ("../pkg/index.js").then((wasm) => {
     wasm.run();

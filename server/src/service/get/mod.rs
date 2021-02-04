@@ -62,7 +62,7 @@ pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
 }
 
 #[get("/mail/{token}")]
-pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> impl Responder {
+pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
     let form: SendVerification = jsonwebtoken::decode(
         &token,
         &DecodingKey::from_secret(state.secret.as_ref()),
@@ -75,10 +75,10 @@ pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String
             &json!({ "token": form.token, "email": form.email, "user_id": form.user_id }),
         )
         .unwrap();
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .set(header::CacheControl(vec![header::CacheDirective::Private]))
         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
-        .body(body)
+        .body(body))
 }
 
 #[get("/observe/{room_id}")]
@@ -114,7 +114,7 @@ pub async fn regenerate_token(
     form: web::Path<RegenerateTokenForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let form = regenerate_user_token(*form, state.pool.clone())?;
+    let form = regenerate_user_token((*form).clone(), state.pool.clone())?;
     state.mail.do_send(form);
     Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
 }

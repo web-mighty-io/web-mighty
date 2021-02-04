@@ -1,8 +1,8 @@
 use crate::app_state::AppState;
-use crate::db::user::{login_user, pre_register_user, register_user, LoginForm, PreRegisterForm, RegisterForm, RegenerateTokenForm};
+use crate::db::user::{login_user, pre_register_user, register_user, LoginForm, PreRegisterForm, RegisterForm};
 use crate::dev::*;
 use actix_identity::Identity;
-use actix_web::{http, post, web, HttpResponse, Responder, HttpRequest};
+use actix_web::{http, post, web, HttpResponse, Responder};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

@@ -39,15 +39,13 @@ pub struct RegenerateTokenForm {
 }
 
 pub fn regenerate_user_token(form: RegenerateTokenForm, pool: Pool) -> Result<SendVerification> {
-    is_user_id_valid(&form.user_id);
-    is_email_valid(&form.email);
+    is_user_id_valid(&form.user_id)?;
+    is_email_valid(&form.email)?;
     let token = hex::encode(rand::thread_rng().sample_iter(Standard).take(4).collect::<Vec<u8>>());
     let mut client = pool.get()?;
     let stmt = client.prepare("UPDATE pre_users SET token=$1, gen_time=NOW() WHERE id=$2 AND email=$3;")?;
     let res = client.query(&stmt, &[&token, &form.user_id, &form.email])?;
-    let row = res
-        .first()
-        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;
+    ensure!(!res.is_empty(), StatusCode::UNAUTHORIZED, "login failed");
     Ok(SendVerification {
         email: form.email,
         user_id: form.user_id,
@@ -99,6 +97,8 @@ pub struct LoginForm {
 }
 
 pub fn login_user(form: LoginForm, pool: Pool) -> Result<u32> {
+    is_user_id_valid(&form.user_id)?;
+    is_password_valid(&form.password)?;
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 no FROM users WHERE (id=$1 AND password=$2) OR (email=$1 AND password=$2);")?;
     let res = client.query(&stmt, &[&form.user_id, &form.password])?;
@@ -118,6 +118,8 @@ pub struct ChangeInfoForm {
 }
 
 pub fn change_user_info(form: ChangeInfoForm, pool: Pool) -> Result<()> {
+    is_password_valid(&form.password)?;
+
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 name, email, id FROM users WHERE no=$1 AND password=$2;")?;
     let res = client.query(&stmt, &[&form.user_no, &form.password])?;
@@ -145,6 +147,7 @@ pub struct CheckIdForm {
 }
 
 pub fn check_user_id(form: CheckIdForm, pool: Pool) -> Result<bool> {
+    is_user_id_valid(&form.user_id)?;
     let mut client = pool.get()?;
     let stmt =
         client.prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")?;
@@ -158,6 +161,7 @@ pub struct CheckEmailForm {
 }
 
 pub fn check_user_email(form: CheckEmailForm, pool: Pool) -> Result<bool> {
+    is_email_valid(&form.email)?;
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 no FROM users WHERE email=$1;")?;
     let res = client.query(&stmt, &[&form.email])?;
@@ -170,6 +174,7 @@ pub struct DeleteForm {
 }
 
 pub fn delete_user(user_no: u32, form: DeleteForm, pool: Pool) -> Result<()> {
+    is_password_valid(&form.password)?;
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 no FROM users WHERE no=$1 AND password=$2;")?;
     let res = client.query(&stmt, &[&user_no, &form.password])?;
@@ -193,6 +198,7 @@ pub fn get_user_info(form: GetInfoForm, pool: Pool) -> Result<UserInfo> {
             client.query(&stmt, &[no])?
         }
         GetInfoForm::UserId(id) => {
+            is_user_id_valid(&id)?;
             let stmt = client.prepare("SELECT 1 no, id, name, email, rating, is_admin FROM users WHERE id=$1;")?;
             client.query(&stmt, &[id])?
         }

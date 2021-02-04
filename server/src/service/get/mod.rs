@@ -1,13 +1,15 @@
 pub mod api;
 pub mod ws;
 
+use crate::actor::mail::SendVerification;
 use crate::app_state::AppState;
-use crate::db::user::{get_user_info, GetInfoForm};
+use crate::db::user::{get_user_info, regenerate_user_token, GetInfoForm, RegenerateTokenForm};
 use crate::dev::*;
 use crate::service::p404;
 use actix_identity::Identity;
 use actix_web::http::header;
 use actix_web::{get, web, HttpResponse, Responder};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use serde_json::{json, Map};
 
 #[get("/admin")]
@@ -61,7 +63,18 @@ pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
 
 #[get("/mail/{token}")]
 pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> impl Responder {
-    let body = state.render("mail.hbs", &json!({ "token": token })).unwrap();
+    let form: SendVerification = jsonwebtoken::decode(
+        &token,
+        &DecodingKey::from_secret(state.secret.as_ref()),
+        &Validation::new(Algorithm::ES256),
+    )?
+    .claims;
+    let body = state
+        .render(
+            "mail.hbs",
+            &json!({ "token": form.token, "email": form.email, "user_id": form.user_id }),
+        )
+        .unwrap();
     HttpResponse::Ok()
         .set(header::CacheControl(vec![header::CacheDirective::Private]))
         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
@@ -94,6 +107,16 @@ pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
         .set(header::CacheControl(vec![header::CacheDirective::Private]))
         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
         .body(body)
+}
+
+#[get("/regenerate-token")]
+pub async fn regenerate_token(
+    form: web::Path<RegenerateTokenForm>,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let form = regenerate_user_token(*form, state.pool.clone())?;
+    state.mail.do_send(form);
+    Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
 }
 
 #[get("/register")]

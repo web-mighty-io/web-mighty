@@ -1073,9 +1073,10 @@ mod test {
     #[cfg(feature = "server")]
     use {super::*, crate::prelude::Command, crate::rule::Preset, rand::prelude::IteratorRandom};
 
+
     #[cfg(feature = "server")]
     #[test]
-    fn compare_cards_test() {
+    fn compare_cards_test_clover() {
         let rule = Rule::from(Preset::Default5);
         let mut state = State::new(&rule);
         state = state
@@ -1099,7 +1100,38 @@ mod test {
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 0)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 2)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 2), &Card::Normal(Pattern::Clover, 1)));
-        // more (민규 will do it?)
+    }
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn compare_cards_test_spade() {
+        let rule = Rule::from(Preset::Default5);
+        let mut state = State::new(&rule);
+        state = state
+            .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
+            .unwrap();
+        state = state.next(1, Command::Pledge(Some((Some(Pattern::Spade), 14))), &rule).unwrap();
+        state = state.next(2, Command::Pledge(None), &rule).unwrap();
+        state = state.next(3, Command::Pledge(None), &rule).unwrap();
+        state = state.next(4, Command::Pledge(None), &rule).unwrap();
+        state = state.next(0, Command::Pledge(None), &rule).unwrap();
+        let mut drop_card = Vec::new();
+        if let State::SelectFriend { president, deck, .. } = state.clone() {
+            drop_card = deck[president]
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .cloned()
+                .collect();
+        }
+
+        state = state
+            .next(1, Command::SelectFriend(drop_card, FriendFunc::ByUser(0)), &rule)
+            .unwrap();
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 0), &Card::Normal(Pattern::Diamond, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 5)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 10), &Card::Normal(Pattern::Spade, 5)));
+
+        
     }
 
     #[cfg(feature = "server")]

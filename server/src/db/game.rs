@@ -71,6 +71,11 @@ pub struct MakeGameForm {
 
 pub fn make_game(form: MakeGameForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
+    let stmt = client.prepare("SELECT 1 is_gaming FROM curr_rooms WHERE uid=$1")?;
+    let res = client.query(&stmt, &[&form.room_id.to_string()])?;
+    let is_gaming: bool = res[0].get(0);
+    ensure!(!is_gaming, "game is already going on the room");
+    let mut client = pool.get()?;
     let stmt = client
         .prepare("INSERT INTO games (id, room_id, room_name, users, is_rank, rule) VALUES ($1, $2, $3, $4, $5, $6);")?;
     let _ = client.query(
@@ -133,5 +138,156 @@ pub fn save_rule(form: SaveRuleForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("")?; // todo
     let _ = client.query(&stmt, &[&Json(form.rule)]);
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct MakeRoomForm {
+    pub uid: RoomUid,
+    pub id: RoomId,
+    pub name: String,
+    pub user_no: UserNo,
+    pub rule: Rule,
+}
+
+pub fn make_room(form: MakeRoomForm, pool: Pool) -> Result<()> {
+    let mut client = pool.get()?;
+    let stmt = client
+        .prepare("INSERT INTO curr_rooms (uid, id, name, master, users, rule) VALUES ($1, $2, $3, $4, $5, $6);")?;
+    let _ = client.query(
+        &stmt,
+        &[
+            &form.uid.to_string(),
+            &form.id.0,
+            &form.name,
+            &form.user_no.0,
+            &vec![&form.user_no.0],
+            &Json(form.rule),
+        ],
+    )?;
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct GetInRoomForm {
+    pub room_uid: RoomUid,
+    pub room_id: RoomId,
+    pub user_no: UserNo,
+}
+
+pub fn get_into_room(form: GetInRoomForm, pool: Pool) -> Result<()> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("SELECT 1 pre_users, users FROM curr_rooms WHERE uid=$1 AND id=$2;")?;
+    let res = client.query(&stmt, &[&form.room_uid.to_string(), &form.room_id.0])?;
+    let row = res
+        .first()
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "no rooms exists"))?;
+    let mut pre_users: Vec<u32> = row.get(0);
+    let users: Vec<u32> = row.get(1);
+    if pre_users.contains(&form.user_no.0) || users.contains(&form.user_no.0) {
+        return Err(err!(StatusCode::UNAUTHORIZED, "already in room"));
+    }
+    pre_users.push(form.user_no.0);
+
+    let mut client = pool.get()?;
+    let stmt = client.prepare("UPDATE curr_rooms SET pre_users=$1 WHERE uid=$2 AND id=$3;")?;
+    let _ = client.query(&stmt, &[&pre_users, &form.room_uid.to_string(), &form.room_id.0])?;
+
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct LeaveRoomForm {
+    pub room_uid: RoomUid,
+    pub room_id: RoomId,
+    pub user_no: UserNo,
+}
+
+pub fn leave_room(form: LeaveRoomForm, pool: Pool) -> Result<()> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("SELECT 1 pre_users, users, master FROM curr_rooms WHERE uid=$1 AND id=$2;")?;
+    let res = client.query(&stmt, &[&form.room_uid.to_string(), &form.room_id.0])?;
+    let row = res
+        .first()
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "no rooms exists"))?;
+    let mut pre_users: Vec<u32> = row.get(0);
+    let mut users: Vec<u32> = row.get(1);
+    let master: u32 = row.get(2);
+    if form.user_no.0 == master {
+        return Err(err!(StatusCode::UNAUTHORIZED, "master can't leave room"));
+    } else if let Some(pos) = users.iter().position(|x| *x == form.user_no.0) {
+        users.remove(pos);
+    } else if let Some(pos) = pre_users.iter().position(|x| *x == form.user_no.0) {
+        pre_users.remove(pos);
+    } else {
+        return Err(err!(StatusCode::UNAUTHORIZED, "not in room"));
+    }
+
+    let mut client = pool.get()?;
+    let stmt = client.prepare("UPDATE curr_rooms SET users=$1, pre_users=$2 WHERE uid=$2 AND id=$3;")?;
+    let _ = client.query(
+        &stmt,
+        &[&users, &pre_users, &form.room_uid.to_string(), &form.room_id.0],
+    )?;
+
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct AcceptUserForm {
+    pub room_uid: RoomUid,
+    pub room_id: RoomId,
+    pub user_no: UserNo,
+    pub accept_users: Vec<u32>,
+}
+
+pub fn accept_user(form: AcceptUserForm, pool: Pool) -> Result<()> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("SELECT 1 pre_users, users, master FROM curr_rooms WHERE uid=$1 AND id=$2;")?;
+    let res = client.query(&stmt, &[&form.room_uid.to_string(), &form.room_id.0])?;
+    let row = res
+        .first()
+        .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "no rooms exists"))?;
+    let mut pre_users: Vec<u32> = row.get(0);
+    let mut users: Vec<u32> = row.get(1);
+    let master: u32 = row.get(2);
+    ensure!(master == form.user_no.0, "only master can accept users");
+    for i in form.accept_users {
+        if let Some(pos) = pre_users.iter().position(|x| *x == i) {
+            users.push(i);
+            pre_users.remove(pos);
+        }
+    }
+
+    let mut client = pool.get()?;
+    let stmt = client.prepare("UPDATE curr_rooms SET users=$1, pre_users=$2 WHERE uid=$2 AND id=$3;")?;
+    let _ = client.query(
+        &stmt,
+        &[&users, &pre_users, &form.room_uid.to_string(), &form.room_id.0],
+    )?;
+
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct ChangeRoomInfoForm {
+    pub room_uid: RoomUid,
+    pub user_no: UserNo,
+    pub name: Option<String>,
+    pub rule: Option<Rule>,
+}
+
+pub fn change_room_info(_form: ChangeRoomInfoForm, _pool: Pool) -> Result<()> {
+    //todo
+    Ok(())
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct GetRoomInfoForm {
+    pub room_uid: RoomUid,
+}
+
+pub fn get_room_info(_form: GetRoomInfoForm, _pool: Pool) -> Result<()> {
+    //todo
     Ok(())
 }

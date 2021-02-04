@@ -2,7 +2,10 @@ CREATE TABLE IF NOT EXISTS curr_rooms
 (
     uid       CHAR(64)  NOT NULL UNIQUE,
     id        INTEGER   NOT NULL UNIQUE,
+    name      CHAR(64)  NOT NULL,
+    master   INTEGER   NOT NULL,
     users     INTEGER[] NOT NULL,
+    pre_users INTEGER[],
     is_gaming BOOLEAN   NOT NULL DEFAULT FALSE,
     rule      CHAR(64)  NOT NULL
 );
@@ -14,6 +17,7 @@ CREATE TABLE IF NOT EXISTS games
 (
     id      CHAR(64)  NOT NULL UNIQUE,
     room_id CHAR(64)  NOT NULL,
+    room_name CHAR(64) NOT NULL,
     users   INTEGER[] NOT NULL, -- 1~99 if robot
     is_rank BOOLEAN   NOT NULL, -- type of game
     rule    CHAR(64)  NOT NULL

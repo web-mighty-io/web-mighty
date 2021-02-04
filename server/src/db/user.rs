@@ -107,7 +107,7 @@ pub struct ChangeInfoForm {
 
 pub fn change_user_info(form: ChangeInfoForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 name, email id FROM users WHERE no=$1 AND password=$2;")?;
+    let stmt = client.prepare("SELECT 1 name, email, id FROM users WHERE no=$1 AND password=$2;")?;
     let res = client.query(&stmt, &[&form.user_no, &form.password])?;
     let row = res
         .first()

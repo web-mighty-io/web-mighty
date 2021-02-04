@@ -27,8 +27,16 @@ Go to [localhost:8080](http://localhost:8080) and have fun!
 1.  [install rust](https://www.rust-lang.org/tools/install)
 2.  [install wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
 3.  [install npm](https://www.npmjs.com/get-npm)
-4.  run `npm i && npm build`
-5.  [install](https://www.postgresql.org/download/) and start your postgres server
-6.  run `cargo install --root build --path server`
-7.  make `server.toml` based from `server.sample.toml`
-8.  run `./build/bin/server`
+4.  [install](https://www.postgresql.org/download/) and start your postgres server
+5.  make `server.toml` based from `server.sample.toml`
+6.  run `npm i && npm run build`
+7.  run `./build/bin/server`
+
+## For developing
+
+1.  do 1 ~ 5 from above
+2.  run `npm run build-watch`
+3.  run `./build/bin/server`
+4.  run `npx webpack -w` in other terminal
+
+For every change, webpack will rebuild your js code and server will catch changes.

@@ -38,22 +38,80 @@ class User {
         this.token = info.token; // for register
     }
 
-    get_email() {
+    getEmail() {
         return this.email;
     }
 
-    get_id() {
+    getId() {
         return this.id;
     }
 
-    get_name() {
+    getName() {
         return this.name;
     }
 
     /**
-     * Logins to the server
+     * Validates if user id doesn't exist in server
      *
-     * `onError` is called
+     * @param {string} userId
+     * @returns {Promise<void>}
+     */
+    static async validateUserId(userId) {
+        // todo
+    }
+
+    /**
+     * Validates if email doesn't exist in server
+     *
+     * @param {string} email
+     * @returns {Promise<void>}
+     */
+    static async validateEmail(email) {
+        // todo
+    }
+
+    /**
+     * Check if user id is in right format
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
+    static checkUserId(userId) {
+        // todo
+    }
+
+    /**
+     * Check if email is in right format
+     *
+     * @param {string} email
+     * @returns {boolean}
+     */
+    static checkEmail(email) {
+        // todo
+    }
+
+    /**
+     * Check if password is in right format
+     *
+     * @param {string} password
+     * @returns {boolean}
+     */
+    static checkPassword(password) {
+        // todo
+    }
+
+    /**
+     * Check if username is in right format
+     *
+     * @param {string} name
+     * @returns {boolean}
+     */
+    static checkUserName(name) {
+        // todo
+    }
+
+    /**
+     * Logins to the server
      *
      * @param {string} password
      * @param {function} onError
@@ -84,6 +142,12 @@ class User {
         }
     }
 
+    /**
+     * Pre-registers to the server
+     *
+     * @param {function} onError
+     * @returns {Promise<void>}
+     */
     async preRegister(onError) {
         let res = await fetch("/pre-register", {
             method: "post",
@@ -95,7 +159,7 @@ class User {
                 "user_id": this.id,
                 "email": this.email,
             })
-        })
+        });
         if (res.ok) {
             window.location.replace("/");
         } else {
@@ -103,6 +167,13 @@ class User {
         }
     }
 
+    /**
+     * Registers to server
+     *
+     * @param {string} password
+     * @param {function} onError
+     * @returns {Promise<void>}
+     */
     async register(password, onError) {
         let hashedPassword = await sha256(password);
         let res = await fetch("/register", {
@@ -117,7 +188,7 @@ class User {
                 "password": hashedPassword,
                 "token": this.token,
             })
-        })
+        });
         if (res.ok) {
             let params = new URLSearchParams(window.location.search);
             let redirect = "/";
@@ -130,13 +201,19 @@ class User {
         }
     }
 
+    /**
+     * Logout from server
+     *
+     * @param {function} onError
+     * @returns {Promise<void>}
+     */
     async logout(onError) {
         let res = await fetch("/logout", {
             method: "get",
             headers: {
                 "Accept": "application/json, text/plain, */*",
             },
-        })
+        });
         if (res.ok) {
             window.location.replace("/");
         } else {
@@ -144,6 +221,13 @@ class User {
         }
     }
 
+    /**
+     * Deletes user from server
+     *
+     * @param {string} password
+     * @param {function} onError
+     * @returns {Promise<void>}
+     */
     async delete(password, onError) {
         let hashedPassword = await sha256(password);
         let res = await fetch("/delete-user", {
@@ -156,7 +240,7 @@ class User {
                 "user_id": this.id,
                 "password": hashedPassword,
             })
-        })
+        });
         if (res.ok) {
             window.location.replace("/");
         } else {

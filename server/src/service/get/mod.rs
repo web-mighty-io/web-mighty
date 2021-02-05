@@ -61,6 +61,12 @@ pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/logout")]
+pub async fn logout(id: Identity) -> impl Responder {
+    id.forget();
+    HttpResponse::Ok()
+}
+
 #[get("/mail/{token}")]
 pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
     let form: SendVerification = jsonwebtoken::decode(
@@ -100,14 +106,14 @@ pub async fn observe(
         .body(body)
 }
 
-#[get("/ranking")]
-pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
-    let body = state.render("ranking.hbs", &json!({})).unwrap();
-    HttpResponse::Ok()
-        .set(header::CacheControl(vec![header::CacheDirective::Private]))
-        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
-        .body(body)
-}
+// #[get("/ranking")]
+// pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
+//     let body = state.render("ranking.hbs", &json!({})).unwrap();
+//     HttpResponse::Ok()
+//         .set(header::CacheControl(vec![header::CacheDirective::Private]))
+//         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+//         .body(body)
+// }
 
 #[get("/regenerate-token")]
 pub async fn regenerate_token(
@@ -162,43 +168,43 @@ pub async fn room(id: Identity, state: web::Data<AppState>, web::Path(room_id): 
     }
 }
 
-#[get("/setting")]
-pub async fn setting(id: Identity, state: web::Data<AppState>) -> impl Responder {
-    if let Some(id) = id.identity() {
-        let body = state.render("setting.hbs", &json!({ "id": id })).unwrap();
-        HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
-            .body(body)
-    } else {
-        HttpResponse::Found()
-            .header(header::LOCATION, "/login?back=%2Fsetting".to_owned())
-            .finish()
-    }
-}
+// #[get("/setting")]
+// pub async fn setting(id: Identity, state: web::Data<AppState>) -> impl Responder {
+//     if let Some(id) = id.identity() {
+//         let body = state.render("setting.hbs", &json!({ "id": id })).unwrap();
+//         HttpResponse::Ok()
+//             .set(header::CacheControl(vec![header::CacheDirective::Private]))
+//             .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+//             .body(body)
+//     } else {
+//         HttpResponse::Found()
+//             .header(header::LOCATION, "/login?back=%2Fsetting".to_owned())
+//             .finish()
+//     }
+// }
 
-#[get("/user/{user_id}")]
-pub async fn user_info(
-    id: Identity,
-    state: web::Data<AppState>,
-    web::Path(user_id): web::Path<String>,
-) -> Result<HttpResponse, Error> {
-    let mut val = Map::new();
-    if let Some(id) = id.identity() {
-        val.insert("id".to_owned(), json!(id));
-    }
-
-    let user_no = user_id.parse().unwrap();
-    let user_info = get_user_info(GetInfoForm::UserNo(user_no), state.pool.clone())?;
-
-    val.insert("user_id".to_owned(), json!(user_info.id));
-    val.insert("name".to_owned(), json!(user_info.name));
-    val.insert("rating".to_owned(), json!(user_info.rating));
-    val.insert("is_admin".to_owned(), json!(user_info.is_admin));
-
-    let body = state.render("user.hbs", &val).unwrap();
-    Ok(HttpResponse::Ok()
-        .set(header::CacheControl(vec![header::CacheDirective::Private]))
-        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
-        .body(body))
-}
+// #[get("/user/{user_id}")]
+// pub async fn user_info(
+//     id: Identity,
+//     state: web::Data<AppState>,
+//     web::Path(user_id): web::Path<String>,
+// ) -> Result<HttpResponse, Error> {
+//     let mut val = Map::new();
+//     if let Some(id) = id.identity() {
+//         val.insert("id".to_owned(), json!(id));
+//     }
+//
+//     let user_no = user_id.parse().unwrap();
+//     let user_info = get_user_info(GetInfoForm::UserNo(user_no), state.pool.clone())?;
+//
+//     val.insert("user_id".to_owned(), json!(user_info.id));
+//     val.insert("name".to_owned(), json!(user_info.name));
+//     val.insert("rating".to_owned(), json!(user_info.rating));
+//     val.insert("is_admin".to_owned(), json!(user_info.is_admin));
+//
+//     let body = state.render("user.hbs", &val).unwrap();
+//     Ok(HttpResponse::Ok()
+//         .set(header::CacheControl(vec![header::CacheDirective::Private]))
+//         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+//         .body(body))
+// }

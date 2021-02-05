@@ -15,7 +15,7 @@ async function sha256(message) {
         const msgBuffer = new TextEncoder().encode(message);
         const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => ("00" + b.toString(16)).slice(-2)).join("");
+        return hashArray.map((b) => ("00" + b.toString(16)).slice(-2)).join("");
     } else {
         if (sjcl == null) {
             sjcl = await import ("../../../node_modules/sjcl/sjcl.js");
@@ -57,6 +57,7 @@ class User {
      * @returns {Promise<void>}
      */
     static async validateUserId(userId) {
+        console.log(userId);
         // todo
     }
 
@@ -67,6 +68,7 @@ class User {
      * @returns {Promise<void>}
      */
     static async validateEmail(email) {
+        console.log(email);
         // todo
     }
 
@@ -77,6 +79,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserId(userId) {
+        console.log(userId);
         // todo
     }
 
@@ -87,6 +90,7 @@ class User {
      * @returns {boolean}
      */
     static checkEmail(email) {
+        console.log(email);
         // todo
     }
 
@@ -97,6 +101,7 @@ class User {
      * @returns {boolean}
      */
     static checkPassword(password) {
+        console.log(password);
         // todo
     }
 
@@ -107,6 +112,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserName(name) {
+        console.log(name);
         // todo
     }
 

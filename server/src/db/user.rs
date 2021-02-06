@@ -217,7 +217,7 @@ pub fn get_user_info(form: GetInfoForm, pool: Pool) -> Result<UserInfo> {
 }
 
 pub fn is_user_name_valid(user_name: &str) -> Result<()> {
-    let not_id_regex = Regex::new(r"[^!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]{4,63}").unwrap();
+    let not_id_regex = Regex::new(r"^[^!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]{4,63}$").unwrap();
     ensure!(
         !not_id_regex.is_match(user_name),
         StatusCode::UNAUTHORIZED,
@@ -227,7 +227,7 @@ pub fn is_user_name_valid(user_name: &str) -> Result<()> {
 }
 
 pub fn is_user_id_valid(user_id: &str) -> Result<()> {
-    let id_regex = Regex::new(r"[a-zA-z0-9._\-]{4,31}$").unwrap();
+    let id_regex = Regex::new(r"^[a-zA-z0-9._\-]{4,31}$").unwrap();
     ensure!(
         id_regex.is_match(user_id),
         StatusCode::UNAUTHORIZED,
@@ -237,7 +237,7 @@ pub fn is_user_id_valid(user_id: &str) -> Result<()> {
 }
 
 pub fn is_password_valid(password: &str) -> Result<()> {
-    let pwd_regex = Regex::new(r"[a-f0-9]{128}$").unwrap();
+    let pwd_regex = Regex::new(r"^[a-f0-9]{128}$").unwrap();
     ensure!(
         pwd_regex.is_match(password),
         StatusCode::UNAUTHORIZED,
@@ -247,7 +247,7 @@ pub fn is_password_valid(password: &str) -> Result<()> {
 }
 
 pub fn is_email_valid(email: &str) -> Result<()> {
-    let email_regex = Regex::new(r"[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap();
+    let email_regex = Regex::new(r"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
     ensure!(
         email_regex.is_match(email) && email.len() <= 63,
         StatusCode::UNAUTHORIZED,

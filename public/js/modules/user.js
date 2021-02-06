@@ -66,7 +66,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserId(userId) {
-        return /^[a-zA-z0-9._\-]{4,31}$/.test(userId)
+        return /^[a-zA-z0-9._\-]{4,31}$/.test(userId);
     }
 
     /**
@@ -76,7 +76,7 @@ class User {
      * @returns {boolean}
      */
     static checkEmail(email) {
-        return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && email.length <= 63
+        return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && email.length <= 63;
     }
 
     /**

@@ -14,7 +14,6 @@ use {
     std::time::{SystemTime, UNIX_EPOCH},
 };
 
-#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 struct CopyableHash(u64, u64, u64, u64);
 

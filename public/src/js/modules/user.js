@@ -16,7 +16,7 @@ async function sha256(message) {
         return hashArray.map((b) => ("00" + b.toString(16)).slice(-2)).join("");
     } else {
         if (!this.sjcl) {
-            this.sjcl = await import ("../../../node_modules/sjcl/sjcl.js");
+            this.sjcl = await import ("sjcl");
         }
         const bitArray = this.sjcl.hash.sha512.hash(message);
         return this.sjcl.codec.hex.fromBits(bitArray);

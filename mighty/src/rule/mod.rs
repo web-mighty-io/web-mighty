@@ -44,21 +44,21 @@ pub enum Preset {
     // 기본 5마
     Default5,
     // 대구동신과학고등학교
-    DDSHS5,
+    Ddshs5,
     // 대구과학고등학교 5마
-    DHSH5,
+    Dhsh5,
     // 민족사관고등학교 5마
-    KMLA5,
+    Kmla5,
     // 광주과학고등학교 5마
-    GSA5,
+    Gsa5,
     // 경기과학고등학교 5마
-    GSHS5,
+    Gshs5,
     // 성균관대학교 5마
-    SKU5,
+    Skku5,
     // 서울과학고등학교 5마
-    SSHS5,
+    Sshs5,
     // 연세대학교 5마
-    YU5,
+    Yu5,
 }
 
 /// Rule in mighty game
@@ -87,7 +87,7 @@ impl From<Preset> for Rule {
     fn from(p: Preset) -> Self {
         match p {
             Preset::Default5 => Rule::new(),
-            Preset::DDSHS5 => Rule::new()
+            Preset::Ddshs5 => Rule::new()
                 .set_election(Election::all() - Election::NO_GIRUDA_EXIST)
                 .map_pledge(|p| p.set_change_cost(1))
                 .set_friend(Friend::CARD | Friend::FAKE | Friend::NONE)
@@ -97,18 +97,18 @@ impl From<Preset> for Rule {
                         Card::Normal(Pattern::Clover, 3),
                     )])
                 }),
-            Preset::DHSH5 => Rule::new()
+            Preset::Dhsh5 => Rule::new()
                 .map_pledge(|p| p.set_min(12).set_max(23))
                 .set_election(Election::all() - Election::PASS_FIRST)
                 .map_card_policy(|p| p.set_mighty((CardPolicy::NoEffect, CardPolicy::Valid))),
-            Preset::KMLA5 => Rule::new()
+            Preset::Kmla5 => Rule::new()
                 .map_missed_deal(|m| m.set_score(1).set_joker(-1).set_limit(1))
                 .map_joker_call(|j| j.set_mighty_defense(false)),
-            Preset::GSA5 => Rule::new().map_pledge(|p| p.set_min(12)).map_card_policy(|p| {
+            Preset::Gsa5 => Rule::new().map_pledge(|p| p.set_min(12)).map_card_policy(|p| {
                 p.set_mighty((CardPolicy::NoEffect, CardPolicy::Valid))
                     .set_joker((CardPolicy::Valid, CardPolicy::Valid))
             }),
-            Preset::GSHS5 => Rule::new()
+            Preset::Gshs5 => Rule::new()
                 .set_deck(deck::Preset::FullDeck.to_vec())
                 .set_election(Election::NO_GIRUDA_EXIST | Election::PASS_FIRST)
                 .map_missed_deal(|m| {
@@ -126,14 +126,14 @@ impl From<Preset> for Rule {
                     })
                 }),
             // implement friend known time
-            Preset::SKU5 => Rule::new()
+            Preset::Skku5 => Rule::new()
                 .map_pledge(|p| p.set_min(12).set_change_cost(0))
                 .map_card_policy(|p| {
                     p.set_joker((CardPolicy::Valid, CardPolicy::Valid))
                         .set_giruda((CardPolicy::Valid, CardPolicy::Valid))
                 })
                 .map_joker_call(|j| j.set_has_power(true)),
-            Preset::SSHS5 => Rule::new()
+            Preset::Sshs5 => Rule::new()
                 .map_missed_deal(|m| {
                     m.set_score(2)
                         .set_joker(-1)
@@ -148,7 +148,7 @@ impl From<Preset> for Rule {
                 })
                 .set_friend(Friend::all() - Friend::PICK)
                 .map_card_policy(|p| p.set_joker_call((CardPolicy::NoEffect, CardPolicy::Valid))),
-            Preset::YU5 => Rule::new()
+            Preset::Yu5 => Rule::new()
                 .map_missed_deal(|m| {
                     m.set_score(2)
                         .mut_card(|m| {

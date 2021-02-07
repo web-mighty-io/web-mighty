@@ -1,8 +1,6 @@
-@charset "utf-8";
-
 @import url("https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
-$family-sans-serif: "Cabin", sans-serif;
+$font-sans-serif: "Cabin", sans-serif;
 
 // Colors
 
@@ -79,53 +77,3 @@ $_colors: (
 .box {
   box-shadow: 0 7px pillar-color(white) !important;
 }
-
-// Others
-
-.is-horizontal-center {
-  justify-content: center;
-  text-align: center;
-}
-
-.box-is-primary {
-  $box-background-color: $primary;
-}
-
-.is-success.table {
-  background-color: $success !important;
-  color: #fff !important;
-}
-
-.is-info.table {
-  background-color: $info !important;
-  color: #fff !important;
-}
-
-.tab {
-  margin-left: 30px;
-}
-
-.tab-small {
-  margin-left: 20px;
-}
-
-.scroll {
-  overflow-y: auto;
-}
-
-.scrollable-tile {
-  min-height: 0 !important;
-}
-
-#chat_area {
-  margin-bottom: 0 !important;
-  padding: 1rem !important;
-  height: 80%;
-}
-
-aside {
-  width: 25%;
-  float: right;
-}
-
-@import "../../../node_modules/bulma/bulma.sass";

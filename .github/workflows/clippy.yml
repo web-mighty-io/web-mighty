@@ -42,7 +42,7 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-          components: rustfmt, clippy
+          components: clippy
 
       - name: Checking if it builds without warnings - config (default feature)
         uses: actions-rs/cargo@v1

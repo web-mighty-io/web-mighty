@@ -1,0 +1,62 @@
+name: public
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  ci:
+    name: public
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        build: [ stable, beta, nightly, macos ]
+
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+            browsers: --node --firefox --chrome
+
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+            browsers: --node --firefox --chrome
+
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+            browsers: --node --firefox --chrome
+
+          - build: macos
+            os: macos-latest
+            rust: stable
+            browsers: --node --firefox --chrome --safari
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setting up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Testing wasm
+        run: |
+          if [ -f "${HOME}/.cargo/bin/wasm-pack" ]; then
+            rm ${HOME}/.cargo/bin/wasm-pack
+          fi
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          cd client && wasm-pack test ${{ matrix.browsers }} --headless
+
+      - name: Building Webpack
+        run: |
+          npm install -g npm
+          npm install
+          npx webpack

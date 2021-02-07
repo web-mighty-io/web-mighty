@@ -102,7 +102,7 @@ impl Handler<HubConnect> for Hub {
             Ok(addr.clone())
         } else {
             let user_info = get_user_info(GetInfoForm::UserNo(msg.0 .0), self.pool.clone())?;
-            let user = User::new(user_info, ctx.address()).start();
+            let user = User::new(user_info, ctx.address(), self.pool.clone()).start();
             self.users.insert(msg.0, user.clone());
             Ok(user)
         }

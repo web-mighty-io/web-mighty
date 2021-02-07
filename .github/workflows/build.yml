@@ -42,7 +42,6 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-          components: rustfmt, clippy
 
       - name: Checking if it builds without errors - config (default feature)
         uses: actions-rs/cargo@v1

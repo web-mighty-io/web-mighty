@@ -1,5 +1,3 @@
-let sjcl = null;
-
 /**
  * Simple SHA-256 function
  *
@@ -17,11 +15,11 @@ async function sha256(message) {
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map((b) => ("00" + b.toString(16)).slice(-2)).join("");
     } else {
-        if (sjcl == null) {
-            sjcl = await import ("../../../node_modules/sjcl/sjcl.js");
+        if (!this.sjcl) {
+            this.sjcl = await import ("sjcl");
         }
-        const bitArray = sjcl.hash.sha512.hash(message);
-        return sjcl.codec.hex.fromBits(bitArray);
+        const bitArray = this.sjcl.hash.sha512.hash(message);
+        return this.sjcl.codec.hex.fromBits(bitArray);
     }
 }
 
@@ -31,23 +29,10 @@ async function sha256(message) {
  * This doesn't save user passwords.
  */
 class User {
-    constructor(info) {
-        this.id = info.id;
-        this.email = info.email;
-        this.name = info.name;
-        this.token = info.token; // for register
-    }
-
-    getEmail() {
-        return this.email;
-    }
-
-    getId() {
-        return this.id;
-    }
-
-    getName() {
-        return this.name;
+    constructor(conf) {
+        this.info = conf.info;
+        this.token = conf.token;
+        this.status = conf.status;
     }
 
     /**
@@ -75,12 +60,13 @@ class User {
     /**
      * Check if user id is in right format
      *
+     * User id can contain alphabets, numbers, `.`, `_` and `-`
+     *
      * @param {string} userId
      * @returns {boolean}
      */
     static checkUserId(userId) {
-        console.log(userId);
-        // todo
+        return /^[a-zA-z0-9._\-]{4,31}$/.test(userId);
     }
 
     /**
@@ -90,40 +76,52 @@ class User {
      * @returns {boolean}
      */
     static checkEmail(email) {
-        console.log(email);
-        // todo
+        return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && email.length <= 63;
     }
 
     /**
      * Check if password is in right format
      *
+     * Password must have 3 or more following:
+     * - contains number
+     * - contains lowercase alphabet
+     * - contains uppercase alphabet
+     * - contains special character
+     *
      * @param {string} password
      * @returns {boolean}
      */
     static checkPassword(password) {
-        console.log(password);
-        // todo
+        const hasNumber = /[0-9]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasSpecialCharacter = /[!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]/.test(password);
+
+        return hasNumber + hasLowercase + hasUppercase + hasSpecialCharacter >= 3 && password.length >= 8 && password.length <= 100;
     }
+
 
     /**
      * Check if username is in right format
+     *
+     * Username can have all characters except special characters
      *
      * @param {string} name
      * @returns {boolean}
      */
     static checkUserName(name) {
-        console.log(name);
-        // todo
+        return /^[^!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]{4,63}$/.test(name);
     }
 
     /**
      * Logins to the server
      *
+     * @param {User} user
      * @param {string} password
      * @param {function} onError
      * @returns {Promise<void>}
      */
-    async login(password, onError) {
+    static async login(user, password, onError) {
         let hashedPassword = await sha256(password);
         let res = await fetch("/login", {
             method: "post",
@@ -132,7 +130,7 @@ class User {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "user_id": this.id,
+                "user_id": user.info.id,
                 "password": hashedPassword,
             })
         });
@@ -151,10 +149,11 @@ class User {
     /**
      * Pre-registers to the server
      *
+     * @param {User} user
      * @param {function} onError
      * @returns {Promise<void>}
      */
-    async preRegister(onError) {
+    static async preRegister(user, onError) {
         let res = await fetch("/pre-register", {
             method: "post",
             headers: {
@@ -162,8 +161,8 @@ class User {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "user_id": this.id,
-                "email": this.email,
+                "user_id": user.info.id,
+                "email": user.info.email,
             })
         });
         if (res.ok) {
@@ -176,11 +175,12 @@ class User {
     /**
      * Registers to server
      *
+     * @param {User} user
      * @param {string} password
      * @param {function} onError
      * @returns {Promise<void>}
      */
-    async register(password, onError) {
+    static async register(user, password, onError) {
         let hashedPassword = await sha256(password);
         let res = await fetch("/register", {
             method: "post",
@@ -189,10 +189,10 @@ class User {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "user_id": this.id,
-                "name": this.name,
+                "user_id": user.info.id,
+                "name": user.info.name,
                 "password": hashedPassword,
-                "token": this.token,
+                "token": user.token,
             })
         });
         if (res.ok) {
@@ -213,7 +213,7 @@ class User {
      * @param {function} onError
      * @returns {Promise<void>}
      */
-    async logout(onError) {
+    static async logout(onError) {
         let res = await fetch("/logout", {
             method: "get",
             headers: {
@@ -230,11 +230,12 @@ class User {
     /**
      * Deletes user from server
      *
+     * @param {User} user
      * @param {string} password
      * @param {function} onError
      * @returns {Promise<void>}
      */
-    async delete(password, onError) {
+    static async delete(user, password, onError) {
         let hashedPassword = await sha256(password);
         let res = await fetch("/delete-user", {
             method: "delete",
@@ -243,7 +244,7 @@ class User {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "user_id": this.id,
+                "user_id": user.info.id,
                 "password": hashedPassword,
             })
         });

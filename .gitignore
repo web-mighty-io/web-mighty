@@ -17,8 +17,7 @@ wasm-pack.log
 .vscode
 
 # generated files
-**/bulma
-public/res/css
+public/src/css
 
 # python virtual env files
 venv

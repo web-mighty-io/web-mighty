@@ -47,6 +47,11 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
+      - name: Setting up node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '15'
+
       - name: Testing wasm
         run: |
           if [ -f "${HOME}/.cargo/bin/wasm-pack" ]; then

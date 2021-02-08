@@ -3,9 +3,7 @@ CREATE TABLE IF NOT EXISTS curr_rooms
     uid       CHAR(64)    NOT NULL UNIQUE,
     id        INTEGER     NOT NULL UNIQUE,
     name      VARCHAR(63) NOT NULL,
-    head      INTEGER     NOT NULL,
-    users     INTEGER[]   NOT NULL,
-    pre_users INTEGER[], -- pending users
+    users_cnt INTEGER   NOT NULL,
     is_gaming BOOLEAN     NOT NULL DEFAULT FALSE,
     rule      CHAR(64)    NOT NULL
 );

@@ -1073,15 +1073,53 @@ mod test {
     #[cfg(feature = "server")]
     use {super::*, crate::prelude::Command, crate::rule::Preset, rand::prelude::IteratorRandom};
 
-
     #[cfg(feature = "server")]
     #[test]
     fn compare_cards_test_clover() {
+        let mut new_deck: Vec<Vec<Card>> = Vec::new();
+
+        let mut dec1: Vec<Card> = Vec::new();
+        let mut dec2: Vec<Card> = Vec::new();
+        let mut dec3: Vec<Card> = Vec::new();
+        let mut dec4: Vec<Card> = Vec::new();
+        let mut dec5: Vec<Card> = Vec::new();
+        let mut trash: Vec<Card> = Vec::new();
+
+        for i in 0..10 {
+            dec2.push(Card::Normal(Pattern::Spade, i));
+            dec3.push(Card::Normal(Pattern::Clover, i));
+            dec4.push(Card::Normal(Pattern::Heart, i));
+            dec5.push(Card::Normal(Pattern::Diamond, i));
+        }
+        for i in 10..12 {
+            dec1.push(Card::Normal(Pattern::Spade, i));
+            dec1.push(Card::Normal(Pattern::Clover, i));
+            dec1.push(Card::Normal(Pattern::Heart, i));
+            dec1.push(Card::Normal(Pattern::Diamond, i));
+        }
+        dec1.push(Card::Normal(Pattern::Spade, 12));
+        dec1.push(Card::Joker(Color::Black));
+        trash.push(Card::Normal(Pattern::Clover, 12));
+        trash.push(Card::Normal(Pattern::Heart, 12));
+        trash.push(Card::Normal(Pattern::Diamond, 12));
+        new_deck.push(dec1);
+        new_deck.push(dec2);
+        new_deck.push(dec3);
+        new_deck.push(dec4);
+        new_deck.push(dec5);
+
         let rule = Rule::from(Preset::Default5);
         let mut state = State::new(&rule);
+
+        if let State::Election { mut deck, mut left, .. } = state.clone() {
+            deck = new_deck;
+            left = trash;
+        }
+
         state = state
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
+
         state = state.next(1, Command::Pledge(None), &rule).unwrap();
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
@@ -1100,6 +1138,24 @@ mod test {
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 0)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 2)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 2), &Card::Normal(Pattern::Clover, 1)));
+
+        if let State::InGame { deck, current_user, .. } = state.clone() {
+            let card = deck[current_user]
+                .iter()
+                .filter(|c| match c {
+                    Card::Normal(Pattern::Spade, _) => true,
+                    _ => false,
+                })
+                .choose(&mut rand::thread_rng())
+                .cloned()
+                .unwrap();
+            state = state
+                .next(current_user, Command::Go(card, Rush::empty(), false), &rule)
+                .unwrap();
+        }
+
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Clover, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Clover, 2)));
     }
 
     #[cfg(feature = "server")]
@@ -1110,7 +1166,9 @@ mod test {
         state = state
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
-        state = state.next(1, Command::Pledge(Some((Some(Pattern::Spade), 14))), &rule).unwrap();
+        state = state
+            .next(1, Command::Pledge(Some((Some(Pattern::Spade), 14))), &rule)
+            .unwrap();
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
@@ -1130,8 +1188,6 @@ mod test {
         assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 0)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 5)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 10), &Card::Normal(Pattern::Spade, 5)));
-
-        
     }
 
     #[cfg(feature = "server")]

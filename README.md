@@ -35,7 +35,7 @@ Go to [localhost:8080](http://localhost:8080) and have fun!
 ## For developing
 
 1.  do 1 ~ 5 from above
-2.  run `npm run build-watch`
+2.  run `npm i && npm run build-watch`
 3.  run `./build/bin/server`
 4.  run `npx webpack -w` in other terminal
 

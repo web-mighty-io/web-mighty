@@ -5,6 +5,8 @@
 
 # host of this server
 host = "localhost"
+# host of this server from outside
+outer_host = "example.com"
 # port of http server
 port = "80"
 # verbose level

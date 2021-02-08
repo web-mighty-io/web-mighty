@@ -1278,7 +1278,7 @@ mod test {
     #[cfg(feature = "server")]
     #[test]
     fn next_gshs5_test1() {
-        let rule = Rule::from(Preset::GSHS5);
+        let rule = Rule::from(Preset::Gshs5);
         let mut state = State::new(&rule);
         if let Err(x) = state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
             assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 14)))

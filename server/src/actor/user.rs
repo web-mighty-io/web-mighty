@@ -2,6 +2,7 @@ use crate::actor::hub::GetRoom;
 use crate::actor::room::{ChangeName, ChangeRule, Go, RoomJoin, RoomLeave, StartGame};
 use crate::actor::session::Session;
 use crate::actor::{Hub, Main, Room, RoomUser};
+use crate::db::game::{change_rating, ChangeRatingForm};
 use crate::dev::*;
 use actix::clock::Duration;
 use actix::prelude::*;
@@ -31,6 +32,7 @@ pub struct User {
     room: Option<JoinedRoom>,
     subscribers: HashSet<Addr<Session<Main>>>,
     hub: Addr<Hub>,
+    pool: Pool,
 }
 
 impl Actor for User {
@@ -264,7 +266,7 @@ impl Handler<Update> for User {
 /// change
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
-pub struct ChangeRating(pub i32);
+pub struct ChangeRating(pub i32, pub GameId);
 
 impl Handler<ChangeRating> for User {
     type Result = ();
@@ -279,11 +281,18 @@ impl Handler<ChangeRating> for User {
         } else {
             self.info.rating += msg.0 as u32;
         }
+        let form = ChangeRatingForm {
+            user_no: self.info.no.0,
+            game_id: msg.1,
+            diff: msg.0 as u32,
+            rating: self.info.rating,
+        };
+        let _ = change_rating(form, self.pool.clone());
     }
 }
 
 impl User {
-    pub fn new(info: UserInfo, hub: Addr<Hub>) -> User {
+    pub fn new(info: UserInfo, hub: Addr<Hub>, pool: Pool) -> User {
         User {
             info,
             status: UserStatus::OFFLINE,
@@ -293,6 +302,7 @@ impl User {
             room: None,
             subscribers: HashSet::new(),
             hub,
+            pool,
         }
     }
 

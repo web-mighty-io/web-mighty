@@ -16,9 +16,6 @@ wasm-pack.log
 .idea
 .vscode
 
-# generated files
-public/src/css
-
 # python virtual env files
 venv
 

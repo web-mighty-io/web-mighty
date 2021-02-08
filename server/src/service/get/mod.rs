@@ -16,7 +16,7 @@ use serde_json::{json, Map};
 pub async fn admin(id: Identity, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse().unwrap();
-        let info = get_user_info(GetInfoForm::UserNo(user_no), state.pool.clone())?;
+        let info = get_user_info(&GetInfoForm::UserNo(user_no), state.pool.clone())?;
         if info.is_admin {
             let body = state.render("admin.hbs", &json!({ "id": id })).unwrap();
             Ok(HttpResponse::Ok()
@@ -120,7 +120,7 @@ pub async fn regenerate_token(
     form: web::Path<RegenerateTokenForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let form = regenerate_user_token((*form).clone(), state.pool.clone())?;
+    let form = regenerate_user_token(&*form, state.pool.clone())?;
     state.mail.do_send(form);
     Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
 }

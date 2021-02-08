@@ -287,7 +287,7 @@ impl Handler<ChangeRating> for User {
             diff: msg.0 as u32,
             rating: self.info.rating,
         };
-        let _ = change_rating(form, self.pool.clone());
+        let _ = change_rating(&form, self.pool.clone());
     }
 }
 

@@ -11,4 +11,6 @@ const supported = (function () {
     return false;
 })();
 
-export default supported;
+if (!supported) {
+    window.location.replace("/wasm-not-supported");
+}

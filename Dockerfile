@@ -11,7 +11,7 @@ COPY ./types  /app/types
 
 RUN cargo install --root /app/build --path /app/server \
  && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh \
- && wasm-pack build --release --out-dir /app/public/js/pkg --out-name index /app/client
+ && wasm-pack build --release --out-dir /app/public/src/js/pkg --out-name index /app/client
 
 # building in webpack
 FROM node:15.7 AS node-build
@@ -39,7 +39,7 @@ LABEL org.label-schema.description="Mighty Card Game in Online"
 
 ENV SERVE_PATH="/app/public"
 
-COPY --from=rust-build   /app/build/bin /app/bin
+COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=node-build /app/public    /app/public
 
 RUN apt-get update \

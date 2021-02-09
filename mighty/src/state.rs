@@ -1143,10 +1143,7 @@ mod test {
         if let State::InGame { deck, current_user, .. } = state.clone() {
             let card = deck[current_user]
                 .iter()
-                .filter(|c| match c {
-                    Card::Normal(Pattern::Diamond, _) => true,
-                    _ => false,
-                })
+                .filter(|c| matches!(c, Card::Normal(Pattern::Diamond, _)))
                 .choose(&mut rand::thread_rng())
                 .cloned()
                 .unwrap();

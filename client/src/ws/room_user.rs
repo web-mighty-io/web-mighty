@@ -16,6 +16,7 @@ impl SessionTrait for UserSession {
         match msg {
             RoomUserToClient::Room(info) => ("room_info", JsValue::from_serde(&info).unwrap()),
             RoomUserToClient::Game(state) => ("game_state", JsValue::from_serde(&state).unwrap()),
+            RoomUserToClient::Chat(chat, no) => ("chat", JsValue::from_serde(&(chat, no)).unwrap()),
         }
     }
 }

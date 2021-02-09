@@ -1,5 +1,5 @@
 use crate::actor::hub::GetRoom;
-use crate::actor::room::{ChangeName, ChangeRule, Go, RoomJoin, RoomLeave, StartGame};
+use crate::actor::room::{ChangeName, ChangeRule, Chat, Go, RoomJoin, RoomLeave, StartGame};
 use crate::actor::session::Session;
 use crate::actor::{Hub, Main, Room, RoomUser};
 use crate::db::game::{change_rating, ChangeRatingForm};
@@ -204,6 +204,9 @@ impl Handler<UserCommand> for User {
             RoomUserToServer::Command(cmd) => {
                 room.addr.do_send(Go(user_no, cmd));
             }
+            RoomUserToServer::Chat(chat) => {
+                room.addr.do_send(Chat::User(chat, self.info.no));
+            }
         }
     }
 }
@@ -288,6 +291,25 @@ impl Handler<ChangeRating> for User {
             rating: self.info.rating,
         };
         let _ = change_rating(&form, self.pool.clone());
+    }
+}
+
+#[derive(Debug, Clone, Message)]
+#[rtype(result = "()")]
+pub struct SendChat(pub String, pub UserNo);
+
+impl Handler<SendChat> for User {
+    type Result = ();
+
+    fn handle(&mut self, msg: SendChat, _: &mut Self::Context) -> Self::Result {
+        if self.room.is_none() {
+            return;
+        }
+
+        let room = self.room.as_mut().unwrap();
+        for i in room.group.iter() {
+            i.do_send(RoomUserToClient::Chat(msg.0.clone(), msg.1));
+        }
     }
 }
 

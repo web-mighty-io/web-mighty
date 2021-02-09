@@ -1109,11 +1109,12 @@ mod test {
         new_deck.push(dec5);
 
         let rule = Rule::from(Preset::Default5);
+
         let mut state = State::new(&rule);
 
-        if let State::Election { mut deck, mut left, .. } = state.clone() {
-            deck = new_deck;
-            left = trash;
+        if let State::Election { deck, left, .. } = &mut state {
+            *deck = new_deck;
+            *left = trash;
         }
 
         state = state
@@ -1143,7 +1144,7 @@ mod test {
             let card = deck[current_user]
                 .iter()
                 .filter(|c| match c {
-                    Card::Normal(Pattern::Spade, _) => true,
+                    Card::Normal(Pattern::Diamond, _) => true,
                     _ => false,
                 })
                 .choose(&mut rand::thread_rng())
@@ -1154,8 +1155,8 @@ mod test {
                 .unwrap();
         }
 
-        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Clover, 0)));
-        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Clover, 2)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 12), &Card::Normal(Pattern::Diamond, 3)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Diamond, 5), &Card::Normal(Pattern::Clover, 3)));
     }
 
     #[cfg(feature = "server")]

@@ -16,7 +16,6 @@ use walkdir::WalkDir;
 use {
     notify::{raw_watcher, RawEvent, RecommendedWatcher, RecursiveMode, Watcher},
     std::path::PathBuf,
-    std::process::Command,
     std::sync::mpsc::{channel, Receiver},
     std::sync::{Mutex, MutexGuard},
     std::thread,
@@ -205,20 +204,6 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                             .unwrap();
                         drop(handlebars);
                         continue;
-                    }
-
-                    if ext == "scss" {
-                        let _ = Command::new("sass")
-                            .arg(&path)
-                            .arg(
-                                root.join(
-                                    path.strip_prefix(&root)
-                                        .unwrap()
-                                        .to_string_lossy()
-                                        .replace("scss", "css"),
-                                ),
-                            )
-                            .output();
                     }
                 }
 

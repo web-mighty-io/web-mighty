@@ -11,7 +11,7 @@ pub async fn delete_user(
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     if id.identity().is_some() {
-        user::delete_user((*form).clone(), state.pool.clone())?;
+        user::delete_user(&*form, state.pool.clone())?;
         id.forget();
         Ok(HttpResponse::Ok().finish())
     } else {

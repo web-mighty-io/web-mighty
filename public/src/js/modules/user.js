@@ -39,22 +39,60 @@ class User {
      * Validates if user id doesn't exist in server
      *
      * @param {string} userId
+     * @param {function} onError
      * @returns {Promise<void>}
      */
-    static async validateUserId(userId) {
-        console.log(userId);
-        // todo
+    static async validateUserId(userId, onError) {
+        let res = await fetch("/validate-user-id", {
+            method: "post",
+            headers: {
+                "Accept": "application/json, text/plain, */*",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "user_id": userId
+            })
+        });
+        if (res.ok) {
+            let json = await res.json();
+            if (json["user_id"] === userId) {
+                return json.exists;
+            } else {
+                onError("User id doesn't match");
+            }
+        } else {
+            onError(await res.text());
+        }
     }
 
     /**
      * Validates if email doesn't exist in server
      *
      * @param {string} email
+     * @param {function} onError
      * @returns {Promise<void>}
      */
-    static async validateEmail(email) {
-        console.log(email);
-        // todo
+    static async validateEmail(email, onError) {
+        let res = await fetch("/validate-email", {
+            method: "post",
+            headers: {
+                "Accept": "application/json, text/plain, */*",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email,
+            })
+        });
+        if (res.ok) {
+            let json = await res.json();
+            if (json["email"] === email) {
+                return json.exists;
+            } else {
+                onError("Email doesn't match");
+            }
+        } else {
+            onError(await res.text());
+        }
     }
 
     /**
@@ -142,7 +180,7 @@ class User {
             }
             window.location.replace(redirect);
         } else {
-            onError(res.text());
+            onError(await res.text());
         }
     }
 
@@ -168,7 +206,7 @@ class User {
         if (res.ok) {
             window.location.replace("/");
         } else {
-            onError(res.text());
+            onError(await res.text());
         }
     }
 
@@ -203,7 +241,7 @@ class User {
             }
             window.location.replace(redirect);
         } else {
-            onError(res.text());
+            onError(await res.text());
         }
     }
 
@@ -251,7 +289,7 @@ class User {
         if (res.ok) {
             window.location.replace("/");
         } else {
-            onError(res.text());
+            onError(await res.text());
         }
     }
 }

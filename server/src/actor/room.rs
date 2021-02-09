@@ -70,7 +70,7 @@ impl Handler<RoomJoin> for Room {
                 self.user_addr.insert(user_no, addr);
                 self.set_head();
                 self.spread_info();
-                let _ = get_into_room(GetInRoomForm { room_id: self.info.id }, self.pool.clone());
+                let _ = get_into_room(&GetInRoomForm { room_id: self.info.id }, self.pool.clone());
             }
             RoomJoin::Observe(addr) => {
                 self.observe.insert(addr);
@@ -120,7 +120,7 @@ impl Handler<RoomLeave> for Room {
                     self.hub.do_send(RemoveRoom(self.info.id));
                     ctx.stop();
                 }
-                let _ = leave_room(LeaveRoomForm { room_id: self.info.id }, self.pool.clone());
+                let _ = leave_room(&LeaveRoomForm { room_id: self.info.id }, self.pool.clone());
             }
             RoomLeave::Observe(addr) => {
                 if !self.observe.remove(&addr) {
@@ -156,7 +156,7 @@ impl Handler<ChangeName> for Room {
             name: Some(self.info.name.clone()),
             rule: None,
         };
-        let _ = change_room_info(form, self.pool.clone());
+        let _ = change_room_info(&form, self.pool.clone());
     }
 }
 
@@ -174,7 +174,7 @@ impl Handler<ChangeRule> for Room {
             return;
         }
         self.info.rule = RuleHash::generate(&msg.1);
-        let _ = save_rule(SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
+        let _ = save_rule(&SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
 
         self.spread_info();
         let form = ChangeRoomInfoForm {
@@ -182,7 +182,7 @@ impl Handler<ChangeRule> for Room {
             name: None,
             rule: Some(msg.1),
         };
-        let _ = change_room_info(form, self.pool.clone());
+        let _ = change_room_info(&form, self.pool.clone());
     }
 }
 
@@ -201,7 +201,7 @@ impl Handler<StartGame> for Room {
         }
         let id = GameId::generate_random();
         let rule = get_rule(
-            GetRuleForm {
+            &GetRuleForm {
                 rule_hash: self.info.rule,
             },
             self.pool.clone(),
@@ -223,7 +223,7 @@ impl Handler<StartGame> for Room {
             is_rank: true,
             rule,
         };
-        let _ = make_game(form, self.pool.clone());
+        let _ = make_game(&form, self.pool.clone());
     }
 }
 
@@ -254,7 +254,7 @@ impl Handler<Go> for Room {
         let finished = ignore!(self.next(user_id, msg.1));
         let game = self.game.as_ref().unwrap();
         let _ = save_state(
-            SaveStateForm {
+            &SaveStateForm {
                 game_id: game.id,
                 room_id: self.info.uid,
                 number: game.no,

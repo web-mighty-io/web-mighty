@@ -13,7 +13,7 @@ pub struct ChangeRatingForm {
     pub rating: u32,
 }
 
-pub fn change_rating(form: ChangeRatingForm, pool: Pool) -> Result<()> {
+pub fn change_rating(form: &ChangeRatingForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("INSERT INTO rating (user_no, game_id, diff, rating) VALUES ($1, $2, $3, $4);")?;
     let _ = client.query(
@@ -42,7 +42,7 @@ pub struct Rating {
     pub time: SystemTime,
 }
 
-pub fn get_rating(form: GetRatingForm, pool: Pool) -> Result<Vec<Rating>> {
+pub fn get_rating(form: &GetRatingForm, pool: Pool) -> Result<Vec<Rating>> {
     let mut client = pool.get()?;
     let stmt = client.prepare(
         "SELECT game_id, diff, rating, time, FROM rating WHERE user_no=$1 AND $2<=time AND time<=$3 ORDER BY time ASC",
@@ -69,7 +69,7 @@ pub struct MakeGameForm {
     pub rule: Rule,
 }
 
-pub fn make_game(form: MakeGameForm, pool: Pool) -> Result<()> {
+pub fn make_game(form: &MakeGameForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 is_gaming FROM curr_rooms WHERE uid=$1")?;
     let res = client.query(&stmt, &[&form.room_id.to_string()])?;
@@ -86,7 +86,7 @@ pub fn make_game(form: MakeGameForm, pool: Pool) -> Result<()> {
             &form.room_name,
             &form.users,
             &form.is_rank,
-            &Json(form.rule),
+            &Json(&form.rule),
         ],
     )?;
     Ok(())
@@ -100,7 +100,7 @@ pub struct SaveStateForm {
     pub state: State,
 }
 
-pub fn save_state(form: SaveStateForm, pool: Pool) -> Result<()> {
+pub fn save_state(form: &SaveStateForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("INSERT INTO record (game_id, room_id, number, state) VALUES ($1, $2, $3, $4);")?;
     let _ = client.query(
@@ -109,7 +109,7 @@ pub fn save_state(form: SaveStateForm, pool: Pool) -> Result<()> {
             &form.game_id.to_string(),
             &form.room_id.to_string(),
             &form.number,
-            &Json(form.state),
+            &Json(&form.state),
         ],
     )?;
     Ok(())
@@ -120,7 +120,7 @@ pub struct GetRuleForm {
     pub rule_hash: RuleHash,
 }
 
-pub fn get_rule(form: GetRuleForm, pool: Pool) -> Result<Rule> {
+pub fn get_rule(form: &GetRuleForm, pool: Pool) -> Result<Rule> {
     let mut client = pool.get()?;
     let stmt = client.prepare("")?; // todo
     let res = client.query(&stmt, &[&form.rule_hash.to_string()])?;
@@ -134,10 +134,10 @@ pub struct SaveRuleForm {
     pub rule: Rule,
 }
 
-pub fn save_rule(form: SaveRuleForm, pool: Pool) -> Result<()> {
+pub fn save_rule(form: &SaveRuleForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("")?; // todo
-    let _ = client.query(&stmt, &[&Json(form.rule)]);
+    let _ = client.query(&stmt, &[&Json(&form.rule)]);
     Ok(())
 }
 
@@ -150,7 +150,7 @@ pub struct MakeRoomForm {
     pub rule: Rule,
 }
 
-pub fn make_room(form: MakeRoomForm, pool: Pool) -> Result<()> {
+pub fn make_room(form: &MakeRoomForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client
         .prepare("INSERT INTO curr_rooms (uid, id, name, master, users, rule) VALUES ($1, $2, $3, $4, $5, $6);")?;
@@ -162,7 +162,7 @@ pub fn make_room(form: MakeRoomForm, pool: Pool) -> Result<()> {
             &form.name,
             &form.user_no.0,
             &vec![&form.user_no.0],
-            &Json(form.rule),
+            &Json(&form.rule),
         ],
     )?;
     Ok(())
@@ -173,7 +173,7 @@ pub struct GetInRoomForm {
     pub room_id: RoomId,
 }
 
-pub fn get_into_room(form: GetInRoomForm, pool: Pool) -> Result<()> {
+pub fn get_into_room(form: &GetInRoomForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 users_cnt FROM curr_rooms WHERE id=$1;")?;
     let res = client.query(&stmt, &[&form.room_id.0])?;
@@ -193,7 +193,7 @@ pub struct LeaveRoomForm {
     pub room_id: RoomId,
 }
 
-pub fn leave_room(form: LeaveRoomForm, pool: Pool) -> Result<()> {
+pub fn leave_room(form: &LeaveRoomForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 users_cnt FROM curr_rooms WHERE id=$1;")?;
     let res = client.query(&stmt, &[&form.room_id.0])?;
@@ -215,7 +215,7 @@ pub struct ChangeRoomInfoForm {
     pub rule: Option<Rule>,
 }
 
-pub fn change_room_info(form: ChangeRoomInfoForm, pool: Pool) -> Result<()> {
+pub fn change_room_info(form: &ChangeRoomInfoForm, pool: Pool) -> Result<()> {
     let mut client = pool.get()?;
     let stmt = client.prepare("SELECT 1 name, rule FROM users WHERE id=$1;")?;
     let res = client.query(&stmt, &[&form.room_id.0])?;
@@ -241,6 +241,6 @@ pub struct GetRoomListForm {
     pub room_id: RoomId,
 }
 
-pub fn get_room_list(_form: GetRoomListForm, _pool: Pool) -> Result<()> {
+pub fn get_room_list(_form: &GetRoomListForm, _pool: Pool) -> Result<()> {
     Ok(())
 }

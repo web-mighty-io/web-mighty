@@ -237,9 +237,7 @@ pub fn change_room_info(form: ChangeRoomInfoForm, pool: Pool) -> Result<()> {
 }
 
 #[derive(Deserialize, Serialize, Clone)]
-pub struct GetRoomListForm {
-    pub room_id: RoomId,
-}
+pub struct GetRoomListForm;
 
 pub fn get_room_list(_form: GetRoomListForm, _pool: Pool) -> Result<()> {
     Ok(())

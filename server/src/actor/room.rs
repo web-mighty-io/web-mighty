@@ -1,6 +1,6 @@
 use crate::actor::hub::RemoveRoom;
 use crate::actor::session::Session;
-use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo};
+use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo, SendChat};
 use crate::actor::{hub, Hub, List, Observe, User};
 use crate::db::game::{
     change_room_info, get_into_room, get_rule, leave_room, make_game, save_rule, save_state, ChangeRoomInfoForm,
@@ -291,6 +291,37 @@ impl Handler<Go> for Room {
             self.info.is_game = false;
             self.game = None;
             self.spread_info();
+        }
+    }
+}
+
+/// Returns the information of this room.
+#[derive(Debug, Clone, Message)]
+#[rtype(result = "()")]
+pub enum Chat {
+    User(String, UserNo),
+    Observe(String, UserNo),
+}
+
+impl Handler<Chat> for Room {
+    type Result = ();
+
+    fn handle(&mut self, msg: Chat, _: &mut Self::Context) -> Self::Result {
+        match msg {
+            Chat::User(chat, no) => {
+                for (_, i) in self.user_addr.iter() {
+                    i.do_send(SendChat(chat.clone(), no));
+                }
+
+                for i in self.observe.iter() {
+                    i.do_send(ObserveToClient::Chat(chat.clone(), no));
+                }
+            }
+            Chat::Observe(chat, no) => {
+                for i in self.observe.iter() {
+                    i.do_send(ObserveToClient::Chat(chat.clone(), no));
+                }
+            }
         }
     }
 }

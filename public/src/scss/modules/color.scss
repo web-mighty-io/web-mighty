@@ -1,0 +1,54 @@
+$prussian-blue: #122A40;
+$blue-jeans: #53A7DF;
+$pale-cer: #9EC8E6;
+$red-orange-color-wheel: #FF4000;
+$melon: #FFA69E;
+
+$light-pink: #ff7c7c;
+$yellow: #ffd082;
+$blue: #3298dc;
+$beige: #e8e6da;
+$green: #48c774;
+$ivory: #fffff0;
+$dark-brown: #1c1c17;
+
+$primary: $blue-jeans;
+$link: $melon;
+$dark: $prussian-blue;
+$light: $pale-cer;
+$danger: $red-orange-color-wheel;
+$info: $blue;
+$success: $green;
+
+$_colors: (
+  "primary": $primary,
+  "link": $link,
+  "dark": $dark,
+  "light": $light,
+  "info": $info,
+  "success": $success,
+);
+
+@function pillar-color($color) {
+  @if lightness($color) > 40 {
+    @return darken($color, 20%);
+  } @else {
+    @return lighten($color, 20%);
+  }
+}
+
+@function findColorInvert($color) {
+  @if lightness($color) > 40 {
+    @return rgba(#000, 0.7);
+  } @else {
+    @return #fff;
+  }
+}
+
+@function tint($color, $percentage) {
+  @return mix(white, $color, $percentage);
+}
+
+@function shade($color, $percentage) {
+  @return mix(black, $color, $percentage);
+}

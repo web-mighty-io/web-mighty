@@ -2,6 +2,70 @@
 
 @import "./modules/common.scss";
 
-html {
-  font-family: $font-sans-serif;
+html,
+body {
+  font-family: $font-sans-serif, $korean;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.content-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: ivory;
+
+  .upper-wrap {
+    flex: 4;
+  }
+
+  .middle-wrap {
+    flex: 1;
+
+    .title-wrap {
+      display: flex;
+
+      .title {
+        width: 700px;
+        height: 80px;
+        margin: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 45pt;
+      }
+    }
+  }
+
+  .lower-wrap {
+    flex: 2;
+
+    .start-wrap {
+      display: flex;
+
+      .start {
+        width: 450px;
+        height: 50px;
+        margin: 10px auto auto;
+        display: flex;
+        justify-content: center;
+
+        button {
+          font-family: inherit;
+          width: 120px;
+          height: 50px;
+          margin: 0 20px;
+          font-size: 15pt;
+          border-radius: 10px;
+          border: 0;
+          outline: none !important;
+        }
+      }
+    }
+  }
+
+  .footer-wrap {
+    flex: 2;
+  }
 }

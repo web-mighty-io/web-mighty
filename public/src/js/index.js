@@ -7,9 +7,9 @@ window.onload = function () {
 
     loginButton.addEventListener("click", function () {
         window.location.replace("/login");
-    });
+    }, false);
 
     registerButton.addEventListener("click", function () {
         window.location.replace("/register");
-    });
+    }, false);
 };

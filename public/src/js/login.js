@@ -11,33 +11,32 @@ window.onload = function () {
     let isError = false;
 
     form.onsubmit = function () {
-        (async function () {
-            if (isError) {
-                return;
-            }
+        if (isError) {
+            id.classList.add("danger");
+            id.focus();
+            return false;
+        }
 
-            let user;
-            let value = id.value;
+        let user;
+        let value = id.value;
 
-            if (value.includes("@")) {
-                user = new User({
-                    info: {
-                        email: value,
-                    }
-                })
-            } else {
-                user = new User({
-                    info: {
-                        id: value,
-                    }
-                })
-            }
-
-            await User.login(user, password.value, function (msg) {
-                console.log(msg);
-                passwordError.innerText = "아이디/이메일이 존재하지 않거나 비밀번호가 일치하지 않습니다."
+        if (value.includes("@")) {
+            user = new User({
+                info: {
+                    email: value,
+                }
             });
-        })();
+        } else {
+            user = new User({
+                info: {
+                    id: value,
+                }
+            });
+        }
+
+        User.login(user, password.value, function () {
+            passwordError.innerText = "아이디/이메일이 존재하지 않거나 비밀번호가 일치하지 않습니다.";
+        });
 
         return false;
     };
@@ -49,6 +48,7 @@ window.onload = function () {
                 idError.innerText = "잘못된 이메일 형식입니다.";
                 isError = true;
             } else {
+                id.classList.remove("danger");
                 idError.innerText = "";
                 isError = false;
             }
@@ -57,6 +57,7 @@ window.onload = function () {
                 idError.innerText = "잘못된 아이디 형식입니다.";
                 isError = true;
             } else {
+                id.classList.remove("danger");
                 idError.innerText = "";
                 isError = false;
             }

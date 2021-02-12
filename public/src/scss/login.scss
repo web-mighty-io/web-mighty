@@ -76,6 +76,10 @@ body {
             margin-bottom: 5px;
             border-radius: 10px;
           }
+
+          input.danger {
+            border: 1px solid $red-orange-color-wheel !important;
+          }
         }
 
         p {

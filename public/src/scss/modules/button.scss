@@ -4,6 +4,7 @@ button {
   cursor: pointer;
   font-family: inherit;
   font-size: 1em;
+  outline: 0;
 }
 
 @each $color_name, $color in $_colors {

@@ -53,6 +53,6 @@ module.exports = (env) => {
                 path.posix.resolve(__dirname, "node_modules"),
                 path.posix.resolve(__dirname, "public/res")
             ]
-        }
+        },
     };
 };

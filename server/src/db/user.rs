@@ -92,16 +92,26 @@ pub fn register_user(form: &RegisterForm, pool: Pool) -> Result<()> {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct LoginForm {
-    pub user_id: String,
+    pub user_id: Option<String>,
+    pub email: Option<String>,
     pub password: String,
 }
 
-pub fn login_user(form: &LoginForm, pool: Pool) -> Result<u32> {
-    is_user_id_valid(&form.user_id)?;
+pub fn login_user(form: &LoginForm, pool: Pool) -> Result<i32> {
     is_password_valid(&form.password)?;
-    let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 no FROM users WHERE (id=$1 AND password=$2) OR (email=$1 AND password=$2);")?;
-    let res = client.query(&stmt, &[&form.user_id, &form.password])?;
+    let res = if let Some(user_id) = &form.user_id {
+        is_user_id_valid(user_id)?;
+        let mut client = pool.get()?;
+        let stmt = client.prepare("SELECT no FROM users WHERE id=$1 AND password=$2 LIMIT 1;")?;
+        client.query(&stmt, &[user_id, &form.password])?
+    } else if let Some(email) = &form.email {
+        is_email_valid(email)?;
+        let mut client = pool.get()?;
+        let stmt = client.prepare("SELECT no FROM users WHERE email=$1 AND password=$2 LIMIT 1;")?;
+        client.query(&stmt, &[email, &form.password])?
+    } else {
+        bail!(StatusCode::BAD_REQUEST, "no user_id or email");
+    };
     let row = res
         .first()
         .ok_or_else(|| err!(StatusCode::UNAUTHORIZED, "login failed"))?;

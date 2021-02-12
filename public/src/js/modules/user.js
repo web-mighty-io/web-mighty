@@ -1,27 +1,4 @@
-/**
- * Simple SHA-256 function
- *
- * It uses faster browser support hash functions if possible.
- * If not, it uses js version of sha256 (slower).
- *
- * @link https://stackoverflow.com/a/48161723
- * @param {string} message
- * @returns {Promise<string>}
- */
-async function sha256(message) {
-    if (crypto.subtle.digest) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map((b) => ("00" + b.toString(16)).slice(-2)).join("");
-    } else {
-        if (!this.sjcl) {
-            this.sjcl = await import ("sjcl");
-        }
-        const bitArray = this.sjcl.hash.sha512.hash(message);
-        return this.sjcl.codec.hex.fromBits(bitArray);
-    }
-}
+import { sha512 } from "./hash.js";
 
 /**
  * User class
@@ -160,17 +137,23 @@ class User {
      * @returns {Promise<void>}
      */
     static async login(user, password, onError) {
-        let hashedPassword = await sha256(password);
+        let hashedPassword = await sha512(password);
+        let body = {
+            "password": hashedPassword,
+        };
+        if (typeof user.info.id === "string") {
+            body["user_id"] = user.info.id;
+        } else {
+            body["email"] = user.info.email;
+        }
+
         let res = await fetch("/login", {
             method: "post",
             headers: {
                 "Accept": "application/json, text/plain, */*",
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                "user_id": user.info.id,
-                "password": hashedPassword,
-            })
+            body: JSON.stringify(body),
         });
         if (res.ok) {
             let params = new URLSearchParams(window.location.search);
@@ -219,7 +202,7 @@ class User {
      * @returns {Promise<void>}
      */
     static async register(user, password, onError) {
-        let hashedPassword = await sha256(password);
+        let hashedPassword = await sha512(password);
         let res = await fetch("/register", {
             method: "post",
             headers: {
@@ -274,7 +257,7 @@ class User {
      * @returns {Promise<void>}
      */
     static async delete(user, password, onError) {
-        let hashedPassword = await sha256(password);
+        let hashedPassword = await sha512(password);
         let res = await fetch("/delete-user", {
             method: "delete",
             headers: {

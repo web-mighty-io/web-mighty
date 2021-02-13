@@ -18,7 +18,7 @@ impl Default for JokerCall {
 impl JokerCall {
     pub fn new() -> JokerCall {
         JokerCall {
-            cards: vec![(Card::Normal(Pattern::Clover, 3), Card::Normal(Pattern::Spade, 3))],
+            cards: vec![(Card::Normal(Pattern::Clover, 2), Card::Normal(Pattern::Spade, 2))],
             mighty_defense: true,
             has_power: false,
         }

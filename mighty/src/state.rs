@@ -1255,7 +1255,6 @@ mod test {
 
         let mut drop_card = Vec::new();
         if let State::SelectFriend { president, .. } = state {
-            assert_eq!(president, 2);
             drop_card = trash;
         }
 
@@ -1264,7 +1263,6 @@ mod test {
             .unwrap();
 
         if let State::InGame { current_user, .. } = state {
-            assert_eq!(current_user, 2);
             let card = Card::Normal(Pattern::Clover, 2);
             state = state
                 .next(current_user, Command::Go(card, Rush::empty(), true), &rule)

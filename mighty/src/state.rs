@@ -1121,10 +1121,18 @@ mod test {
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
 
+        //pre-test
+        assert_eq!(state.is_joker_called(), false);
+        assert_eq!(state.get_current_pattern(), Rush::SPADE);
+        assert_eq!(state.get_giruda(), None);
+        assert_eq!(state.check_card_valid(rule.card_policy.mighty), false);
+        assert_eq!(state.check_card_effect(rule.card_policy.mighty), false);
+
         state = state.next(1, Command::Pledge(None), &rule).unwrap();
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
+
         let mut drop_card = Vec::new();
         if let State::SelectFriend { president, deck, .. } = state.clone() {
             drop_card = deck[president]
@@ -1154,6 +1162,10 @@ mod test {
 
         assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 12), &Card::Normal(Pattern::Diamond, 3)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Diamond, 5), &Card::Normal(Pattern::Clover, 3)));
+        //in-game test
+        assert_eq!(state.is_joker_called(), false);
+        assert_eq!(state.get_current_pattern(), Rush::DIAMOND);
+        assert_eq!(state.get_giruda().unwrap(), Pattern::Clover);
     }
 
     #[cfg(feature = "server")]

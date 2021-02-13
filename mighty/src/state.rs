@@ -1254,7 +1254,7 @@ mod test {
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
 
         let mut drop_card = Vec::new();
-        if let State::SelectFriend { president, .. } = state {
+        if let State::SelectFriend { .. } = state {
             drop_card = trash;
         }
 

@@ -1,7 +1,8 @@
 use crate::actor::hub::GetRoom;
-use crate::actor::room::{ChangeName, ChangeRule, Go, RoomJoin, RoomLeave, StartGame};
+use crate::actor::room::{ChangeName, ChangeRule, Chat, Go, RoomJoin, RoomLeave, StartGame};
 use crate::actor::session::Session;
 use crate::actor::{Hub, Main, Room, RoomUser};
+use crate::db::game::{change_rating, ChangeRatingForm};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::State;
@@ -30,6 +31,7 @@ pub struct User {
     room: Option<JoinedRoom>,
     subscribers: HashSet<Addr<Session<Main>>>,
     hub: Addr<Hub>,
+    pool: Pool,
 }
 
 impl Actor for User {
@@ -201,6 +203,9 @@ impl Handler<UserCommand> for User {
             RoomUserToServer::Command(cmd) => {
                 room.addr.do_send(Go(user_no, cmd));
             }
+            RoomUserToServer::Chat(chat) => {
+                room.addr.do_send(Chat::User(chat, self.info.no));
+            }
         }
     }
 }
@@ -263,7 +268,7 @@ impl Handler<Update> for User {
 /// change
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
-pub struct ChangeRating(pub i32);
+pub struct ChangeRating(pub i32, pub GameId);
 
 impl Handler<ChangeRating> for User {
     type Result = ();
@@ -278,11 +283,37 @@ impl Handler<ChangeRating> for User {
         } else {
             self.info.rating += msg.0 as u32;
         }
+        let form = ChangeRatingForm {
+            user_no: self.info.no.0,
+            game_id: msg.1,
+            diff: msg.0 as u32,
+            rating: self.info.rating,
+        };
+        let _ = change_rating(&form, self.pool.clone());
+    }
+}
+
+#[derive(Debug, Clone, Message)]
+#[rtype(result = "()")]
+pub struct SendChat(pub String, pub UserNo);
+
+impl Handler<SendChat> for User {
+    type Result = ();
+
+    fn handle(&mut self, msg: SendChat, _: &mut Self::Context) -> Self::Result {
+        if self.room.is_none() {
+            return;
+        }
+
+        let room = self.room.as_mut().unwrap();
+        for i in room.group.iter() {
+            i.do_send(RoomUserToClient::Chat(msg.0.clone(), msg.1));
+        }
     }
 }
 
 impl User {
-    pub fn new(info: UserInfo, hub: Addr<Hub>) -> User {
+    pub fn new(info: UserInfo, hub: Addr<Hub>, pool: Pool) -> User {
         User {
             info,
             status: UserStatus::OFFLINE,
@@ -292,6 +323,7 @@ impl User {
             room: None,
             subscribers: HashSet::new(),
             hub,
+            pool,
         }
     }
 

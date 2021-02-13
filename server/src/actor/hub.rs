@@ -53,7 +53,7 @@ impl Handler<MakeRoom> for Hub {
         let room_id = self.generate_room_id();
         let user_cnt = msg.1.user_cnt as usize;
         let rule = RuleHash::generate(&msg.1);
-        let _ = save_rule(SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
+        let _ = save_rule(&SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
         let room = Room::new(
             RoomInfo {
                 uid: room_uuid,
@@ -101,8 +101,8 @@ impl Handler<HubConnect> for Hub {
         if let Some(addr) = self.users.get(&msg.0) {
             Ok(addr.clone())
         } else {
-            let user_info = get_user_info(GetInfoForm::UserNo(msg.0 .0), self.pool.clone())?;
-            let user = User::new(user_info, ctx.address()).start();
+            let user_info = get_user_info(&GetInfoForm::UserNo(msg.0 .0), self.pool.clone())?;
+            let user = User::new(user_info, ctx.address(), self.pool.clone()).start();
             self.users.insert(msg.0, user.clone());
             Ok(user)
         }

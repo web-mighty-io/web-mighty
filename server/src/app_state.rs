@@ -16,7 +16,6 @@ use walkdir::WalkDir;
 use {
     notify::{raw_watcher, RawEvent, RecommendedWatcher, RecursiveMode, Watcher},
     std::path::PathBuf,
-    std::process::Command,
     std::sync::mpsc::{channel, Receiver},
     std::sync::{Mutex, MutexGuard},
     std::thread,
@@ -45,11 +44,12 @@ pub struct AppState {
     pub hub: Addr<Hub>,
     pub pool: Pool,
     pub mail: Addr<Mail>,
+    pub secret: String,
 }
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail, secret: String) -> web::Data<AppState> {
         let manager = PostgresConnectionManager::new(config, NoTls);
         let pool = Pool::new(manager).unwrap();
         db::init(pool.clone()).expect("db init failed");
@@ -60,11 +60,12 @@ impl AppState {
             hub: Hub::new(pool.clone()).start(),
             pool,
             mail: mail.start(),
+            secret,
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail, secret: String) -> web::Data<AppState> {
         let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
@@ -82,6 +83,7 @@ impl AppState {
             hub: Hub::new(pool.clone()).start(),
             pool,
             mail: mail.start(),
+            secret,
         });
         let state_clone = state.clone();
         let path_clone = path.to_path_buf();
@@ -202,20 +204,6 @@ fn watch(data: web::Data<AppState>, rx: Receiver<RawEvent>, root: PathBuf) -> ! 
                             .unwrap();
                         drop(handlebars);
                         continue;
-                    }
-
-                    if ext == "scss" {
-                        let _ = Command::new("sass")
-                            .arg(&path)
-                            .arg(
-                                root.join(
-                                    path.strip_prefix(&root)
-                                        .unwrap()
-                                        .to_string_lossy()
-                                        .replace("scss", "css"),
-                                ),
-                            )
-                            .output();
                     }
                 }
 

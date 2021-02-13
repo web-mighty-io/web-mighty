@@ -1,46 +1,29 @@
 use crate::app_state::AppState;
-use crate::db::user::{login_user, pre_register_user, register_user, LoginForm, PreRegisterForm, RegisterForm};
+use crate::db::user::{
+    check_user_email, check_user_id, login_user, pre_register_user, register_user, CheckEmailForm, CheckIdForm,
+    LoginForm, PreRegisterForm, RegisterForm,
+};
 use crate::dev::*;
 use actix_identity::Identity;
-use actix_web::{http, post, web, HttpResponse, Responder};
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-pub struct LoginQuery {
-    back: Option<String>,
-}
+use actix_web::{post, web, HttpResponse};
+use serde::Serialize;
 
 #[post("/login")]
 pub async fn login(
     id: Identity,
     form: web::Json<LoginForm>,
     state: web::Data<AppState>,
-    query: web::Query<LoginQuery>,
 ) -> Result<HttpResponse, Error> {
-    let user_no = login_user((*form).clone(), state.pool.clone())?;
+    let user_no = login_user(&*form, state.pool.clone())?;
     id.remember(user_no.to_string());
-    Ok(HttpResponse::Found()
-        .header(
-            http::header::LOCATION,
-            query.back.clone().unwrap_or_else(|| "/".to_owned()),
-        )
-        .finish()
-        .into_body())
-}
-
-#[post("/logout")]
-pub async fn logout(id: Identity) -> impl Responder {
-    id.forget();
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[post("/pre-register")]
 pub async fn pre_register(form: web::Json<PreRegisterForm>, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
-    let _ = pre_register_user((*form).clone(), state.pool.clone())?;
-    Ok(HttpResponse::Found()
-        .header(http::header::LOCATION, "/")
-        .finish()
-        .into_body())
+    let form = pre_register_user(&*form, state.pool.clone())?;
+    state.mail.do_send(form);
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[post("/register")]
@@ -49,10 +32,46 @@ pub async fn register(
     form: web::Json<RegisterForm>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let _ = register_user((*form).clone(), state.pool.clone())?;
+    let _ = register_user(&*form, state.pool.clone())?;
     id.remember(form.user_id.clone());
-    Ok(HttpResponse::Found()
-        .header(http::header::LOCATION, "/")
-        .finish()
-        .into_body())
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ValidateUserIdResult {
+    user_id: String,
+    exists: bool,
+}
+
+#[post("/validate-user-id")]
+pub async fn validate_user_id(form: web::Json<CheckIdForm>, state: web::Data<AppState>) -> Result<HttpResponse, Error> {
+    let exists = check_user_id(&*form, state.pool.clone())?;
+    Ok(HttpResponse::Ok().body(
+        serde_json::to_string(&ValidateUserIdResult {
+            user_id: form.user_id.clone(),
+            exists,
+        })
+        .unwrap(),
+    ))
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ValidateEmailResult {
+    email: String,
+    exists: bool,
+}
+
+#[post("/validate-email")]
+pub async fn validate_email(
+    form: web::Json<CheckEmailForm>,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let exists = check_user_email(&*form, state.pool.clone())?;
+    Ok(HttpResponse::Ok().body(
+        serde_json::to_string(&ValidateEmailResult {
+            email: form.email.clone(),
+            exists,
+        })
+        .unwrap(),
+    ))
 }

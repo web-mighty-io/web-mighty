@@ -1,8 +1,11 @@
 use crate::actor::hub::RemoveRoom;
 use crate::actor::session::Session;
-use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo};
+use crate::actor::user::{ChangeRating, GotGameState, GotRoomInfo, SendChat};
 use crate::actor::{hub, Hub, List, Observe, User};
-use crate::db::game::{get_rule, save_rule, save_state, GetRuleForm, SaveRuleForm, SaveStateForm};
+use crate::db::game::{
+    change_room_info, get_into_room, get_rule, leave_room, make_game, save_rule, save_state, ChangeRoomInfoForm,
+    GetInRoomForm, GetRuleForm, LeaveRoomForm, MakeGameForm, SaveRuleForm, SaveStateForm,
+};
 use crate::dev::*;
 use actix::prelude::*;
 use mighty::prelude::{Command, Game, Rule, State};
@@ -67,6 +70,7 @@ impl Handler<RoomJoin> for Room {
                 self.user_addr.insert(user_no, addr);
                 self.set_head();
                 self.spread_info();
+                let _ = get_into_room(&GetInRoomForm { room_id: self.info.id }, self.pool.clone());
             }
             RoomJoin::Observe(addr) => {
                 self.observe.insert(addr);
@@ -116,6 +120,7 @@ impl Handler<RoomLeave> for Room {
                     self.hub.do_send(RemoveRoom(self.info.id));
                     ctx.stop();
                 }
+                let _ = leave_room(&LeaveRoomForm { room_id: self.info.id }, self.pool.clone());
             }
             RoomLeave::Observe(addr) => {
                 if !self.observe.remove(&addr) {
@@ -146,6 +151,12 @@ impl Handler<ChangeName> for Room {
         }
         self.info.name = msg.1;
         self.spread_info();
+        let form = ChangeRoomInfoForm {
+            room_id: self.info.id,
+            name: Some(self.info.name.clone()),
+            rule: None,
+        };
+        let _ = change_room_info(&form, self.pool.clone());
     }
 }
 
@@ -163,8 +174,15 @@ impl Handler<ChangeRule> for Room {
             return;
         }
         self.info.rule = RuleHash::generate(&msg.1);
-        let _ = save_rule(SaveRuleForm { rule: msg.1 }, self.pool.clone());
+        let _ = save_rule(&SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
+
         self.spread_info();
+        let form = ChangeRoomInfoForm {
+            room_id: self.info.id,
+            name: None,
+            rule: Some(msg.1),
+        };
+        let _ = change_room_info(&form, self.pool.clone());
     }
 }
 
@@ -181,22 +199,31 @@ impl Handler<StartGame> for Room {
         if msg.0 != self.info.head || self.info.is_game {
             return;
         }
+        let id = GameId::generate_random();
+        let rule = get_rule(
+            &GetRuleForm {
+                rule_hash: self.info.rule,
+            },
+            self.pool.clone(),
+        )
+        .unwrap();
         self.game = Some(GameInfo {
-            id: GameId::generate_random(),
+            id,
             no: 0,
-            game: Game::new(
-                get_rule(
-                    GetRuleForm {
-                        rule_hash: self.info.rule,
-                    },
-                    self.pool.clone(),
-                )
-                .unwrap(),
-            ),
+            game: Game::new(rule.clone()),
         });
         self.info.is_game = true;
         self.spread_info();
         self.spread_game();
+        let form = MakeGameForm {
+            game_id: id,
+            room_id: self.info.uid,
+            room_name: self.info.name.clone(),
+            users: self.info.user.iter().map(|x| x.0).collect(),
+            is_rank: true,
+            rule,
+        };
+        let _ = make_game(&form, self.pool.clone());
     }
 }
 
@@ -227,7 +254,7 @@ impl Handler<Go> for Room {
         let finished = ignore!(self.next(user_id, msg.1));
         let game = self.game.as_ref().unwrap();
         let _ = save_state(
-            SaveStateForm {
+            &SaveStateForm {
                 game_id: game.id,
                 room_id: self.info.uid,
                 number: game.no,
@@ -253,7 +280,10 @@ impl Handler<Go> for Room {
                                 -(score as i32)
                             };
                             let score = if i == president { 2 * score } else { score };
-                            self.user_addr.get(&userno).unwrap().do_send(ChangeRating(score));
+                            self.user_addr
+                                .get(&userno)
+                                .unwrap()
+                                .do_send(ChangeRating(score, game.id));
                         }
                     }
                 }
@@ -261,6 +291,37 @@ impl Handler<Go> for Room {
             self.info.is_game = false;
             self.game = None;
             self.spread_info();
+        }
+    }
+}
+
+/// Returns the information of this room.
+#[derive(Debug, Clone, Message)]
+#[rtype(result = "()")]
+pub enum Chat {
+    User(String, UserNo),
+    Observe(String, UserNo),
+}
+
+impl Handler<Chat> for Room {
+    type Result = ();
+
+    fn handle(&mut self, msg: Chat, _: &mut Self::Context) -> Self::Result {
+        match msg {
+            Chat::User(chat, no) => {
+                for (_, i) in self.user_addr.iter() {
+                    i.do_send(SendChat(chat.clone(), no));
+                }
+
+                for i in self.observe.iter() {
+                    i.do_send(ObserveToClient::Chat(chat.clone(), no));
+                }
+            }
+            Chat::Observe(chat, no) => {
+                for i in self.observe.iter() {
+                    i.do_send(ObserveToClient::Chat(chat.clone(), no));
+                }
+            }
         }
     }
 }

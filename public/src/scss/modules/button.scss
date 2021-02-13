@@ -1,0 +1,29 @@
+@import "./color.scss";
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1em;
+  outline: 0;
+}
+
+@each $color_name, $color in $_colors {
+  .button.is-#{$color_name} {
+    background: $color;
+    transition: 0.2s ease-out;
+    box-shadow: 0 0 pillar-color($color) !important;
+    border: 0;
+  }
+
+  .button.is-#{$color_name}:hover, .button.is-#{$color_name}:hover:focus {
+    transform: translateY(-7px);
+    box-shadow: 0 7px pillar-color($color) !important;
+    border: 0;
+  }
+
+  .button.is-#{$color_name}:active, .button.is-#{$color_name}:active:focus {
+    transform: translateY(-3.5px);
+    box-shadow: 0 3.5px pillar-color($color) !important;
+    border: 0;
+  }
+}

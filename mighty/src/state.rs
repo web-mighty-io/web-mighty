@@ -1075,16 +1075,64 @@ mod test {
 
     #[cfg(feature = "server")]
     #[test]
-    fn compare_cards_test() {
+    fn compare_cards_test_clover() {
+        let mut new_deck: Vec<Vec<Card>> = Vec::new();
+
+        let mut dec1: Vec<Card> = Vec::new();
+        let mut dec2: Vec<Card> = Vec::new();
+        let mut dec3: Vec<Card> = Vec::new();
+        let mut dec4: Vec<Card> = Vec::new();
+        let mut dec5: Vec<Card> = Vec::new();
+        let mut trash: Vec<Card> = Vec::new();
+
+        for i in 0..10 {
+            dec2.push(Card::Normal(Pattern::Spade, i));
+            dec3.push(Card::Normal(Pattern::Clover, i));
+            dec4.push(Card::Normal(Pattern::Heart, i));
+            dec5.push(Card::Normal(Pattern::Diamond, i));
+        }
+        for i in 10..12 {
+            dec1.push(Card::Normal(Pattern::Spade, i));
+            dec1.push(Card::Normal(Pattern::Clover, i));
+            dec1.push(Card::Normal(Pattern::Heart, i));
+            dec1.push(Card::Normal(Pattern::Diamond, i));
+        }
+        dec1.push(Card::Normal(Pattern::Spade, 12));
+        dec1.push(Card::Joker(Color::Black));
+        trash.push(Card::Normal(Pattern::Clover, 12));
+        trash.push(Card::Normal(Pattern::Heart, 12));
+        trash.push(Card::Normal(Pattern::Diamond, 12));
+        new_deck.push(dec1);
+        new_deck.push(dec2);
+        new_deck.push(dec3);
+        new_deck.push(dec4);
+        new_deck.push(dec5);
+
         let rule = Rule::from(Preset::Default5);
+
         let mut state = State::new(&rule);
+
+        if let State::Election { deck, left, .. } = &mut state {
+            *deck = new_deck;
+            *left = trash;
+        }
+
         state = state
             .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
             .unwrap();
+
+        //pre-test
+        assert_eq!(state.is_joker_called(), false);
+        assert_eq!(state.get_current_pattern(), Rush::SPADE);
+        assert_eq!(state.get_giruda(), None);
+        assert_eq!(state.check_card_valid(rule.card_policy.mighty), false);
+        assert_eq!(state.check_card_effect(rule.card_policy.mighty), false);
+
         state = state.next(1, Command::Pledge(None), &rule).unwrap();
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
+
         let mut drop_card = Vec::new();
         if let State::SelectFriend { president, deck, .. } = state.clone() {
             drop_card = deck[president]
@@ -1099,7 +1147,57 @@ mod test {
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 0)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 1), &Card::Normal(Pattern::Clover, 2)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 2), &Card::Normal(Pattern::Clover, 1)));
-        // more (민규 will do it?)
+
+        if let State::InGame { deck, current_user, .. } = state.clone() {
+            let card = deck[current_user]
+                .iter()
+                .filter(|c| matches!(c, Card::Normal(Pattern::Diamond, _)))
+                .choose(&mut rand::thread_rng())
+                .cloned()
+                .unwrap();
+            state = state
+                .next(current_user, Command::Go(card, Rush::empty(), false), &rule)
+                .unwrap();
+        }
+
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 12), &Card::Normal(Pattern::Diamond, 3)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Diamond, 5), &Card::Normal(Pattern::Clover, 3)));
+        //in-game test
+        assert_eq!(state.is_joker_called(), false);
+        assert_eq!(state.get_current_pattern(), Rush::DIAMOND);
+        assert_eq!(state.get_giruda().unwrap(), Pattern::Clover);
+    }
+
+    #[cfg(feature = "server")]
+    #[test]
+    fn compare_cards_test_spade() {
+        let rule = Rule::from(Preset::Default5);
+        let mut state = State::new(&rule);
+        state = state
+            .next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule)
+            .unwrap();
+        state = state
+            .next(1, Command::Pledge(Some((Some(Pattern::Spade), 14))), &rule)
+            .unwrap();
+        state = state.next(2, Command::Pledge(None), &rule).unwrap();
+        state = state.next(3, Command::Pledge(None), &rule).unwrap();
+        state = state.next(4, Command::Pledge(None), &rule).unwrap();
+        state = state.next(0, Command::Pledge(None), &rule).unwrap();
+        let mut drop_card = Vec::new();
+        if let State::SelectFriend { president, deck, .. } = state.clone() {
+            drop_card = deck[president]
+                .choose_multiple(&mut rand::thread_rng(), 3)
+                .cloned()
+                .collect();
+        }
+
+        state = state
+            .next(1, Command::SelectFriend(drop_card, FriendFunc::ByUser(0)), &rule)
+            .unwrap();
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 0), &Card::Normal(Pattern::Diamond, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 0)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 1), &Card::Normal(Pattern::Spade, 5)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Heart, 10), &Card::Normal(Pattern::Spade, 5)));
     }
 
     #[cfg(feature = "server")]
@@ -1190,7 +1288,7 @@ mod test {
     #[cfg(feature = "server")]
     #[test]
     fn next_gshs5_test1() {
-        let rule = Rule::from(Preset::GSHS5);
+        let rule = Rule::from(Preset::Gshs5);
         let mut state = State::new(&rule);
         if let Err(x) = state.next(0, Command::Pledge(Some((Some(Pattern::Clover), 13))), &rule) {
             assert_eq!(format!("{}", x), format!("{}", Error::InvalidPledge(false, 14)))

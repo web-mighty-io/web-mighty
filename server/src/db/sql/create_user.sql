@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS pre_users
 (
-    id       VARCHAR(255) UNIQUE NOT NULL,
-    email    VARCHAR(255) UNIQUE NOT NULL,
-    token    CHAR(64)            NOT NULL,
+    id       VARCHAR(31) UNIQUE NOT NULL,
+    email    VARCHAR(63) UNIQUE NOT NULL,
+    token    CHAR(64)           NOT NULL,
     gen_time TIMESTAMP DEFAULT now()
 );
 
@@ -15,9 +15,9 @@ CREATE SEQUENCE IF NOT EXISTS users_number_seq;
 CREATE TABLE IF NOT EXISTS users
 (
     no       INTEGER UNIQUE      NOT NULL DEFAULT nextval('users_number_seq'),
-    id       VARCHAR(255) UNIQUE NOT NULL,
-    name     VARCHAR(255)        NOT NULL,
-    email    VARCHAR(255) UNIQUE NOT NULL, -- primary email
+    id       VARCHAR(31) UNIQUE NOT NULL,
+    name     VARCHAR(63)        NOT NULL,
+    email    VARCHAR(63) UNIQUE NOT NULL, -- primary email
     rating   INT                          DEFAULT 0,
     password CHAR(128)           NOT NULL, -- hashed password
     gen_time TIMESTAMP                    DEFAULT now(),

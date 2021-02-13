@@ -14,7 +14,6 @@ use {
     std::time::{SystemTime, UNIX_EPOCH},
 };
 
-#[cfg_attr(feature = "client", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Deserialize, Serialize)]
 struct CopyableHash(u64, u64, u64, u64);
 
@@ -423,13 +422,16 @@ pub enum MainToServer {
 pub enum ObserveToClient {
     Room(RoomInfo),
     Game(State),
+    Chat(String, UserNo),
 }
 
 /// Websocket message for observer connection to server
 ///
 /// - `Chat`: When observer chat
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ObserveToServer;
+pub enum ObserveToServer {
+    Chat(String),
+}
 
 /// Websocket message for room connection to client
 ///
@@ -442,6 +444,7 @@ pub struct ObserveToServer;
 pub enum RoomUserToClient {
     Room(RoomInfo),
     Game(State),
+    Chat(String, UserNo),
 }
 
 /// Websocket message for room connection to server
@@ -456,4 +459,5 @@ pub enum RoomUserToServer {
     ChangeName(String),
     ChangeRule(Rule),
     Command(Command),
+    Chat(String),
 }

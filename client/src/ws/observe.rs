@@ -16,6 +16,7 @@ impl SessionTrait for ObserveSession {
         match msg {
             ObserveToClient::Room(info) => ("room_info", JsValue::from_serde(&info).unwrap()),
             ObserveToClient::Game(state) => ("game_state", JsValue::from_serde(&state).unwrap()),
+            ObserveToClient::Chat(chat, no) => ("chat", JsValue::from_serde(&(chat, no)).unwrap()),
         }
     }
 }

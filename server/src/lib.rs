@@ -122,7 +122,7 @@ pub mod internal {
         let private_key = conf.secret.clone();
         let redirect = conf.https.as_ref().unwrap().redirect;
 
-        let state = AppState::new(serve_path, pg_config, mail);
+        let state = AppState::new(serve_path, pg_config, mail, hex::encode(&conf.secret));
 
         HttpServer::new(move || {
             App::new()
@@ -155,7 +155,7 @@ pub mod internal {
         let pg_config = conf.get_pg_config();
         let private_key = conf.secret.clone();
 
-        let state = AppState::new(serve_path, pg_config, mail);
+        let state = AppState::new(serve_path, pg_config, mail, hex::encode(&conf.secret));
 
         HttpServer::new(move || {
             App::new()

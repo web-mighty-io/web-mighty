@@ -52,10 +52,11 @@ pub async fn observe(
     stream: web::Payload,
     web::Path(room_id): web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-    if id.identity().is_some() {
+    if let Some(id) = id.identity() {
+        let user_no = id.parse().unwrap();
         let room_id = room_id.parse::<u32>().unwrap().into();
         let addr = state.hub.send(GetRoom(room_id)).into_future().await.unwrap()?;
-        ws::start(Observe::new(addr).make(), &req, stream)
+        ws::start(Observe::new(addr, UserNo(user_no)).make(), &req, stream)
     } else {
         Ok(p404(state).await)
     }

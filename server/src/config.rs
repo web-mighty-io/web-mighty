@@ -8,6 +8,7 @@
 //!   * `port`: port (defaults to `5432`)
 //!   * **see `deadpool_postgres::Config` for more configuration**
 //! - `host`: hostname of server (defaults to `localhost`)
+//! - `outer_host`: host from outside (if proxy, it could be different) (defaults to `host`)
 //! - `port`: port to use for http connection (defaults to `80`)
 //! - `https`: https configuration
 //!   * `port`: port to use for https connection (defaults to `443`)
@@ -32,6 +33,7 @@
 //!
 //! ```toml
 //! host = "0.0.0.0"
+//! outer_host = "example.com"
 //! port = "8080"
 //! verbose = "2"
 //! secret = "a093c76bd2c5f4e7dff6360c78bcb57a"
@@ -60,6 +62,7 @@
 //!
 //! ```env
 //! HOST="0.0.0.0"
+//! OUTER_HOST="example.com"
 //! PORT="8080"
 //! VERBOSE="2"
 //! SECRET="a093c76bd2c5f4e7dff6360c78bcb57a"
@@ -130,6 +133,12 @@ impl Builder {
             host = host.or_else(|| c.host.clone());
         }
         let host = host.unwrap_or_else(|| "localhost".to_owned());
+
+        let mut outer_host = None;
+        for (_, c) in self.builders.iter() {
+            outer_host = outer_host.or_else(|| c.outer_host.clone());
+        }
+        let outer_host = outer_host.unwrap_or_else(|| host.clone());
 
         let mut port = None;
         for (_, c) in self.builders.iter() {
@@ -252,6 +261,7 @@ impl Builder {
         Config {
             postgres,
             host,
+            outer_host,
             port,
             https,
             logger: guard,
@@ -272,6 +282,7 @@ impl Builder {
 struct ConfigBuilder {
     postgres: Option<DpConfig>,
     host: Option<String>,
+    outer_host: Option<String>,
     port: Option<u16>,
     https: Option<HttpsBuilder>,
     log_path: Option<String>,
@@ -319,6 +330,7 @@ impl ConfigBuilder {
 pub struct Config {
     pub postgres: Option<DpConfig>,
     pub host: String,
+    pub outer_host: String,
     pub port: u16,
     pub https: Option<Https>,
     pub logger: GlobalLoggerGuard,
@@ -382,13 +394,19 @@ impl Config {
     /// Function to get mail configuration
     pub fn get_mail(&self) -> actor::Mail {
         let mail = self.mail.clone();
+        let host = if self.https.is_some() {
+            format!("https://{}", self.outer_host)
+        } else {
+            format!("http://{}", self.outer_host)
+        };
 
         actor::Mail::new(
             mail.from,
             mail.username,
             mail.password,
             mail.host,
-            hex::encode(self.secret.clone()),
+            hex::encode(&self.secret),
+            host,
         )
     }
 

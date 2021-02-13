@@ -1128,7 +1128,6 @@ mod test {
         assert_eq!(state.check_card_valid(rule.card_policy.mighty), false);
         assert_eq!(state.check_card_effect(rule.card_policy.mighty), false);
 
-
         state = state.next(1, Command::Pledge(None), &rule).unwrap();
         state = state.next(2, Command::Pledge(None), &rule).unwrap();
         state = state.next(3, Command::Pledge(None), &rule).unwrap();
@@ -1167,7 +1166,6 @@ mod test {
         assert_eq!(state.is_joker_called(), false);
         assert_eq!(state.get_current_pattern(), Rush::DIAMOND);
         assert_eq!(state.get_giruda().unwrap(), Pattern::Clover);
-        
     }
 
     #[cfg(feature = "server")]

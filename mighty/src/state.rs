@@ -1254,16 +1254,16 @@ mod test {
         state = state.next(4, Command::Pledge(None), &rule).unwrap();
 
         let mut drop_card = Vec::new();
-        if let State::SelectFriend { president, .. } = state.clone() {
+        if let State::SelectFriend { president, .. } = state {
             assert_eq!(president, 2);
-            drop_card = trash.clone();
+            drop_card = trash;
         }
 
         state = state
             .next(2, Command::SelectFriend(drop_card, FriendFunc::ByUser(1)), &rule)
             .unwrap();
 
-        if let State::InGame { current_user, .. } = state.clone() {
+        if let State::InGame { current_user, .. } = state {
             assert_eq!(current_user, 2);
             let card = Card::Normal(Pattern::Clover, 2);
             state = state

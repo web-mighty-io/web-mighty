@@ -16,7 +16,7 @@ class User {
      * Validates if user id doesn't exist in server
      *
      * @param {string} userId
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async validateUserId(userId, onError) {
@@ -32,6 +32,7 @@ class User {
         });
         if (res.ok) {
             let json = await res.json();
+            console.log(json);
             if (json["user_id"] === userId) {
                 return json.exists;
             } else {
@@ -46,7 +47,7 @@ class User {
      * Validates if email doesn't exist in server
      *
      * @param {string} email
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async validateEmail(email, onError) {
@@ -62,6 +63,7 @@ class User {
         });
         if (res.ok) {
             let json = await res.json();
+            console.log(json);
             if (json["email"] === email) {
                 return json.exists;
             } else {
@@ -81,7 +83,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserId(userId) {
-        return /^[a-zA-z0-9._\-]{4,31}$/.test(userId);
+        return /^[a-zA-Z0-9._\-]{4,31}$/.test(userId);
     }
 
     /**
@@ -125,7 +127,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserName(name) {
-        return /^[^!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]{4,63}$/.test(name);
+        return /^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{4,63}$/.test(name);
     }
 
     /**
@@ -133,7 +135,7 @@ class User {
      *
      * @param {User} user
      * @param {string} password
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async login(user, password, onError) {
@@ -171,7 +173,7 @@ class User {
      * Pre-registers to the server
      *
      * @param {User} user
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async preRegister(user, onError) {
@@ -198,7 +200,7 @@ class User {
      *
      * @param {User} user
      * @param {string} password
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async register(user, password, onError) {
@@ -231,7 +233,7 @@ class User {
     /**
      * Logout from server
      *
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async logout(onError) {
@@ -253,7 +255,7 @@ class User {
      *
      * @param {User} user
      * @param {string} password
-     * @param {function} onError
+     * @param {function} [onError]
      * @returns {Promise<void>}
      */
     static async delete(user, password, onError) {

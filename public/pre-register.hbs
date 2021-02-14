@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Web Mighty</title>
-    <script src="/res/js/login.js" type="text/javascript"></script>
+    <script src="/res/js/pre-register.js" type="text/javascript"></script>
 </head>
 <body>
 <div class="content">
@@ -14,22 +14,24 @@
     <div class="middle-wrap">
         <div class="title-wrap">
             <div class="title">
-                Login
+                Register
             </div>
         </div>
     </div>
     <div class="lower-wrap">
         <div class="form-wrap">
-            <form id="login-form">
+            <form id="pre-register-form">
                 <label>
-                    <input type="text" placeholder="아이디 또는 이메일" id="login-id" autofocus>
+                    <input type="text" placeholder="이메일" id="pre-register-email" autofocus>
                 </label>
-                <p id="login-id-error"></p>
+                <p id="pre-register-email-error"></p>
                 <label>
-                    <input type="password" placeholder="비밀번호" id="login-password">
+                    <input type="text" placeholder="아이디" id="pre-register-id">
                 </label>
-                <p id="login-password-error"></p>
-                <button class="button is-light" id="login-submit">로그인</button>
+                <p id="pre-register-id-error"></p>
+                {{!-- todo: privacy agreement --}}
+                {{!-- todo: CAPTCHA --}}
+                <button class="button is-light" id="pre-register-submit">회원가입</button>
             </form>
         </div>
     </div>

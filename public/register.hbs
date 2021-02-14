@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="html5">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web Mighty</title>
+    <script src="/res/js/register.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="content">
+    <div class="upper-wrap">
+
+    </div>
+    <div class="middle-wrap">
+        <div class="title-wrap">
+            <div class="title">
+                Register
+            </div>
+        </div>
+    </div>
+    <div class="lower-wrap">
+        <div class="form-wrap">
+            <form id="register-form">
+                <div>이메일: {{ email }}</div>
+                <div>아이디: {{ user_id }}</div>
+                <div class="hidden" id="register-token">{{ token }}</div>
+                <div class="hidden" id="register-id">{{ user_id }}</div>
+                <label>
+                    <input type="text" placeholder="이름" id="register-name" autofocus>
+                </label>
+                <p id="register-name-error"></p>
+                <label>
+                    <input type="password" placeholder="비밀번호" id="register-password">
+                </label>
+                <p id="register-password-error"></p>
+                <label>
+                    <input type="password" placeholder="비밀번호 확인" id="register-password-check">
+                </label>
+                <p id="register-password-check-error"></p>
+                <button class="button is-light" id="login-submit">로그인</button>
+            </form>
+        </div>
+    </div>
+    <div class="footer-wrap">
+
+    </div>
+</div>
+</body>
+</html>

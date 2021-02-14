@@ -405,8 +405,8 @@ impl Config {
             mail.username,
             mail.password,
             mail.host,
-            hex::encode(&self.secret),
             host,
+            hex::encode(&self.secret),
         )
     }
 

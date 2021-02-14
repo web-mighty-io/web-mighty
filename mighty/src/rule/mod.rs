@@ -93,8 +93,8 @@ impl From<Preset> for Rule {
                 .set_friend(Friend::CARD | Friend::FAKE | Friend::NONE)
                 .map_joker_call(|j| {
                     j.set_cards(vec![(
-                        Card::Normal(Pattern::Clover, 3),
-                        Card::Normal(Pattern::Clover, 3),
+                        Card::Normal(Pattern::Clover, 2),
+                        Card::Normal(Pattern::Clover, 2),
                     )])
                 }),
             Preset::Dhsh5 => Rule::new()
@@ -122,7 +122,7 @@ impl From<Preset> for Rule {
                 .map_pledge(|p| p.set_min(14))
                 .map_joker_call(|j| {
                     j.mut_cards(|v| {
-                        v.push((Card::Normal(Pattern::Heart, 3), Card::Normal(Pattern::Diamond, 3)));
+                        v.push((Card::Normal(Pattern::Heart, 2), Card::Normal(Pattern::Diamond, 2)));
                     })
                 }),
             // implement friend known time

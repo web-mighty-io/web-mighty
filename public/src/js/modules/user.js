@@ -32,7 +32,6 @@ class User {
         });
         if (res.ok) {
             let json = await res.json();
-            console.log(json);
             if (json["user_id"] === userId) {
                 return json.exists;
             } else {
@@ -63,7 +62,6 @@ class User {
         });
         if (res.ok) {
             let json = await res.json();
-            console.log(json);
             if (json["email"] === email) {
                 return json.exists;
             } else {

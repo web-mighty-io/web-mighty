@@ -88,7 +88,6 @@ window.onload = function () {
             },
             token
         });
-        console.log(user);
 
         User.register(new User({
             info: {
@@ -96,9 +95,7 @@ window.onload = function () {
                 name: name.value,
             },
             token
-        }), password.value, function(msg) {
-            console.log(msg);
-        });
+        }), password.value);
 
         return false;
     };

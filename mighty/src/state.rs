@@ -229,6 +229,7 @@ impl State {
                 }
 
                 Card::Joker(c2) => {
+                    println!("c2 = {:?} cur_color={:?}", *c2, cur_color);
                     if *c2 != cur_color || self.is_joker_called() {
                         false
                     } else if let Some(giruda) = giruda {
@@ -1161,6 +1162,8 @@ mod test {
 
         assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 12), &Card::Normal(Pattern::Diamond, 3)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Diamond, 5), &Card::Normal(Pattern::Clover, 3)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 5) , &Card::Joker(Color::Black)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 5) , &Card::Joker(Color::Black)));
         //in-game test
         assert_eq!(state.is_joker_called(), false);
         assert_eq!(state.get_current_pattern(), Rush::DIAMOND);
@@ -1277,6 +1280,8 @@ mod test {
         assert_eq!(state.get_giruda().unwrap(), Pattern::Spade);
         assert_eq!(state.get_current_pattern(), Rush::CLOVER);
         assert_eq!(state.is_joker_called(), true);
+        assert!(state.compare_cards(&Card::Joker(Color::Black) , &Card::Normal(Pattern::Spade, 2)));
+        assert!(state.compare_cards(&Card::Joker(Color::Red) , &Card::Joker(Color::Black)));
     }
 
     #[cfg(feature = "server")]

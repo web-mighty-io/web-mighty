@@ -81,14 +81,6 @@ window.onload = function () {
             return false;
         }
 
-        let user = new User({
-            info: {
-                id: userId,
-                name: name.value,
-            },
-            token
-        });
-
         User.register(new User({
             info: {
                 id: userId,

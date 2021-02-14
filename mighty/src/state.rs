@@ -3,13 +3,20 @@ use crate::rule::{card_policy::CardPolicy, election, Rule};
 #[cfg(feature = "server")]
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
-#[cfg(any(feature = "client", feature = "server"))]
+#[cfg(feature = "server")]
 use {
     crate::card::Color,
     crate::command::Command,
     crate::error::{Error, Result},
     crate::rule::friend,
 };
+/*#[cfg(any(feature = "client", feature = "server"))]
+use {
+    crate::card::Color,
+    crate::command::Command,
+    crate::error::{Error, Result},
+    crate::rule::friend,
+};*/
 
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Hash)]
 pub enum FriendFunc {
@@ -111,6 +118,7 @@ impl State {
         }
     }
 
+    /*
     #[cfg(feature = "server")]
     fn is_joker_called(&self) -> bool {
         if let State::InGame { joker_call_card, .. } = self {
@@ -135,9 +143,10 @@ impl State {
             // don't need this value
             _ => None,
         }
-    }
+    }*/
 
-    #[cfg(any(feature = "client", feature = "server"))]
+    #[cfg(feature = "server")]
+    //#[cfg(any(feature = "client", feature = "server"))]
     fn get_mighty(&self) -> Card {
         match self {
             State::InGame {
@@ -149,7 +158,8 @@ impl State {
         }
     }
 
-    #[cfg(any(feature = "client", feature = "server"))]
+    #[cfg(feature = "server")]
+    //#[cfg(any(feature = "client", feature = "server"))]
     fn check_card_valid(&self, c: (CardPolicy, CardPolicy)) -> bool {
         match self {
             State::InGame {
@@ -180,6 +190,7 @@ impl State {
         }
     }
 
+    /*
     #[cfg(feature = "server")]
     fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
         let mighty = self.get_mighty();
@@ -262,6 +273,11 @@ impl State {
                 Card::Joker(c2) => *c2 == cur_color,
             },
         }
+    }*/
+
+    #[cfg(feature = "server")]
+    fn calculate_winner(&self, _rule: &Rule, _card_vec: Vec<Card>) -> usize {
+        0usize
     }
 }
 
@@ -478,9 +494,12 @@ impl State {
                         giruda: *giruda,
                         pledge: *pledge,
                         deck,
-                        score_deck: vec![Vec::new(); 5],
+                        score_deck: vec![Vec::new(); rule.user_cnt as usize],
                         turn_count: 0,
-                        placed_cards: vec![(Card::Normal(Pattern::Spade, 0), CardPolicy::Valid); 5],
+                        placed_cards: vec![
+                            (Card::Normal(Pattern::Spade, 0), CardPolicy::Valid);
+                            rule.user_cnt as usize
+                        ],
                         start_user: *president,
                         current_user: *president,
                         current_pattern: Rush::from(Pattern::Spade),
@@ -681,43 +700,23 @@ impl State {
                     let mut next_user = (*current_user + 1) % 5;
 
                     if next_user == start_user {
-                        let mut winner = Option::<usize>::None;
+                        let mut card_vec = Vec::new();
 
-                        for i in 0..5 {
-                            let (_, p) = placed_cards[i];
+                        for i in 0..(rule.user_cnt as usize) {
+                            let (c, p) = placed_cards[(i + start_user) % (rule.user_cnt as usize)];
 
                             if p == CardPolicy::NoEffect {
                                 continue;
                             }
-
-                            winner = match winner {
-                                Some(j) => {
-                                    if placed_cards[j].1 != CardPolicy::NoEffect
-                                        && self.compare_cards(&placed_cards[i].0, &placed_cards[j].0)
-                                    {
-                                        Some(j)
-                                    } else {
-                                        Some(i)
-                                    }
-                                }
-                                None => Some(i),
-                            };
+                            card_vec.push(c);
                         }
-                        if winner == None {
-                            for i in 0..5 {
-                                winner = match winner {
-                                    Some(j) => {
-                                        if self.compare_cards(&placed_cards[i].0, &placed_cards[j].0) {
-                                            Some(j)
-                                        } else {
-                                            Some(i)
-                                        }
-                                    }
-                                    None => Some(i),
-                                };
+                        if card_vec.is_empty() {
+                            for i in 0..(rule.user_cnt as usize) {
+                                let (c, _) = placed_cards[(i + start_user) % (rule.user_cnt as usize)];
+                                card_vec.push(c);
                             }
                         }
-                        let winner = winner.ok_or(Error::Internal("internal error occurred when calculating score"))?;
+                        let winner = self.calculate_winner(&rule, card_vec);
 
                         if let FriendFunc::First = friend_func {
                             friend =
@@ -816,6 +815,7 @@ impl State {
         }
     }
 
+    /*
     #[cfg(feature = "client")]
     pub fn is_valid_command(&self, user_id: usize, cmd: Command, rule: &Rule) -> Result<()> {
         match self {
@@ -1046,7 +1046,7 @@ impl State {
             },
             _ => Ok(()),
         }
-    }
+    }*/
 
     /// Valid users to action next time.
     /// Result is 8-bit integer which contains 0 or 1 for each user.
@@ -1067,6 +1067,7 @@ impl State {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     #[cfg(feature = "server")]
@@ -1436,3 +1437,4 @@ mod test {
     }
     // not random and real data test should be applied
 }
+*/

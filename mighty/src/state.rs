@@ -3,6 +3,7 @@ use crate::rule::{card_policy::CardPolicy, election, Rule};
 #[cfg(feature = "server")]
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 #[cfg(feature = "server")]
 use {
     crate::card::Color,
@@ -127,7 +128,7 @@ impl State {
             false
         }
     }
-
+    */
     #[cfg(feature = "server")]
     fn get_current_pattern(&self) -> Rush {
         match self {
@@ -143,7 +144,7 @@ impl State {
             // don't need this value
             _ => None,
         }
-    }*/
+    }
 
     #[cfg(feature = "server")]
     //#[cfg(any(feature = "client", feature = "server"))]
@@ -190,95 +191,190 @@ impl State {
         }
     }
 
-    /*
     #[cfg(feature = "server")]
-    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
-        let mighty = self.get_mighty();
-        if *lhs == mighty {
-            return false;
-        }
-        if *rhs == mighty {
-            return true;
-        }
-
+    fn minor_card_winner(&self, rule: &Rule, card_vec: Vec<Card>) -> Card {
+        // no mighty, giruda, joker
+        // only nomal card
         let cur_pat = self.get_current_pattern();
-        let cur_color = Color::from(cur_pat);
-        let giruda = self.get_giruda();
-        let giruda_color = giruda.clone().map(Color::from);
-
-        match lhs {
-            Card::Normal(c1, n1) => match rhs {
-                Card::Normal(c2, n2) => {
-                    if let Some(giruda) = giruda {
-                        if *c1 == giruda && *c2 == giruda {
-                            if *n1 == 0 {
-                                return false;
-                            } else if *n2 == 0 {
-                                return true;
-                            } else {
-                                return n1 < n2;
-                            }
-                        } else if *c1 == giruda || *c2 == giruda {
-                            return *c2 == giruda;
+        let mut flag = false;
+        let mut max_num = 0;
+        let mut max_card = Card::Normal(Pattern::Spade, 0);
+        for i in &card_vec {
+            if let Card::Normal(p, n) = i {
+                if cur_pat.contains(Rush::from(*p)) {
+                    if max_num == *n {
+                        if flag == false {
+                            max_card = i.clone();
+                        } else if rule.pattern_order.iter().position(|&r| r == *p).unwrap()
+                            < rule
+                                .pattern_order
+                                .iter()
+                                .position(|&r| r == Pattern::try_from(max_card).unwrap())
+                                .unwrap()
+                        {
+                            max_card = i.clone();
                         }
+                    } else if max_num < *n {
+                        max_card = i.clone();
+                        max_num = *n;
                     }
-
-                    if cur_pat.contains(Rush::from(*c1)) && cur_pat.contains(Rush::from(*c2)) {
-                        if *n1 == 0 {
-                            false
-                        } else if *n2 == 0 {
-                            true
-                        } else {
-                            n1 < n2
-                        }
-                    } else if cur_pat.contains(Rush::from(*c1)) || cur_pat.contains(Rush::from(*c2)) {
-                        cur_pat.contains(Rush::from(*c2))
-                    } else {
-                        // actually this is meaningless
-                        true
-                    }
+                    flag = true;
                 }
-
-                Card::Joker(c2) => {
-                    println!("c2 = {:?} cur_color={:?}", *c2, cur_color);
-                    if *c2 != cur_color || self.is_joker_called() {
-                        false
-                    } else if let Some(giruda) = giruda {
-                        if *c1 == giruda {
-                            *c2 == giruda_color.unwrap()
-                        } else {
-                            true
-                        }
-                    } else {
-                        true
-                    }
-                }
-            },
-
-            Card::Joker(c1) => match rhs {
-                Card::Normal(c2, _) => {
-                    if *c1 != cur_color || self.is_joker_called() {
-                        true
-                    } else if let Some(giruda) = giruda {
-                        if *c2 == giruda {
-                            *c1 != giruda_color.unwrap()
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                }
-
-                // no need to check if joker is called
-                Card::Joker(c2) => *c2 == cur_color,
-            },
+            }
         }
-    }*/
+        if flag == true {
+            return max_card;
+        }
+
+        // Rush에 맞는 카드가 없음
+        let mut flag = false;
+        let mut max_num = 0;
+        let mut max_card = Card::Normal(Pattern::Spade, 0);
+        for i in &card_vec {
+            if let Card::Normal(p, n) = i {
+                if max_num == *n {
+                    if flag == false {
+                        max_card = i.clone();
+                    } else if rule.pattern_order.iter().position(|&r| r == *p).unwrap()
+                        < rule
+                            .pattern_order
+                            .iter()
+                            .position(|&r| r == Pattern::try_from(max_card).unwrap())
+                            .unwrap()
+                    {
+                        max_card = i.clone();
+                    }
+                } else if max_num < *n {
+                    max_card = i.clone();
+                    max_num = *n;
+                }
+                flag = true;
+            }
+        }
+        return max_card;
+    }
 
     #[cfg(feature = "server")]
-    fn calculate_winner(&self, _rule: &Rule, _card_vec: Vec<Card>) -> usize {
-        0usize
+    fn calculate_winner(&self, rule: &Rule, card_vec: Vec<Card>) -> Card {
+        let mighty = self.get_mighty();
+
+        if card_vec.contains(&mighty) {
+            return mighty;
+        }
+
+        //todo : single joker decision
+        if rule.deck.len() == 53 {
+            if card_vec.contains(&Card::Joker(Color::Black)) {
+                return Card::Joker(Color::Black);
+            }
+            //no more joker
+
+            let giruda = self.get_giruda();
+            if giruda.is_none() {
+                //노기루
+                //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
+                return self.minor_card_winner(&rule, card_vec.clone());
+            } else {
+                let giruda = giruda.unwrap();
+                let max_num = card_vec
+                    .iter()
+                    .filter_map(|&c| match c {
+                        Card::Normal(p, n) if p == giruda => Some(n),
+                        _ => None,
+                    })
+                    .max();
+
+                if let Some(max_num) = max_num {
+                    return Card::Normal(giruda, max_num);
+                } else {
+                    //기루다인 카드가 없다
+                    //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
+                    return self.minor_card_winner(&rule, card_vec.clone());
+                }
+            }
+        } else {
+            //two (or more) joker
+            if let Some(giruda) = self.get_giruda() {
+                //giruda & two joker
+                let joker1;
+                let joker2;
+                if vec![Pattern::Spade, Pattern::Clover].contains(&Pattern::try_from(giruda).unwrap()) {
+                    joker1 = Card::Joker(Color::Black);
+                    joker2 = Card::Joker(Color::Red);
+                } else {
+                    joker1 = Card::Joker(Color::Red);
+                    joker2 = Card::Joker(Color::Black);
+                }
+
+                if card_vec.contains(&joker1) {
+                    return joker1;
+                }
+                //no more joker1
+                let max_num = card_vec
+                    .iter()
+                    .filter_map(|&c| match c {
+                        Card::Normal(p, n) if p == giruda => Some(n),
+                        _ => None,
+                    })
+                    .max();
+
+                if let Some(max_num) = max_num {
+                    return Card::Normal(giruda, max_num);
+                } else {
+                    //기루다가 없다
+                    //현재상황 = 마이티X조커1X기루다X
+                    // 조커2와 먼저돌린 문양의 경쟁
+
+                    let cur_pat = self.get_current_pattern();
+                    if Color::from(cur_pat) == Color::from(giruda) {
+                        //기루다랑 같은색으로 돌림 -> 당연히 조커시작은 아님 -> 조커 무시가능
+
+                        let card_vec: Vec<Card> = card_vec
+                            .iter()
+                            .filter(|&c| match *c {
+                                Card::Normal(..) => true,
+                                _ => false,
+                            })
+                            .cloned()
+                            .collect();
+
+                        return self.minor_card_winner(&rule, card_vec.clone());
+                    } else {
+                        //기루다랑 다른색으로 돌리는중
+                        //다른색조커 > rush포함하는 카드
+                        if card_vec.contains(&joker2) {
+                            return joker2;
+                        }
+                        //다른색조커도 없음 -> rush포함하는게 제일 높음
+                        return self.minor_card_winner(&rule, card_vec.clone());
+                    }
+                }
+            } else {
+                //노기루 & two joker
+                //rush에 해당하는 조커가 가장 강력함.
+                let cur_pat = self.get_current_pattern();
+                let joker1;
+                if Rush::black().contains(cur_pat) {
+                    joker1 = Card::Joker(Color::Black);
+                } else {
+                    joker1 = Card::Joker(Color::Red);
+                }
+
+                if card_vec.contains(&joker1) {
+                    return joker1;
+                }
+                let card_vec: Vec<Card> = card_vec
+                    .iter()
+                    .filter(|&c| match *c {
+                        Card::Normal(..) => true,
+                        _ => false,
+                    })
+                    .cloned()
+                    .collect();
+
+                return self.minor_card_winner(&rule, card_vec.clone());
+            }
+        }
     }
 }
 
@@ -717,7 +813,12 @@ impl State {
                                 card_vec.push(c);
                             }
                         }
-                        let winner = self.calculate_winner(&rule, card_vec);
+                        // winner is fucked
+                        let winner = self.calculate_winner(&rule, card_vec.clone());
+
+                        // instance winner
+                        // todo
+                        let winner = card_vec.iter().position(|c| *c == winner).unwrap();
 
                         if let FriendFunc::First = friend_func {
                             friend =

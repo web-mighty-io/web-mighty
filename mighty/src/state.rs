@@ -3,6 +3,7 @@ use crate::rule::{card_policy::CardPolicy, election, Rule};
 #[cfg(feature = "server")]
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "server")]
 use std::convert::TryFrom;
 #[cfg(feature = "server")]
 use {

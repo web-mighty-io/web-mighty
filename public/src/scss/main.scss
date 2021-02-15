@@ -1,0 +1,42 @@
+@charset "utf-8";
+
+@import "./modules/common.scss";
+
+html,
+body {
+  font-family: $font-sans-serif, $korean;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: ivory;
+}
+
+.title {
+  text-align: center;
+  font-size: 2rem;
+
+  margin: 0;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.content {
+  margin: 10rem 15rem 0 15rem;
+}
+
+.container-1 {
+  display: flex;
+  justify-content: space-between;
+}
+
+.container-2 {
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+}
+
+.item {
+
+}

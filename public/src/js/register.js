@@ -95,10 +95,10 @@ window.onload = function () {
         return false;
     };
 
-    name.onchange = checkName;
-    password.onchange = function () {
+    name.oninput = checkName;
+    password.oninput = function () {
         checkPassword();
         checkPasswordCheck();
     };
-    passwordCheck.onchange = checkPasswordCheck;
+    passwordCheck.oninput = checkPasswordCheck;
 };

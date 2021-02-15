@@ -6,10 +6,10 @@ window.onload = function () {
     let registerButton = document.getElementById("register-button");
 
     loginButton.addEventListener("click", function () {
-        window.location.replace("/login");
+        window.location.href = "/login";
     }, false);
 
     registerButton.addEventListener("click", function () {
-        window.location.replace("/register");
+        window.location.href = "/pre-register";
     }, false);
 };

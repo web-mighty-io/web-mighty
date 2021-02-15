@@ -4,13 +4,13 @@ use crate::rule::{card_policy::CardPolicy, election, Rule};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "server")]
-use std::convert::TryFrom;
-#[cfg(feature = "server")]
 use {
     crate::card::Color,
     crate::command::Command,
     crate::error::{Error, Result},
     crate::rule::friend,
+    std::cmp::Ordering,
+    std::convert::TryFrom,
 };
 /*#[cfg(any(feature = "client", feature = "server"))]
 use {
@@ -203,27 +203,31 @@ impl State {
         for i in &card_vec {
             if let Card::Normal(p, n) = i {
                 if cur_pat.contains(Rush::from(*p)) {
-                    if max_num == *n {
-                        if flag == false {
-                            max_card = i.clone();
-                        } else if rule.pattern_order.iter().position(|&r| r == *p).unwrap()
-                            < rule
-                                .pattern_order
-                                .iter()
-                                .position(|&r| r == Pattern::try_from(max_card).unwrap())
-                                .unwrap()
-                        {
-                            max_card = i.clone();
+                    match max_num.cmp(n) {
+                        Ordering::Less => {
+                            max_card = *i;
+                            max_num = *n;
+                            flag = true;
                         }
-                    } else if max_num < *n {
-                        max_card = i.clone();
-                        max_num = *n;
+                        Ordering::Equal => {
+                            if !flag
+                                || rule.pattern_order.iter().position(|&r| r == *p).unwrap()
+                                    < rule
+                                        .pattern_order
+                                        .iter()
+                                        .position(|&r| r == Pattern::try_from(max_card).unwrap())
+                                        .unwrap()
+                            {
+                                max_card = *i;
+                                flag = true;
+                            }
+                        }
+                        _ => {}
                     }
-                    flag = true;
                 }
             }
         }
-        if flag == true {
+        if flag {
             return max_card;
         }
 
@@ -233,26 +237,30 @@ impl State {
         let mut max_card = Card::Normal(Pattern::Spade, 0);
         for i in &card_vec {
             if let Card::Normal(p, n) = i {
-                if max_num == *n {
-                    if flag == false {
-                        max_card = i.clone();
-                    } else if rule.pattern_order.iter().position(|&r| r == *p).unwrap()
-                        < rule
-                            .pattern_order
-                            .iter()
-                            .position(|&r| r == Pattern::try_from(max_card).unwrap())
-                            .unwrap()
-                    {
-                        max_card = i.clone();
+                match max_num.cmp(n) {
+                    Ordering::Less => {
+                        max_card = *i;
+                        max_num = *n;
+                        flag = true;
                     }
-                } else if max_num < *n {
-                    max_card = i.clone();
-                    max_num = *n;
+                    Ordering::Equal => {
+                        if !flag
+                            || rule.pattern_order.iter().position(|&r| r == *p).unwrap()
+                                < rule
+                                    .pattern_order
+                                    .iter()
+                                    .position(|&r| r == Pattern::try_from(max_card).unwrap())
+                                    .unwrap()
+                        {
+                            max_card = *i;
+                            flag = true;
+                        }
+                    }
+                    _ => {}
                 }
-                flag = true;
             }
         }
-        return max_card;
+        max_card
     }
 
     #[cfg(feature = "server")]
@@ -271,12 +279,7 @@ impl State {
             //no more joker
 
             let giruda = self.get_giruda();
-            if giruda.is_none() {
-                //노기루
-                //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
-                return self.minor_card_winner(&rule, card_vec.clone());
-            } else {
-                let giruda = giruda.unwrap();
+            if let Some(giruda) = giruda {
                 let max_num = card_vec
                     .iter()
                     .filter_map(|&c| match c {
@@ -286,12 +289,16 @@ impl State {
                     .max();
 
                 if let Some(max_num) = max_num {
-                    return Card::Normal(giruda, max_num);
+                    Card::Normal(giruda, max_num)
                 } else {
                     //기루다인 카드가 없다
                     //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
-                    return self.minor_card_winner(&rule, card_vec.clone());
+                    self.minor_card_winner(&rule, card_vec)
                 }
+            } else {
+                //노기루
+                //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
+                self.minor_card_winner(&rule, card_vec)
             }
         } else {
             //two (or more) joker
@@ -299,7 +306,7 @@ impl State {
                 //giruda & two joker
                 let joker1;
                 let joker2;
-                if vec![Pattern::Spade, Pattern::Clover].contains(&Pattern::try_from(giruda).unwrap()) {
+                if Pattern::Spade == giruda || Pattern::Clover == giruda {
                     joker1 = Card::Joker(Color::Black);
                     joker2 = Card::Joker(Color::Red);
                 } else {
@@ -320,7 +327,7 @@ impl State {
                     .max();
 
                 if let Some(max_num) = max_num {
-                    return Card::Normal(giruda, max_num);
+                    Card::Normal(giruda, max_num)
                 } else {
                     //기루다가 없다
                     //현재상황 = 마이티X조커1X기루다X
@@ -332,14 +339,11 @@ impl State {
 
                         let card_vec: Vec<Card> = card_vec
                             .iter()
-                            .filter(|&c| match *c {
-                                Card::Normal(..) => true,
-                                _ => false,
-                            })
+                            .filter(|&c| matches!(*c, Card::Normal(..)))
                             .cloned()
                             .collect();
 
-                        return self.minor_card_winner(&rule, card_vec.clone());
+                        self.minor_card_winner(&rule, card_vec)
                     } else {
                         //기루다랑 다른색으로 돌리는중
                         //다른색조커 > rush포함하는 카드
@@ -347,7 +351,7 @@ impl State {
                             return joker2;
                         }
                         //다른색조커도 없음 -> rush포함하는게 제일 높음
-                        return self.minor_card_winner(&rule, card_vec.clone());
+                        self.minor_card_winner(&rule, card_vec)
                     }
                 }
             } else {
@@ -366,14 +370,11 @@ impl State {
                 }
                 let card_vec: Vec<Card> = card_vec
                     .iter()
-                    .filter(|&c| match *c {
-                        Card::Normal(..) => true,
-                        _ => false,
-                    })
+                    .filter(|c| matches!(c, Card::Normal(..)))
                     .cloned()
                     .collect();
 
-                return self.minor_card_winner(&rule, card_vec.clone());
+                self.minor_card_winner(&rule, card_vec)
             }
         }
     }

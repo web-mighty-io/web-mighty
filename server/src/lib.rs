@@ -166,7 +166,7 @@ pub mod internal {
                 .wrap(IdentityService::new(
                     CookieIdentityPolicy::new(&private_key)
                         .name("web-mighty-auth")
-                        .secure(true),
+                        .secure(false),
                 ))
                 .wrap(Logger::default())
                 .app_data(state.clone())

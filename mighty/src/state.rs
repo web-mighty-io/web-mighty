@@ -1,7 +1,5 @@
 use crate::card::{Card, Pattern, Rush};
 use crate::rule::{card_policy::CardPolicy, election, Rule};
-#[cfg(feature = "server")]
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "server")]
 use {
@@ -9,8 +7,8 @@ use {
     crate::command::Command,
     crate::error::{Error, Result},
     crate::rule::friend,
+    rand::seq::SliceRandom,
     std::cmp::Ordering,
-    std::convert::TryFrom,
 };
 /*#[cfg(any(feature = "client", feature = "server"))]
 use {
@@ -195,72 +193,35 @@ impl State {
     #[cfg(feature = "server")]
     fn minor_card_winner(&self, rule: &Rule, card_vec: Vec<Card>) -> Card {
         // no mighty, giruda, joker
-        // only nomal card
+        // only normal card
         let cur_pat = self.get_current_pattern();
-        let mut flag = false;
-        let mut max_num = 0;
-        let mut max_card = Card::Normal(Pattern::Spade, 0);
-        for i in &card_vec {
-            if let Card::Normal(p, n) = i {
-                if cur_pat.contains(Rush::from(*p)) {
-                    match max_num.cmp(n) {
-                        Ordering::Less => {
-                            max_card = *i;
-                            max_num = *n;
-                            flag = true;
-                        }
-                        Ordering::Equal => {
-                            if !flag
-                                || rule.pattern_order.iter().position(|&r| r == *p).unwrap()
-                                    < rule
-                                        .pattern_order
-                                        .iter()
-                                        .position(|&r| r == Pattern::try_from(max_card).unwrap())
-                                        .unwrap()
-                            {
-                                max_card = *i;
-                                flag = true;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-        if flag {
-            return max_card;
-        }
 
-        // Rush에 맞는 카드가 없음
-        let mut flag = false;
-        let mut max_num = 0;
-        let mut max_card = Card::Normal(Pattern::Spade, 0);
-        for i in &card_vec {
-            if let Card::Normal(p, n) = i {
-                match max_num.cmp(n) {
-                    Ordering::Less => {
-                        max_card = *i;
-                        max_num = *n;
-                        flag = true;
-                    }
-                    Ordering::Equal => {
-                        if !flag
-                            || rule.pattern_order.iter().position(|&r| r == *p).unwrap()
-                                < rule
-                                    .pattern_order
-                                    .iter()
-                                    .position(|&r| r == Pattern::try_from(max_card).unwrap())
-                                    .unwrap()
-                        {
-                            max_card = *i;
-                            flag = true;
-                        }
-                    }
-                    _ => {}
-                }
+        let mut it = card_vec
+            .iter()
+            .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
+            .filter(|(p, _)| cur_pat.contains(Rush::from(**p)));
+
+        let fold_fn = |(p_max, n_max): (Pattern, u8), (p, n): (&Pattern, &u8)| match n_max.cmp(n) {
+            Ordering::Less => (*p, *n),
+            Ordering::Equal
+                if rule.pattern_order.iter().position(|r| *r == *p).unwrap()
+                    < rule.pattern_order.iter().position(|r| *r == p_max).unwrap() =>
+            {
+                (*p, *n)
             }
-        }
-        max_card
+            _ => (p_max, n_max),
+        };
+
+        let (p, n) = if let Some((p, n)) = it.next() {
+            it.fold((*p, *n), fold_fn)
+        } else {
+            card_vec
+                .iter()
+                .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
+                .fold((Pattern::Spade, 0), fold_fn)
+        };
+
+        Card::Normal(p, n)
     }
 
     #[cfg(feature = "server")]

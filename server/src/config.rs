@@ -394,18 +394,13 @@ impl Config {
     /// Function to get mail configuration
     pub fn get_mail(&self) -> actor::Mail {
         let mail = self.mail.clone();
-        let host = if self.https.is_some() {
-            format!("https://{}", self.outer_host)
-        } else {
-            format!("http://{}", self.outer_host)
-        };
 
         actor::Mail::new(
             mail.from,
             mail.username,
             mail.password,
             mail.host,
-            host,
+            self.outer_host.clone(),
             hex::encode(&self.secret),
         )
     }

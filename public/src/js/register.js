@@ -32,6 +32,7 @@ window.onload = function () {
             isNameError = true;
         }
     };
+    checkName(true);
 
     let checkPassword = function (isFirst) {
         if (User.checkPassword(password.value)) {
@@ -45,6 +46,7 @@ window.onload = function () {
             isPasswordError = true;
         }
     };
+    checkPassword(true);
 
     let checkPasswordCheck = function (isFirst) {
         if (password.value === passwordCheck.value) {
@@ -58,6 +60,7 @@ window.onload = function () {
             isPasswordCheckError = true;
         }
     };
+    checkPasswordCheck(true);
 
     form.onsubmit = function () {
         checkName();

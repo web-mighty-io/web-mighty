@@ -11,21 +11,25 @@
 <body>
 <div class="content">
     <div class="container-1">
-        <h1 class="title item">
+        <h1 class="title item" onclick="window.location.href = '/'">
             Web Mighty
         </h1>
-        <span class="icon">
-            <i class="fas fa-cog"></i>
-        </span>
+        <div class="wrap">
+            <span class="icon">
+                <i class="fas fa-sign-out-alt" onclick="window.location.href = '/signout'"></i>
+                <i class="fas fa-cog" onclick="window.location.href = '/settings'"></i>
+            </span>
+        </div>
     </div>
     <div class="container-2">
-        <div class="button is-primary item">
+        <div class="button is-primary item" onclick="window.location.href = '/list'">
             <p class="wrap">Play</p>
         </div>
-        <div class="button is-primary item">
+        <div class="button is-primary item" onclick="window.location.href = '/list'">
             <p class="wrap">Enter Room</p>
         </div>
     </div>
 </div>
+<!--<button class="fab-button"></button>-->
 </body>
 </html>

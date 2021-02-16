@@ -40,34 +40,45 @@ window.onload = function () {
     };
     check(true);
 
+    let isFormProcessing = false;
     form.onsubmit = function () {
-        check();
-        if (isIdError) {
-            id.classList.add("danger");
-            id.focus();
+        if (isFormProcessing) {
             return false;
         }
+        isFormProcessing = true;
 
-        let user;
-        let value = id.value;
+        (async function () {
+            check();
+            if (isIdError) {
+                id.classList.add("danger");
+                id.focus();
+                isFormProcessing = false;
+                return;
+            }
 
-        if (value.includes("@")) {
-            user = new User({
-                info: {
-                    email: value,
-                }
+            let user;
+            let value = id.value;
+
+            if (value.includes("@")) {
+                user = new User({
+                    info: {
+                        email: value,
+                    }
+                });
+            } else {
+                user = new User({
+                    info: {
+                        id: value,
+                    }
+                });
+            }
+
+            await User.login(user, password.value, function () {
+                passwordError.innerText = "아이디/이메일이 존재하지 않거나 비밀번호가 일치하지 않습니다.";
             });
-        } else {
-            user = new User({
-                info: {
-                    id: value,
-                }
-            });
-        }
 
-        User.login(user, password.value, function () {
-            passwordError.innerText = "아이디/이메일이 존재하지 않거나 비밀번호가 일치하지 않습니다.";
-        });
+            isFormProcessing = false;
+        })();
 
         return false;
     };

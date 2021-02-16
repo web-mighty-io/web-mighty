@@ -13,10 +13,15 @@
 Start your postgresql server at `0.0.0.0:5432`. Then run:
 
 ```shell script
-docker run -e HOST="0.0.0.0" 
-           -e POSTGRES__HOST="host.docker.internal" 
-           -e POSTGRES__USER="<postgres username>"
-           -e POSTGRES__PASSWORD="<postgres password>"
+docker run -e HOST="0.0.0.0" \
+           -e POSTGRES__HOST="host.docker.internal" \
+           -e POSTGRES__USER="<postgres username>" \
+           -e POSTGRES__PASSWORD="<postgres password>" \
+           -e POSTGRES__DBNAME="<database name>" \
+           -e MAIL__FROM="<address to send email>" \
+           -e MAIL__USERNAME="<smtp username>" \
+           -e MAIL__PASSWORD="<smtp password>" \
+           -e MAIL__HOST="<smtp server host>" \
            -p 8080:80 -d buttercrab/web-mighty
 ```
 

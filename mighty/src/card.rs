@@ -146,7 +146,7 @@ mod test {
 
     #[test]
     fn pattern_card_from() {
-        assert_eq!(Pattern::try_from(Card::Normal(Pattern::Spade, 6)), Ok(Pattern::Spade));
+        assert_eq!(Pattern::try_from(Card::Normal(Pattern::Spade, 14)), Ok(Pattern::Spade));
         assert!(Pattern::try_from(Card::Joker(Color::Black)).is_err());
         assert!(Pattern::try_from(Card::Joker(Color::Red)).is_err());
     }

@@ -26,16 +26,16 @@ impl From<Preset> for Deck {
             Preset::FullDeck => {
                 let mut s = BTreeMap::new();
 
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Spade, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Diamond, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Heart, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Clover, i), 1);
                 }
 
@@ -47,16 +47,16 @@ impl From<Preset> for Deck {
             Preset::SingleJoker => {
                 let mut s = BTreeMap::new();
 
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Spade, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Diamond, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Heart, i), 1);
                 }
-                for i in 0..13 {
+                for i in 2..15 {
                     s.insert(Card::Normal(Pattern::Clover, i), 1);
                 }
 

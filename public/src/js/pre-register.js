@@ -20,7 +20,7 @@ window.onload = function () {
             isIdError = false;
         } else {
             if (isFirst !== true) {
-                idError.innerText = "아이디는 영문, 숫자, ., _, -만 포함해야 합니다.";
+                idError.innerText = "아이디는 영문, 숫자, ., _, -만 포함해야 하며 4자 이상이어야 합니다.";
             }
             isIdError = true;
         }

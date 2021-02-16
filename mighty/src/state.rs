@@ -761,12 +761,16 @@ impl State {
                                 card_vec.push(c);
                             }
                         }
-                        // winner is fucked
-                        let winner = self.calculate_winner(&rule, &card_vec);
-
-                        // instance winner
-                        // todo
-                        let winner = card_vec.iter().position(|c| *c == winner).unwrap();
+                        let winner_card = self.calculate_winner(&rule, &card_vec);
+                        let winner = placed_cards[start_user..]
+                            .iter()
+                            .position(|(c, _)| *c == winner_card)
+                            .unwrap_or_else(|| {
+                                placed_cards[..start_user]
+                                    .iter()
+                                    .position(|(c, _)| *c == winner_card)
+                                    .unwrap()
+                            });
 
                         if let FriendFunc::First = friend_func {
                             friend =

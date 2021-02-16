@@ -374,6 +374,7 @@ bitflags! {
 #[cfg_attr(feature = "server", rtype(result = "()"))]
 pub enum ListToClient {
     Room(SimpleRoomInfo),
+    RoomList(Vec<RoomId>),
 }
 
 /// Websocket message for room listing to server
@@ -384,6 +385,7 @@ pub enum ListToClient {
 pub enum ListToServer {
     Subscribe(RoomId),
     Unsubscribe(RoomId),
+    GetRoomList { user_num: (u32, u32) },
 }
 
 /// Websocket message for main connection to client

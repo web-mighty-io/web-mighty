@@ -3,7 +3,7 @@ use bitflags::_core::str::FromStr;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Preset {
     #[serde(rename = "f")]
     FullDeck,
@@ -12,15 +12,15 @@ pub enum Preset {
 }
 
 impl Preset {
-    pub fn to_vec(self) -> Vec<Card> {
-        Deck::from(self).to_vec()
+    pub fn build(self) -> Deck {
+        DeckBuilder::from(self).build()
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Deck(BTreeMap<Card, u8>);
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DeckBuilder(BTreeMap<Card, u8>);
 
-impl From<Preset> for Deck {
+impl From<Preset> for DeckBuilder {
     fn from(p: Preset) -> Self {
         match p {
             Preset::FullDeck => {
@@ -42,7 +42,7 @@ impl From<Preset> for Deck {
                 s.insert(Card::Joker(Color::Black), 1);
                 s.insert(Card::Joker(Color::Red), 1);
 
-                Deck(s)
+                DeckBuilder(s)
             }
             Preset::SingleJoker => {
                 let mut s = BTreeMap::new();
@@ -62,13 +62,13 @@ impl From<Preset> for Deck {
 
                 s.insert(Card::Joker(Color::Black), 1);
 
-                Deck(s)
+                DeckBuilder(s)
             }
         }
     }
 }
 
-impl FromStr for Deck {
+impl FromStr for DeckBuilder {
     type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -76,15 +76,15 @@ impl FromStr for Deck {
     }
 }
 
-impl Default for Deck {
+impl Default for DeckBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Deck {
+impl DeckBuilder {
     pub fn new() -> Self {
-        Deck(BTreeMap::new())
+        DeckBuilder(BTreeMap::new())
     }
 
     pub fn double(mut self) -> Self {
@@ -126,7 +126,31 @@ impl Deck {
         self
     }
 
-    pub fn to_vec(&self) -> Vec<Card> {
-        self.0.iter().map(|(c, i)| vec![*c; *i as usize]).flatten().collect()
+    pub fn build(&self) -> Deck {
+        let v = self
+            .0
+            .iter()
+            .map(|(c, i)| vec![*c; *i as usize])
+            .flatten()
+            .collect::<Vec<_>>();
+        let b = v.iter().fold(0, |mut x, c| {
+            if let Card::Joker(c) = c {
+                x |= match c {
+                    Color::Black => 0b10,
+                    Color::Red => 0b01,
+                };
+            }
+            x
+        });
+        Deck(v, b)
     }
 }
+
+/// Deck structure
+///
+/// u8 is for joker:
+/// 0b x x
+///    | └ Is Red Joker valid
+///    └-- Is Black Joker valid
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
+pub struct Deck(pub Vec<Card>, pub u8);

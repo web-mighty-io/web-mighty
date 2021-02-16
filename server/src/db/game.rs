@@ -237,8 +237,13 @@ pub fn change_room_info(form: &ChangeRoomInfoForm, pool: Pool) -> Result<()> {
 }
 
 #[derive(Deserialize, Serialize, Clone)]
-pub struct GetRoomListForm;
+pub struct GetRoomListForm {
+    pub user_num: (u32, u32),
+}
 
-pub fn get_room_list(_form: &GetRoomListForm, _pool: Pool) -> Result<()> {
-    Ok(())
+pub fn get_room_list(form: &GetRoomListForm, pool: Pool) -> Result<Vec<RoomId>> {
+    let mut client = pool.get()?;
+    let stmt = client.prepare("SELECT id FROM curr_rooms WHERE users_cnt=>$1 AND users_cnt<=$2;")?;
+    let res = client.query(&stmt, &[&form.user_num.0, &form.user_num.1])?;
+    Ok(res.iter().map(|x| RoomId(x.get(0))).collect())
 }

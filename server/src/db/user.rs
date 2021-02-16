@@ -233,7 +233,7 @@ pub fn get_user_info(form: &GetInfoForm, pool: Pool) -> Result<UserInfo> {
 }
 
 pub fn is_user_name_valid(user_name: &str) -> Result<()> {
-    let name_regex = Regex::new(r#"^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{4,63}$"#).unwrap();
+    let name_regex = Regex::new(r#"^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{2,63}$"#).unwrap();
     ensure!(
         name_regex.is_match(user_name),
         StatusCode::UNAUTHORIZED,

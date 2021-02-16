@@ -164,9 +164,7 @@ pub mod internal {
         HttpServer::new(move || {
             App::new()
                 .wrap(IdentityService::new(
-                    CookieIdentityPolicy::new(&private_key)
-                        .name("web-mighty-auth")
-                        .secure(true),
+                    CookieIdentityPolicy::new(&private_key).name("web-mighty-auth"),
                 ))
                 .wrap(Logger::default())
                 .app_data(state.clone())

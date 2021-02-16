@@ -125,7 +125,7 @@ class User {
      * @returns {boolean}
      */
     static checkUserName(name) {
-        return /^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{4,63}$/.test(name);
+        return /^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{2,63}$/.test(name);
     }
 
     /**

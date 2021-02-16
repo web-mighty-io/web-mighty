@@ -127,7 +127,12 @@ impl DeckBuilder {
     }
 
     pub fn build(&self) -> Deck {
-        let v = self.0.iter().map(|(c, i)| vec![*c; *i as usize]).flatten().collect::<Vec<_>>();
+        let v = self
+            .0
+            .iter()
+            .map(|(c, i)| vec![*c; *i as usize])
+            .flatten()
+            .collect::<Vec<_>>();
         let b = v.iter().fold(0, |mut x, c| {
             if let Card::Joker(c) = c {
                 x |= match c {

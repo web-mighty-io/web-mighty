@@ -757,7 +757,7 @@ impl State {
                                 card_vec.push(c);
                             }
                         }
-                        let winner_card = self.calculate_winner(&rule, card_vec);
+                        let winner_card = self.calculate_winner(&rule, &card_vec);
                         let winner = placed_cards[start_user..]
                             .iter()
                             .position(|(c, _)| *c == winner_card)

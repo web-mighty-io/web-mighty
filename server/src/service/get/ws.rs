@@ -17,7 +17,7 @@ pub async fn list(
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     if id.identity().is_some() {
-        ws::start(List::new(state.hub.clone()).make(), &req, stream)
+        ws::start(List::new(state.hub.clone(), state.pool.clone()).make(), &req, stream)
     } else {
         Ok(p404(state).await)
     }

@@ -94,8 +94,8 @@ impl From<Preset> for Rule {
                 .set_friend(Friend::CARD | Friend::FAKE | Friend::NONE)
                 .map_joker_call(|j| {
                     j.set_cards(vec![(
-                        Card::Normal(Pattern::Clover, 2),
-                        Card::Normal(Pattern::Clover, 2),
+                        Card::Normal(Pattern::Clover, 3),
+                        Card::Normal(Pattern::Clover, 3),
                     )])
                 }),
             Preset::Dhsh5 => Rule::new()
@@ -116,14 +116,14 @@ impl From<Preset> for Rule {
                     m.set_score(2)
                         .set_joker(-1)
                         .mut_card(|m| {
-                            m.insert(Card::Normal(Pattern::Spade, 0), -2);
+                            m.insert(Card::Normal(Pattern::Spade, 14), -2);
                         })
                         .set_limit(1)
                 })
                 .map_pledge(|p| p.set_min(14))
                 .map_joker_call(|j| {
                     j.mut_cards(|v| {
-                        v.push((Card::Normal(Pattern::Heart, 2), Card::Normal(Pattern::Diamond, 2)));
+                        v.push((Card::Normal(Pattern::Heart, 3), Card::Normal(Pattern::Diamond, 3)));
                     })
                 }),
             // implement friend known time
@@ -143,7 +143,7 @@ impl From<Preset> for Rule {
                             m.insert(Card::Normal(Pattern::Diamond, 10), 1);
                             m.insert(Card::Normal(Pattern::Heart, 10), 1);
                             m.insert(Card::Normal(Pattern::Clover, 10), 1);
-                            m.insert(Card::Normal(Pattern::Spade, 0), 1);
+                            m.insert(Card::Normal(Pattern::Spade, 14), 1);
                         })
                         .set_limit(1)
                 })
@@ -155,7 +155,7 @@ impl From<Preset> for Rule {
                         .mut_card(|m| {
                             m.insert(Card::Normal(Pattern::Spade, 10), 1);
                             m.insert(Card::Normal(Pattern::Heart, 10), 1);
-                            m.insert(Card::Normal(Pattern::Spade, 0), 1);
+                            m.insert(Card::Normal(Pattern::Spade, 14), 1);
                         })
                         .set_limit(1)
                 })

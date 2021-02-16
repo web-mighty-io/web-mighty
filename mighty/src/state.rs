@@ -96,7 +96,7 @@ impl State {
     #[cfg(feature = "server")]
     fn get_random_deck(rule: &Rule) -> Vec<Vec<Card>> {
         loop {
-            let mut deck = rule.deck.clone();
+            let mut deck = rule.deck.0.clone();
             deck.shuffle(&mut rand::thread_rng());
             let deck = deck
                 .chunks(rule.card_cnt_per_user as usize)
@@ -252,12 +252,16 @@ impl State {
             return mighty;
         }
 
-        //todo : single joker decision
-        if rule.deck.len() == 53 {
+        if rule.deck.1 == 0b01 || rule.deck.1 == 0b10 {
             // one types of joker
+            let joker = if rule.deck.1 == 0b01 {
+                Card::Joker(Color::Red)
+            } else {
+                Card::Joker(Color::Black)
+            };
 
-            if card_vec.contains(&Card::Joker(Color::Black)) {
-                return Card::Joker(Color::Black);
+            if card_vec.contains(&joker) {
+                return joker;
             }
             //no more joker
 

@@ -27,7 +27,7 @@ window.onload = function () {
             isNameError = false;
         } else {
             if (isFirst !== true) {
-                nameError.innerText = "이름은 특수문자를 포함하지 않아야 합니다.";
+                nameError.innerText = "이름은 특수문자를 포함하지 않아야 하며 2자 이상이어야 합니다.";
             }
             isNameError = true;
         }
@@ -41,7 +41,7 @@ window.onload = function () {
             isPasswordError = false;
         } else {
             if (isFirst !== true) {
-                passwordError.innerText = "비밀번호는 소문자, 대문자, 숫자, 특수문자중 3가지 이상을 포함해야 합니다.";
+                passwordError.innerText = "비밀번호는 소문자, 대문자, 숫자, 특수문자중 3가지 이상을 포함해야 하며 8자 이상이어야 합니다.";
             }
             isPasswordError = true;
         }
@@ -95,10 +95,10 @@ window.onload = function () {
         return false;
     };
 
-    name.onchange = checkName;
-    password.onchange = function () {
+    name.oninput = checkName;
+    password.oninput = function () {
         checkPassword();
         checkPasswordCheck();
     };
-    passwordCheck.onchange = checkPasswordCheck;
+    passwordCheck.oninput = checkPasswordCheck;
 };

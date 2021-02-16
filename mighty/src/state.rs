@@ -191,7 +191,7 @@ impl State {
     }
 
     #[cfg(feature = "server")]
-    fn minor_card_winner(&self, rule: &Rule, card_vec: &Vec<Card>) -> Card {
+    fn minor_card_winner(&self, rule: &Rule, card_vec: &[Card]) -> Card {
         // no mighty, giruda, joker
         // only normal card
         let cur_pat = self.get_current_pattern();
@@ -233,11 +233,11 @@ impl State {
     }
 
     #[cfg(feature = "server")]
-    fn get_max_card_with_pattern(card_vec: &Vec<Card>, pat: Pattern) -> Option<Card> {
+    fn get_max_card_with_pattern(card_vec: &[Card], pat: Pattern) -> Option<Card> {
         card_vec
             .iter()
             .filter_map(|c| match c {
-                Card::Normal(p, n) if p == pat => Some(n),
+                Card::Normal(p, n) if *p == pat => Some(n),
                 _ => None,
             })
             .max()
@@ -245,7 +245,7 @@ impl State {
     }
 
     #[cfg(feature = "server")]
-    fn calculate_winner(&self, rule: &Rule, card_vec: &Vec<Card>) -> Card {
+    fn calculate_winner(&self, rule: &Rule, card_vec: &[Card]) -> Card {
         let mighty = self.get_mighty();
 
         if card_vec.contains(&mighty) {
@@ -758,7 +758,7 @@ impl State {
                             }
                         }
                         // winner is fucked
-                        let winner = self.calculate_winner(&rule, card_vec.clone());
+                        let winner = self.calculate_winner(&rule, &card_vec);
 
                         // instance winner
                         // todo

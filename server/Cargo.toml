@@ -50,7 +50,7 @@ walkdir = "2"
 notify = { version = "4.0.15", optional = true }
 
 # Temporary fix
-funty="=1.1.0"
+funty="=1.2.0"
 
 [features]
 default = []

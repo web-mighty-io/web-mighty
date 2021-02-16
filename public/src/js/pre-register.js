@@ -41,33 +41,35 @@ window.onload = function () {
     };
     checkEmail(true);
 
+    let isFormProcessing = false;
     form.onsubmit = function () {
+        if (isFormProcessing) {
+            return false;
+        }
+        isFormProcessing = true;
+
         (async function () {
             checkEmail();
+            if (!isEmailError && await User.validateEmail(email.value)) {
+                isEmailError = true;
+                emailError.innerText = "사용중인 이메일입니다.";
+            }
             if (isEmailError) {
                 email.classList.add("danger");
                 email.focus();
-                return;
-            }
-            if (await User.validateEmail(email.value)) {
-                isEmailError = true;
-                email.classList.add("danger");
-                emailError.innerText = "사용중인 이메일입니다.";
-                email.focus();
+                isFormProcessing = false;
                 return;
             }
 
             checkId();
+            if (!isIdError && await User.validateUserId(id.value)) {
+                isIdError = true;
+                idError.innerText = "사용중인 아이디 입니다.";
+            }
             if (isIdError) {
                 id.classList.add("danger");
                 id.focus();
-                return;
-            }
-            if (await User.validateUserId(id.value)) {
-                isIdError = true;
-                id.classList.add("danger");
-                idError.innerText = "사용중인 아이디 입니다.";
-                id.focus();
+                isFormProcessing = false;
                 return;
             }
 
@@ -77,6 +79,7 @@ window.onload = function () {
                     email: email.value,
                 }
             }));
+            isFormProcessing = false;
         })();
 
         return false;

@@ -130,7 +130,7 @@ pub enum Card {
 impl Card {
     pub fn is_score(&self) -> bool {
         match self {
-            Card::Normal(_, n) => *n >= 9 || *n == 0,
+            Card::Normal(_, n) => *n >= 10,
             Card::Joker(_) => false,
         }
     }
@@ -146,7 +146,7 @@ mod test {
 
     #[test]
     fn pattern_card_from() {
-        assert_eq!(Pattern::try_from(Card::Normal(Pattern::Spade, 6)), Ok(Pattern::Spade));
+        assert_eq!(Pattern::try_from(Card::Normal(Pattern::Spade, 14)), Ok(Pattern::Spade));
         assert!(Pattern::try_from(Card::Joker(Color::Black)).is_err());
         assert!(Pattern::try_from(Card::Joker(Color::Red)).is_err());
     }
@@ -202,7 +202,8 @@ mod test {
 
     #[test]
     fn card_is_score() {
-        assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), true);
+        assert_eq!(Card::Normal(Pattern::Spade, 10).is_score(), true);
+        assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), false);
         assert_eq!(Card::Normal(Pattern::Diamond, 8).is_score(), false);
         assert_eq!(Card::Joker(Color::Red).is_score(), false);
     }

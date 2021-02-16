@@ -152,9 +152,9 @@ impl State {
             State::InGame {
                 giruda: Some(Pattern::Spade),
                 ..
-            } => Card::Normal(Pattern::Diamond, 0),
+            } => Card::Normal(Pattern::Diamond, 14),
             // don't need this value
-            _ => Card::Normal(Pattern::Spade, 0),
+            _ => Card::Normal(Pattern::Spade, 14),
         }
     }
 

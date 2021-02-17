@@ -80,6 +80,19 @@ pub async fn pre_register(id: Identity, state: web::Data<AppState>) -> impl Resp
     }
 }
 
+#[get("/pre-register-complete")]
+pub async fn pre_register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if id.identity().is_some() {
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
+    } else {
+        let body = state.render("pre-register-complete.hbs", &json!({})).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    }
+}
+
 #[get("/register/{token}")]
 pub async fn register(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
     let form: SendVerification = jsonwebtoken::decode(

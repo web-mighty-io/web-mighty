@@ -47,6 +47,16 @@ impl From<Pattern> for Color {
     }
 }
 
+impl From<Rush> for Color {
+    fn from(c: Rush) -> Self {
+        if (Rush::SPADE | Rush::CLOVER).contains(c) {
+            Self::Black
+        } else {
+            Self::Red
+        }
+    }
+}
+
 impl Color {
     pub fn is_color_of(&self, rhs: &Pattern) -> bool {
         match self {
@@ -54,14 +64,11 @@ impl Color {
             Color::Red => matches!(rhs, Pattern::Diamond | Pattern::Heart),
         }
     }
-}
 
-impl From<Rush> for Color {
-    fn from(c: Rush) -> Self {
-        if (Rush::SPADE | Rush::CLOVER).contains(c) {
-            Self::Black
-        } else {
-            Self::Red
+    pub fn invert(&self) -> Color {
+        match self {
+            Color::Black => Color::Red,
+            Color::Red => Color::Black,
         }
     }
 }

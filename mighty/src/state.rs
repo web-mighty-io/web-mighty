@@ -151,7 +151,7 @@ impl State {
             State::InGame {
                 giruda: Some(Pattern::Spade),
                 ..
-            } => Card::Normal(Pattern::Diamond, 0),
+            } => Card::Normal(Pattern::Diamond, 14),
             _ => unreachable!(),
         }
     }

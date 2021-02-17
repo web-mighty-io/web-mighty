@@ -13,6 +13,7 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
         .service(get::login)
         .service(get::logout)
         .service(get::observe)
+        .service(get::list)
         // .service(get::ranking)
         .service(get::pre_register)
         .service(get::pre_register_complete)

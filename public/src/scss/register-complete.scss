@@ -1,0 +1,67 @@
+@charset "utf-8";
+
+@import "./modules/common.scss";
+
+html,
+body {
+  font-family: $font-sans-serif, $korean;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: ivory;
+
+  .upper-wrap {
+    flex: 1;
+  }
+
+  .middle-wrap {
+    flex: 1;
+
+    .title-wrap {
+      display: flex;
+
+      .title {
+        width: 700px;
+        height: 80px;
+        margin: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 35pt;
+      }
+    }
+  }
+
+  .lower-wrap {
+    flex: 5;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+
+    .main-wrap {
+      flex: 0 1;
+      width: 300px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px -5px rgba(#000, 0.4);
+      padding: 20px;
+
+      button {
+        margin: 20px auto 5px;
+        padding: 5px 10px;
+        font-size: 12pt;
+        border-radius: 7px;
+      }
+    }
+  }
+
+  .footer-wrap {
+    flex: 2;
+  }
+}

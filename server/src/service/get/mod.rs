@@ -113,6 +113,19 @@ pub async fn register(state: web::Data<AppState>, web::Path(token): web::Path<St
         .body(body))
 }
 
+#[get("/register-complete")]
+pub async fn register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if id.identity().is_some() {
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
+    } else {
+        let body = state.render("register-complete.hbs", &json!({})).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    }
+}
+
 #[get("/observe/{room_id}")]
 pub async fn observe(
     id: Identity,

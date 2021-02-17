@@ -132,6 +132,21 @@ pub async fn observe(
         .body(body)
 }
 
+#[get("/list")]
+pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if let Some(id) = id.identity() {
+        let body = state.render("list.hbs", &json!({ "id": id })).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    } else {
+        HttpResponse::Found()
+            .header(header::LOCATION, "/login?back=%2Flist".to_owned())
+            .finish()
+    }
+}
+
 // #[get("/ranking")]
 // pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
 //     let body = state.render("ranking.hbs", &json!({})).unwrap();

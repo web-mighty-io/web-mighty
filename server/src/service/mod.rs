@@ -17,6 +17,7 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
         .service(get::pre_register)
         .service(get::pre_register_complete)
         .service(get::register)
+        .service(get::register_complete)
         .service(get::resource)
         .service(get::room)
         // .service(get::setting)

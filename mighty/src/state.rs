@@ -139,7 +139,9 @@ impl State {
     #[cfg(feature = "server")]
     fn get_giruda(&self) -> Option<Pattern> {
         match self {
+            State::SelectFriend { giruda, .. } => *giruda,
             State::InGame { giruda, .. } => *giruda,
+            State::GameEnded { giruda, .. } => *giruda,
             _ => unreachable!(),
         }
     }
@@ -147,12 +149,9 @@ impl State {
     #[cfg(feature = "server")]
     //#[cfg(any(feature = "client", feature = "server"))]
     fn get_mighty(&self) -> Card {
-        match self {
-            State::InGame {
-                giruda: Some(Pattern::Spade),
-                ..
-            } => Card::Normal(Pattern::Diamond, 14),
-            _ => unreachable!(),
+        match self.get_giruda() {
+            Some(Pattern::Spade) => Card::Normal(Pattern::Diamond, 14),
+            _ => Card::Normal(Pattern::Spade, 14),
         }
     }
 

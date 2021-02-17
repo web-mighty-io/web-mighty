@@ -188,29 +188,29 @@ impl State {
 
     /// Winner when no mighty, giruda, joker is valid
     #[cfg(feature = "server")]
-    fn minor_card_winner(&self, rule: &Rule, card_vec: &[Card]) -> Card {
+    fn minor_card_winner(&self, rule: &Rule, cards: &[Card]) -> Card {
         let cur_pat = self.get_current_pattern();
 
-        let mut it = card_vec
+        let mut it = cards
             .iter()
             .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
             .filter(|(p, _)| cur_pat.contains(Rush::from(**p)));
 
-        let fold_fn = |(p_max, n_max): (Pattern, u8), (p, n): (&Pattern, &u8)| match n_max.cmp(n) {
-            Ordering::Less => (*p, *n),
+        let fold_fn = |(pat_max, num_max): (Pattern, u8), (pat, num): (&Pattern, &u8)| match num_max.cmp(num) {
+            Ordering::Less => (*pat, *num),
             Ordering::Equal
-                if rule.pattern_order.iter().position(|x| *x == *p).unwrap()
-                    < rule.pattern_order.iter().position(|x| *x == p_max).unwrap() =>
+                if rule.pattern_order.iter().position(|x| *x == *pat).unwrap()
+                    < rule.pattern_order.iter().position(|x| *x == pat_max).unwrap() =>
             {
-                (*p, *n)
+                (*pat, *num)
             }
-            _ => (p_max, n_max),
+            _ => (pat_max, num_max),
         };
 
         let (p, n) = if let Some((p, n)) = it.next() {
             it.fold((*p, *n), fold_fn)
         } else {
-            card_vec
+            cards
                 .iter()
                 .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
                 .fold((Pattern::Spade, 0), fold_fn)

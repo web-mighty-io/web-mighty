@@ -225,17 +225,17 @@ impl State {
         cards
             .iter()
             .filter_map(|c| match c {
-                Card::Normal(p, n) if *p == giruda => Some(n),
+                Card::Normal(p, n) if *p == pat => Some(n),
                 _ => None,
             })
             .max()
             .map(|i| Card::Normal(pat, *i))
     }
 
+    /// Calculating winner of cards
     #[cfg(feature = "server")]
-    fn calculate_winner(&self, rule: &Rule, cards: &[Card]) -> Card {
+    pub fn calculate_winner(&self, rule: &Rule, cards: &[Card]) -> Card {
         let mighty = self.get_mighty();
-
         if cards.contains(&mighty) {
             return mighty;
         }
@@ -256,28 +256,30 @@ impl State {
             }
         } else if rule.deck.1 == 0b11 {
             if let Some(giruda) = self.get_giruda() {
-                let joker1 = Card::Joker(Color::from(giruda));
-                let joker2 = Card::Joker(Color::from(giruda).invert());
+                let main_joker = Card::Joker(Color::from(giruda));
+                let sub_joker = Card::Joker(Color::from(giruda).invert());
 
-                if cards.contains(&joker1) {
-                    joker1
+                if cards.contains(&main_joker) {
+                    main_joker
                 } else if let Some(max_card) = State::pattern_winner(giruda, cards) {
                     max_card
-                } else if Color::from(self.get_current_pattern()) != Color::from(giruda) && cards.contains(&joker2) {
-                    joker2
+                } else if Color::from(self.get_current_pattern()) != Color::from(giruda) && cards.contains(&sub_joker) {
+                    sub_joker
                 } else {
                     self.minor_card_winner(&rule, cards)
                 }
             } else {
                 let cur_pat = self.get_current_pattern();
-                let joker1 = Card::Joker(Color::from(cur_pat));
+                let main_joker = Card::Joker(Color::from(cur_pat));
 
-                if cards.contains(&joker1) {
-                    joker1
+                if cards.contains(&main_joker) {
+                    main_joker
                 } else {
-                    self.minor_card_winner(&rule, &cards)
+                    self.minor_card_winner(&rule, cards)
                 }
             }
+        } else {
+            self.minor_card_winner(&rule, cards)
         }
     }
 }

@@ -15,6 +15,7 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
         .service(get::observe)
         // .service(get::ranking)
         .service(get::pre_register)
+        .service(get::pre_register_complete)
         .service(get::register)
         .service(get::resource)
         .service(get::room)

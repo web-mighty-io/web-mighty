@@ -1,4 +1,4 @@
-import { sha512 } from "./hash.js";
+import {sha512} from "./hash.js";
 
 /**
  * User class
@@ -187,7 +187,7 @@ class User {
             })
         });
         if (res.ok) {
-            window.location.replace("/");
+            window.location.replace("/pre-register-complete");
         } else {
             onError(await res.text());
         }

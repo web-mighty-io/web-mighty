@@ -11,6 +11,11 @@ body {
   background-color: ivory;
 }
 
+.content {
+  padding: 3rem 15rem 0 15rem;
+  height: 100%;
+}
+
 .title {
   text-align: center;
   font-size: 2rem;
@@ -18,7 +23,11 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+}
 
+.subtitle {
+  text-align: left;
+  font-size: 2rem;
 }
 
 .icon {
@@ -26,29 +35,26 @@ body {
   cursor: pointer;
 }
 
-.content {
-  padding: 3rem 15rem 0 15rem;
-}
-
 .container-1 {
   display: flex;
   justify-content: space-between;
 }
 
-.container-2 {
-  display: flex;
-  justify-content: space-around;
-  align-items: stretch;
-  margin-top: 5rem;
+.outer-box {
+  margin-bottom: auto;
+  background-color: $primary;
+  border-radius: 30px;
+  border-color: black;
+  border-width: 5px;
+  padding: 20px;
+  margin-top: 2rem;
+  width: 100%;
+  height: 100%;
 }
 
-.button {
-  width: 20rem;
-  height: 30rem;
-  font-size: 3rem;
-  text-align: center;
-
-  .wrap {
-    margin-top: 2rem;
-  }
+.inner-box {
+  border-radius: 10px;
+  background-color: white;
+  width: 100%;
+  height: 800px;
 }

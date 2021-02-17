@@ -1,7 +1,7 @@
 # building in rust
 # - compiling server
 # - compiling wasm
-FROM rust:1.49 AS rust-build
+FROM rust:1.50 AS rust-build
 
 COPY ./client /app/client
 COPY ./config /app/config
@@ -14,7 +14,7 @@ RUN cargo install --root /app/build --path /app/server \
  && wasm-pack build --release --out-dir /app/public/src/js/pkg --out-name index /app/client
 
 # building in webpack
-FROM node:15.7 AS node-build
+FROM node:15.8 AS node-build
 
 COPY                   ./public                  /app/public
 COPY                   ./package.json            /app
@@ -43,7 +43,9 @@ COPY --from=rust-build /app/build/bin /app/bin
 COPY --from=node-build /app/public    /app/public
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libssl-dev=1.1.1f-1ubuntu2.1 \
+ && apt-get install -y --no-install-recommends \
+            ca-certificates=20210119~20.04.1 \
+            libssl-dev=1.1.1f-1ubuntu2.1 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

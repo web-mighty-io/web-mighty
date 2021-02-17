@@ -27,7 +27,7 @@ window.onload = function () {
             isNameError = false;
         } else {
             if (isFirst !== true) {
-                nameError.innerText = "이름은 특수문자를 포함하지 않아야 합니다.";
+                nameError.innerText = "이름은 특수문자를 포함하지 않아야 하며 2자 이상이어야 합니다.";
             }
             isNameError = true;
         }
@@ -41,7 +41,7 @@ window.onload = function () {
             isPasswordError = false;
         } else {
             if (isFirst !== true) {
-                passwordError.innerText = "비밀번호는 소문자, 대문자, 숫자, 특수문자중 3가지 이상을 포함해야 합니다.";
+                passwordError.innerText = "비밀번호는 소문자, 대문자, 숫자, 특수문자중 3가지 이상을 포함해야 하며 8자 이상이어야 합니다.";
             }
             isPasswordError = true;
         }
@@ -62,35 +62,48 @@ window.onload = function () {
     };
     checkPasswordCheck(true);
 
+    let isFormProcessing = false;
     form.onsubmit = function () {
-        checkName();
-        if (isNameError) {
-            name.classList.add("danger");
-            name.focus();
+        if (isFormProcessing) {
             return false;
         }
+        isFormProcessing = true;
 
-        checkPassword();
-        if (isPasswordError) {
-            password.classList.add("danger");
-            password.focus();
-            return false;
-        }
+        (async function () {
+            checkName();
+            if (isNameError) {
+                name.classList.add("danger");
+                name.focus();
+                isFormProcessing = false;
+                return;
+            }
 
-        checkPasswordCheck();
-        if (isPasswordCheckError) {
-            passwordCheck.classList.add("danger");
-            passwordCheck.focus();
-            return false;
-        }
+            checkPassword();
+            if (isPasswordError) {
+                password.classList.add("danger");
+                password.focus();
+                isFormProcessing = false;
+                return;
+            }
 
-        User.register(new User({
-            info: {
-                id: userId,
-                name: name.value,
-            },
-            token
-        }), password.value);
+            checkPasswordCheck();
+            if (isPasswordCheckError) {
+                passwordCheck.classList.add("danger");
+                passwordCheck.focus();
+                isFormProcessing = false;
+                return;
+            }
+
+            await User.register(new User({
+                info: {
+                    id: userId,
+                    name: name.value,
+                },
+                token
+            }), password.value);
+
+            isFormProcessing = false;
+        })();
 
         return false;
     };

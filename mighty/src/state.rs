@@ -1,7 +1,5 @@
 use crate::card::{Card, Pattern, Rush};
 use crate::rule::{card_policy::CardPolicy, election, Rule};
-#[cfg(feature = "server")]
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "server")]
 use {
@@ -9,6 +7,8 @@ use {
     crate::command::Command,
     crate::error::{Error, Result},
     crate::rule::friend,
+    rand::seq::SliceRandom,
+    std::cmp::Ordering,
 };
 /*#[cfg(any(feature = "client", feature = "server"))]
 use {
@@ -96,7 +96,7 @@ impl State {
     #[cfg(feature = "server")]
     fn get_random_deck(rule: &Rule) -> Vec<Vec<Card>> {
         loop {
-            let mut deck = rule.deck.clone();
+            let mut deck = rule.deck.0.clone();
             deck.shuffle(&mut rand::thread_rng());
             let deck = deck
                 .chunks(rule.card_cnt_per_user as usize)
@@ -127,7 +127,7 @@ impl State {
             false
         }
     }
-
+    */
     #[cfg(feature = "server")]
     fn get_current_pattern(&self) -> Rush {
         match self {
@@ -143,7 +143,7 @@ impl State {
             // don't need this value
             _ => None,
         }
-    }*/
+    }
 
     #[cfg(feature = "server")]
     //#[cfg(any(feature = "client", feature = "server"))]
@@ -152,9 +152,9 @@ impl State {
             State::InGame {
                 giruda: Some(Pattern::Spade),
                 ..
-            } => Card::Normal(Pattern::Diamond, 0),
+            } => Card::Normal(Pattern::Diamond, 14),
             // don't need this value
-            _ => Card::Normal(Pattern::Spade, 0),
+            _ => Card::Normal(Pattern::Spade, 14),
         }
     }
 
@@ -190,94 +190,139 @@ impl State {
         }
     }
 
-    /*
     #[cfg(feature = "server")]
-    fn compare_cards(&self, lhs: &Card, rhs: &Card) -> bool {
-        let mighty = self.get_mighty();
-        if *lhs == mighty {
-            return false;
-        }
-        if *rhs == mighty {
-            return true;
-        }
-
+    fn minor_card_winner(&self, rule: &Rule, card_vec: &[Card]) -> Card {
+        // no mighty, giruda, joker
+        // only normal card
         let cur_pat = self.get_current_pattern();
-        let cur_color = Color::from(cur_pat);
-        let giruda = self.get_giruda();
-        let giruda_color = giruda.clone().map(Color::from);
 
-        match lhs {
-            Card::Normal(c1, n1) => match rhs {
-                Card::Normal(c2, n2) => {
-                    if let Some(giruda) = giruda {
-                        if *c1 == giruda && *c2 == giruda {
-                            if *n1 == 0 {
-                                return false;
-                            } else if *n2 == 0 {
-                                return true;
-                            } else {
-                                return n1 < n2;
-                            }
-                        } else if *c1 == giruda || *c2 == giruda {
-                            return *c2 == giruda;
+        let mut it = card_vec
+            .iter()
+            .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
+            .filter(|(p, _)| cur_pat.contains(Rush::from(**p)));
+
+        let fold_fn = |(p_max, n_max): (Pattern, u8), (p, n): (&Pattern, &u8)| match n_max.cmp(n) {
+            Ordering::Less => (*p, *n),
+            Ordering::Equal
+                if rule.pattern_order.iter().fold(0, |mut x, r| {
+                    if x == 0 {
+                        if *r == *p {
+                            x = 1;
+                        } else if *r == p_max {
+                            x = 2;
                         }
                     }
+                    x
+                }) == 1 =>
+            {
+                (*p, *n)
+            }
+            _ => (p_max, n_max),
+        };
 
-                    if cur_pat.contains(Rush::from(*c1)) && cur_pat.contains(Rush::from(*c2)) {
-                        if *n1 == 0 {
-                            false
-                        } else if *n2 == 0 {
-                            true
-                        } else {
-                            n1 < n2
-                        }
-                    } else if cur_pat.contains(Rush::from(*c1)) || cur_pat.contains(Rush::from(*c2)) {
-                        cur_pat.contains(Rush::from(*c2))
-                    } else {
-                        // actually this is meaningless
-                        true
-                    }
-                }
+        let (p, n) = if let Some((p, n)) = it.next() {
+            it.fold((*p, *n), fold_fn)
+        } else {
+            card_vec
+                .iter()
+                .filter_map(|i| if let Card::Normal(p, n) = i { Some((p, n)) } else { None })
+                .fold((Pattern::Spade, 0), fold_fn)
+        };
 
-                Card::Joker(c2) => {
-                    if *c2 != cur_color || self.is_joker_called() {
-                        false
-                    } else if let Some(giruda) = giruda {
-                        if *c1 == giruda {
-                            *c2 == giruda_color.unwrap()
-                        } else {
-                            true
-                        }
-                    } else {
-                        true
-                    }
-                }
-            },
-
-            Card::Joker(c1) => match rhs {
-                Card::Normal(c2, _) => {
-                    if *c1 != cur_color || self.is_joker_called() {
-                        true
-                    } else if let Some(giruda) = giruda {
-                        if *c2 == giruda {
-                            *c1 != giruda_color.unwrap()
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                }
-
-                // no need to check if joker is called
-                Card::Joker(c2) => *c2 == cur_color,
-            },
-        }
-    }*/
+        Card::Normal(p, n)
+    }
 
     #[cfg(feature = "server")]
-    fn calculate_winner(&self, _rule: &Rule, _card_vec: Vec<Card>) -> usize {
-        0usize
+    fn get_max_card_with_pattern(card_vec: &[Card], pat: Pattern) -> Option<Card> {
+        card_vec
+            .iter()
+            .filter_map(|c| match c {
+                Card::Normal(p, n) if *p == pat => Some(n),
+                _ => None,
+            })
+            .max()
+            .map(|i| Card::Normal(pat, *i))
+    }
+
+    #[cfg(feature = "server")]
+    fn calculate_winner(&self, rule: &Rule, card_vec: &[Card]) -> Card {
+        let mighty = self.get_mighty();
+
+        if card_vec.contains(&mighty) {
+            return mighty;
+        }
+
+        if rule.deck.1 == 0b01 || rule.deck.1 == 0b10 {
+            // one types of joker
+            let joker = if rule.deck.1 == 0b01 {
+                Card::Joker(Color::Red)
+            } else {
+                Card::Joker(Color::Black)
+            };
+
+            if card_vec.contains(&joker) {
+                return joker;
+            }
+            //no more joker
+
+            let giruda = self.get_giruda();
+            if let Some(giruda) = giruda {
+                State::get_max_card_with_pattern(card_vec, giruda)
+                    .unwrap_or_else(|| self.minor_card_winner(rule, card_vec))
+            } else {
+                //노기루
+                //마이티, 기루다, 조커 무시하고 일반 카드들간의 경쟁
+                self.minor_card_winner(&rule, card_vec)
+            }
+        } else {
+            //two types of joker
+
+            if let Some(giruda) = self.get_giruda() {
+                //giruda & two joker
+                let (joker1, joker2) = if Pattern::Spade == giruda || Pattern::Clover == giruda {
+                    (Card::Joker(Color::Black), Card::Joker(Color::Red))
+                } else {
+                    (Card::Joker(Color::Red), Card::Joker(Color::Black))
+                };
+
+                if card_vec.contains(&joker1) {
+                    return joker1;
+                }
+
+                //no more joker1
+                let max_card = State::get_max_card_with_pattern(card_vec, giruda);
+
+                if let Some(max_card) = max_card {
+                    max_card
+                } else {
+                    //기루다가 없다
+                    //현재상황 = 마이티X조커1X기루다X
+                    // 조커2와 먼저돌린 문양의 경쟁
+
+                    let cur_pat = self.get_current_pattern();
+                    if Color::from(cur_pat) != Color::from(giruda) && card_vec.contains(&joker2) {
+                        joker2
+                    } else {
+                        self.minor_card_winner(&rule, card_vec)
+                    }
+                }
+            } else {
+                //노기루 & two joker
+                //rush에 해당하는 조커가 가장 강력함.
+                let cur_pat = self.get_current_pattern();
+                let joker1 = if Rush::black().contains(cur_pat) {
+                    Card::Joker(Color::Black)
+                } else {
+                    Card::Joker(Color::Red)
+                };
+
+                if card_vec.contains(&joker1) {
+                    return joker1;
+                }
+
+                self.minor_card_winner(&rule, &card_vec)
+            }
+        }
     }
 }
 
@@ -716,7 +761,16 @@ impl State {
                                 card_vec.push(c);
                             }
                         }
-                        let winner = self.calculate_winner(&rule, card_vec);
+                        let winner_card = self.calculate_winner(&rule, &card_vec);
+                        let winner = placed_cards[start_user..]
+                            .iter()
+                            .position(|(c, _)| *c == winner_card)
+                            .unwrap_or_else(|| {
+                                placed_cards[..start_user]
+                                    .iter()
+                                    .position(|(c, _)| *c == winner_card)
+                                    .unwrap()
+                            });
 
                         if let FriendFunc::First = friend_func {
                             friend =
@@ -1162,6 +1216,8 @@ mod test {
 
         assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 12), &Card::Normal(Pattern::Diamond, 3)));
         assert!(state.compare_cards(&Card::Normal(Pattern::Diamond, 5), &Card::Normal(Pattern::Clover, 3)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Clover, 5) , &Card::Joker(Color::Black)));
+        assert!(state.compare_cards(&Card::Normal(Pattern::Spade, 5) , &Card::Joker(Color::Black)));
         //in-game test
         assert_eq!(state.is_joker_called(), false);
         assert_eq!(state.get_current_pattern(), Rush::DIAMOND);
@@ -1278,6 +1334,8 @@ mod test {
         assert_eq!(state.get_giruda().unwrap(), Pattern::Spade);
         assert_eq!(state.get_current_pattern(), Rush::CLOVER);
         assert_eq!(state.is_joker_called(), true);
+        assert!(state.compare_cards(&Card::Joker(Color::Black) , &Card::Normal(Pattern::Spade, 2)));
+        assert!(state.compare_cards(&Card::Joker(Color::Red) , &Card::Joker(Color::Black)));
     }
 
     #[cfg(feature = "server")]

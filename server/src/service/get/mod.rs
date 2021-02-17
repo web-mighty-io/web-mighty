@@ -126,7 +126,6 @@ pub async fn register_complete(id: Identity, state: web::Data<AppState>) -> impl
     }
 }
 
-
 #[get("/observe/{room_id}")]
 pub async fn observe(
     id: Identity,

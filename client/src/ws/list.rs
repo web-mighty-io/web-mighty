@@ -14,8 +14,8 @@ impl SessionTrait for ListSession {
     fn receive(&mut self, msg: String, _: &Context<Self>) -> (&str, JsValue) {
         let msg: ListToClient = serde_json::from_str(&*msg).unwrap();
         match msg {
-            ListToClient::Room(room_info) => ("", JsValue::from_serde(&room_info).unwrap()),
-            ListToClient::RoomList(room_list) => ("", JsValue::from_serde(&room_list).unwrap()),
+            ListToClient::Room(room_info) => ("room", JsValue::from_serde(&room_info).unwrap()),
+            ListToClient::RoomList(room_list) => ("room_list", JsValue::from_serde(&room_list).unwrap()),
         }
     }
 }

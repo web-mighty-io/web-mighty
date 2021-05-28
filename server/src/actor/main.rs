@@ -1,6 +1,6 @@
 use crate::actor::hub::GetUser;
 use crate::actor::session::{Session, SessionTrait};
-use crate::actor::user::{Update, UserConnect, UserDisconnect};
+use crate::actor::user::{Update, UserConnect, UserDisconnect, UserJoin};
 use crate::actor::{Hub, User};
 use actix::prelude::*;
 use actix_web_actors::ws::WebsocketContext;

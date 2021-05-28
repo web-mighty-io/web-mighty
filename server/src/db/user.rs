@@ -186,17 +186,17 @@ pub fn check_user_email(form: &CheckEmailForm, pool: Pool) -> Result<bool> {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct DeleteForm {
-    pub user_id: String,
+    pub user_no: u32,
     pub password: String,
 }
 
 pub fn delete_user(form: &DeleteForm, pool: Pool) -> Result<()> {
     is_password_valid(&form.password)?;
     let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 no FROM users WHERE id=$1 AND password=$2;")?;
+    let stmt = client.prepare("SELECT 1 no FROM users WHERE no=$1 AND password=$2;")?;
     let res = client.query(&stmt, &[&form.user_id, &form.password])?;
     ensure!(!res.is_empty(), StatusCode::UNAUTHORIZED, "password doesn't match");
-    let stmt = client.prepare("DELETE FROM users WHERE id=$1")?;
+    let stmt = client.prepare("DELETE FROM users WHERE no=$1")?;
     client.query(&stmt, &[&form.user_id])?;
     Ok(())
 }

@@ -6,7 +6,7 @@ use crate::db::user::{
 use crate::dev::*;
 use actix_identity::Identity;
 use actix_web::http::header;
-use actix_web::{post, web, HttpResponse};
+use actix_web::{post, web, HttpResponse, Responder};
 use serde::Serialize;
 
 #[post("/login")]
@@ -18,6 +18,12 @@ pub async fn login(
     let user_no = login_user(&*form, state.pool.clone())?;
     id.remember(user_no.to_string());
     Ok(HttpResponse::Ok().finish())
+}
+
+#[post("/logout")]
+pub async fn logout(id: Identity) -> impl Responder {
+    id.forget();
+    HttpResponse::Ok().finish()
 }
 
 #[post("/pre-register")]
@@ -62,7 +68,7 @@ pub async fn validate_user_id(form: web::Json<CheckIdForm>, state: web::Data<App
             user_id: form.user_id.clone(),
             exists,
         })
-        .unwrap(),
+            .unwrap(),
     ))
 }
 
@@ -83,6 +89,6 @@ pub async fn validate_email(
             email: form.email.clone(),
             exists,
         })
-        .unwrap(),
+            .unwrap(),
     ))
 }

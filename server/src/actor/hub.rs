@@ -1,5 +1,5 @@
-use crate::actor::room::Room;
-use crate::actor::user::User;
+use crate::actor::room::{Room, RoomJoin};
+use crate::actor::user::{User, UserJoin};
 use crate::db::game::{save_rule, SaveRuleForm};
 use crate::db::user::{get_user_info, GetInfoForm};
 use crate::dev::*;
@@ -43,24 +43,29 @@ impl Handler<GetRoom> for Hub {
 /// The `room_id` would generated with random value.
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "RoomId")]
-pub struct MakeRoom(pub String, pub Rule, pub bool);
+pub struct MakeRoom {
+    name: String,
+    head: UserNo,
+    rule: Rule,
+    rank: bool,
+}
 
 impl Handler<MakeRoom> for Hub {
-    type Result = RoomId;
+    type Result = Result<RoomId>;
 
     fn handle(&mut self, msg: MakeRoom, ctx: &mut Self::Context) -> Self::Result {
         let room_uuid = RoomUid::generate_random();
         let room_id = self.generate_room_id();
-        let user_cnt = msg.1.user_cnt as usize;
-        let rule = RuleHash::generate(&msg.1);
-        let _ = save_rule(&SaveRuleForm { rule: msg.1.clone() }, self.pool.clone());
+        let user_cnt = msg.rule.user_cnt as usize;
+        let rule = RuleHash::generate(&msg.rule);
+        save_rule(&SaveRuleForm { rule: msg.rule.clone() }, self.pool.clone())?;
         let room = Room::new(
             RoomInfo {
                 uid: room_uuid,
                 id: room_id,
-                name: msg.0,
+                name: msg.name,
                 rule,
-                is_rank: msg.2,
+                is_rank: msg.rank,
                 head: UserNo(0),
                 user: vec![UserNo(0); user_cnt],
                 observer_cnt: 0,
@@ -71,7 +76,15 @@ impl Handler<MakeRoom> for Hub {
         )
         .start();
         self.room.insert(room_id, room);
-        room_id
+
+        if let Some(user_addr) = self.users.get(&msg.head) {
+            user_addr.do_send(UserJoin(room_id, room.clone()));
+            room.do_send(RoomJoin::User(msg.head, user_addr.clone()));
+        } else {
+            bail!("No user");
+        }
+
+        Ok(room_id)
     }
 }
 

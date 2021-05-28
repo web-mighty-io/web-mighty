@@ -1,5 +1,5 @@
 use crate::actor::hub::GetRoom;
-use crate::actor::room::{ChangeName, ChangeRule, Chat, Go, RoomJoin, RoomLeave, StartGame};
+use crate::actor::room::{ChangeName, ChangeRule, Chat, GetInfo, Go, RoomJoin, RoomLeave, StartGame};
 use crate::actor::session::Session;
 use crate::actor::{Hub, Main, Room, RoomUser};
 use crate::db::game::{change_rating, ChangeRatingForm};
@@ -15,7 +15,6 @@ use std::time::SystemTime;
 pub struct JoinedRoom {
     addr: Addr<Room>,
     info: RoomInfo,
-    group: HashSet<Addr<Session<RoomUser>>>,
     disconn: u8,
 }
 
@@ -30,6 +29,7 @@ pub struct User {
     disconn: u8,
     last_update: SystemTime,
     room: Option<JoinedRoom>,
+    group: HashSet<Addr<Session<RoomUser>>>,
     subscribers: HashSet<Addr<Session<Main>>>,
     hub: Addr<Hub>,
     pool: Pool,
@@ -119,43 +119,21 @@ impl Handler<UserDisconnect> for User {
 /// It would respond `room_info` so that the client can know if the client is joined.
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "()")]
-pub struct UserJoin(pub RoomId, pub Addr<Session<Main>>);
+pub struct UserJoin(pub RoomId, pub Addr<Room>);
 
 impl Handler<UserJoin> for User {
     type Result = ();
 
     fn handle(&mut self, msg: UserJoin, ctx: &mut Self::Context) -> Self::Result {
-        if self.room.is_some() {
-            return;
-        }
-        self.hub
-            .send(GetRoom(msg.0))
+        msg.1
+            .send(GetInfo)
             .into_actor(self)
             .then(|res, act, ctx| {
-                if let Ok(Ok(room)) = res {
-                    let room_addr = room.clone();
-                    room.send(RoomJoin::User(act.info.no, ctx.address()))
-                        .into_actor(act)
-                        .then(move |res, act, _| {
-                            if let Ok(info) = res {
-                                if info.user.contains(&act.info.no) {
-                                    act.room = Some(JoinedRoom {
-                                        addr: room_addr,
-                                        info,
-                                        group: HashSet::new(),
-                                        disconn: 0,
-                                    });
-                                } else {
-                                    msg.1.do_send(MainToClient::UserInfo(act.info.clone()));
-                                }
-                            }
-
-                            fut::ready(())
-                        })
-                        .wait(ctx);
-                }
-
-                fut::ready(())
+                act.room = Some(JoinedRoom {
+                    addr: msg.1,
+                    info: res.unwrap(),
+                    disconn: 0,
+                });
             })
             .wait(ctx);
     }

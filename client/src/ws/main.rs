@@ -24,7 +24,6 @@ impl SessionTrait for MainSession {
             MainToClient::UserStatus(no, status) => {
                 ("user_status", JsValue::from_serde(&Status { no, status }).unwrap())
             }
-            MainToClient::UserInfo(info) => ("user_info", JsValue::from_serde(&info).unwrap()),
         }
     }
 }

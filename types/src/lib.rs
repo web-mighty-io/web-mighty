@@ -397,7 +397,6 @@ pub enum ListToServer {
 #[cfg_attr(feature = "server", rtype(result = "()"))]
 pub enum MainToClient {
     UserStatus(UserNo, UserStatus),
-    UserInfo(UserInfo),
 }
 
 /// Websocket message for main connection to server

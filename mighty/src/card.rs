@@ -209,16 +209,16 @@ mod test {
 
     #[test]
     fn card_is_score() {
-        assert_eq!(Card::Normal(Pattern::Spade, 10).is_score(), true);
-        assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), false);
-        assert_eq!(Card::Normal(Pattern::Diamond, 8).is_score(), false);
-        assert_eq!(Card::Joker(Color::Red).is_score(), false);
+        assert!(Card::Normal(Pattern::Spade, 10).is_score());
+        assert!(!Card::Normal(Pattern::Spade, 9).is_score());
+        assert!(!Card::Normal(Pattern::Diamond, 8).is_score());
+        assert!(!Card::Joker(Color::Red).is_score());
     }
 
     #[test]
     fn card_is_joker() {
-        assert_eq!(Card::Joker(Color::Red).is_joker(), true);
-        assert_eq!(Card::Joker(Color::Black).is_joker(), true);
-        assert_eq!(Card::Normal(Pattern::Spade, 5).is_joker(), false);
+        assert!(Card::Joker(Color::Red).is_joker());
+        assert!(Card::Joker(Color::Black).is_joker());
+        assert!(!Card::Normal(Pattern::Spade, 5).is_joker());
     }
 }

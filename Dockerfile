@@ -1,7 +1,7 @@
 # building in rust
 # - compiling server
 # - compiling wasm
-FROM rust:1.50 AS rust-build
+FROM rust:1.52.1 AS rust-build
 
 COPY ./client /app/client
 COPY ./config /app/config

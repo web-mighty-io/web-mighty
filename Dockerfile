@@ -44,8 +44,8 @@ COPY --from=node-build /app/public    /app/public
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-            ca-certificates=20210119~20.04.1 \
-            libssl-dev=1.1.1f-1ubuntu2.1 \
+            ca-certificates \
+            libssl-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

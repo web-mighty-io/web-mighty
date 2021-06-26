@@ -215,7 +215,7 @@ pub fn get_user_info(form: &GetInfoForm, pool: Pool) -> Result<UserInfo> {
             client.query(&stmt, &[no])?
         }
         GetInfoForm::UserId(id) => {
-            is_user_id_valid(&id)?;
+            is_user_id_valid(id)?;
             let stmt = client.prepare("SELECT 1 no, id, name, email, rating, is_admin FROM users WHERE id=$1;")?;
             client.query(&stmt, &[id])?
         }

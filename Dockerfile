@@ -1,7 +1,7 @@
 # building in rust
 # - compiling server
 # - compiling wasm
-FROM rust:1.50 AS rust-build
+FROM rust:1.53 AS rust-build
 
 COPY ./client /app/client
 COPY ./config /app/config
@@ -44,8 +44,8 @@ COPY --from=node-build /app/public    /app/public
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-            ca-certificates=20210119~20.04.1 \
-            libssl-dev=1.1.1f-1ubuntu2.1 \
+            ca-certificates \
+            libssl-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

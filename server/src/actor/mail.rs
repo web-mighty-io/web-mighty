@@ -2,8 +2,8 @@ use crate::app_state::AppState;
 use crate::dev::*;
 use actix::prelude::*;
 use actix_web::web;
-use hyperx::header;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use lettre::message::header;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{SmtpTransport, Transport};
@@ -71,7 +71,7 @@ impl Handler<SendVerification> for Mail {
                 .from(self.from.clone())
                 .to(msg.email.parse().unwrap())
                 .subject("Finish your registration to Web Mighty")
-                .header(header::ContentType::html())
+                .header(header::ContentType::TEXT_HTML)
                 .body(body)
                 .unwrap();
 

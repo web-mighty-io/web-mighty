@@ -38,7 +38,7 @@ impl Display for CopyableHash {
 }
 
 impl CopyableHash {
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(self) -> Vec<u8> {
         vec![
             ((self.0 & 0xff_00_00_00_00_00_00_00) >> 56) as u8,
             ((self.0 & 0x00_ff_00_00_00_00_00_00) >> 48) as u8,

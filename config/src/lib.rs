@@ -16,8 +16,8 @@ pub fn make_config(input: TokenStream) -> TokenStream {
             .iter()
             .enumerate()
             .map(|(i, f)| match &f.ident {
-                Some(name) => build_fns(&f, name),
-                None => build_fns(&f, &Index::from(i)),
+                Some(name) => build_fns(f, name),
+                None => build_fns(f, &Index::from(i)),
             })
             .collect::<Vec<_>>(),
         _ => panic!("Config only supports struct"),

@@ -14,7 +14,7 @@ RUN cargo install --root /app/build --path /app/server \
  && wasm-pack build --release --out-dir /app/public/src/js/pkg --out-name index /app/client
 
 # building in webpack
-FROM node:15.8 AS node-build
+FROM node:16.3.0 AS node-build
 
 COPY                   ./public                  /app/public
 COPY                   ./package.json            /app

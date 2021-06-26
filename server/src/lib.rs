@@ -82,10 +82,12 @@ pub mod prelude {
 ///
 /// This module is used for `main.rs` to make `main.rs` short and easier to code.
 pub mod internal {
+    use crate::actor::mail::SetAppState;
     use crate::app_state::AppState;
     use crate::config::Config;
     use crate::middlewares::https::RedirectHttps;
     use crate::service::{config_services, p404};
+    use actix::Actor;
     use actix_identity::{CookieIdentityPolicy, IdentityService};
     use actix_web::middleware::Logger;
     use actix_web::{web, App, HttpServer};
@@ -115,14 +117,15 @@ pub mod internal {
         let http_port = conf.port;
         let https_port = conf.https.as_ref().unwrap().port;
         let host = conf.host.clone();
-        let mail = conf.get_mail();
+        let mail = conf.get_mail().start();
         let serve_path = conf.serve_path.clone();
         let ssl_builder = conf.get_ssl_builder();
         let pg_config = conf.get_pg_config();
         let private_key = conf.secret.clone();
         let redirect = conf.https.as_ref().unwrap().redirect;
 
-        let state = AppState::new(serve_path, pg_config, mail, hex::encode(&conf.secret));
+        let state = AppState::new(serve_path, pg_config, mail.clone(), hex::encode(&conf.secret));
+        mail.do_send(SetAppState(state.clone()));
 
         HttpServer::new(move || {
             App::new()
@@ -150,19 +153,18 @@ pub mod internal {
     async fn main_http(conf: Config) -> std::io::Result<()> {
         let host = conf.host.clone();
         let http_port = conf.port;
-        let mail = conf.get_mail();
+        let mail = conf.get_mail().start();
         let serve_path = conf.serve_path.clone();
         let pg_config = conf.get_pg_config();
         let private_key = conf.secret.clone();
 
-        let state = AppState::new(serve_path, pg_config, mail, hex::encode(&conf.secret));
+        let state = AppState::new(serve_path, pg_config, mail.clone(), hex::encode(&conf.secret));
+        mail.do_send(SetAppState(state.clone()));
 
         HttpServer::new(move || {
             App::new()
                 .wrap(IdentityService::new(
-                    CookieIdentityPolicy::new(&private_key)
-                        .name("web-mighty-auth")
-                        .secure(true),
+                    CookieIdentityPolicy::new(&private_key).name("web-mighty-auth"),
                 ))
                 .wrap(Logger::default())
                 .app_data(state.clone())

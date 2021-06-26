@@ -12,11 +12,13 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
         .service(get::index)
         .service(get::login)
         .service(get::logout)
-        .service(get::mail)
         .service(get::observe)
+        .service(get::list)
         // .service(get::ranking)
-        .service(get::regenerate_token)
+        .service(get::pre_register)
+        .service(get::pre_register_complete)
         .service(get::register)
+        .service(get::register_complete)
         .service(get::resource)
         .service(get::room)
         // .service(get::setting)
@@ -29,8 +31,11 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
                 .service(get::ws::room),
         )
         .service(post::login)
+        .service(post::regenerate_token)
         .service(post::pre_register)
         .service(post::register)
+        .service(post::validate_email)
+        .service(post::validate_user_id)
         .service(delete::delete_user);
 }
 

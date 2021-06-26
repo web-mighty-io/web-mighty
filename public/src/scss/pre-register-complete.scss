@@ -17,7 +17,7 @@ body {
   background: ivory;
 
   .upper-wrap {
-    flex: 4;
+    flex: 1;
   }
 
   .middle-wrap {
@@ -33,35 +33,24 @@ body {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 45pt;
+        font-size: 35pt;
       }
     }
   }
 
   .lower-wrap {
-    flex: 2;
+    flex: 5;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
 
-    .start-wrap {
-      display: flex;
-
-      .start {
-        width: 450px;
-        height: 50px;
-        margin: 10px auto auto;
-        display: flex;
-        justify-content: center;
-
-        button {
-          font-family: inherit;
-          width: 120px;
-          height: 50px;
-          margin: 0 20px;
-          font-size: 15pt;
-          border-radius: 10px;
-          border: 0;
-          outline: none !important;
-        }
-      }
+    .main-wrap {
+      flex: 0 1;
+      width: 300px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px -5px rgba(#000, 0.4);
+      padding: 20px;
     }
   }
 

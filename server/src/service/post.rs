@@ -1,10 +1,11 @@
 use crate::app_state::AppState;
 use crate::db::user::{
-    check_user_email, check_user_id, login_user, pre_register_user, register_user, CheckEmailForm, CheckIdForm,
-    LoginForm, PreRegisterForm, RegisterForm,
+    check_user_email, check_user_id, login_user, pre_register_user, regenerate_user_token, register_user,
+    CheckEmailForm, CheckIdForm, LoginForm, PreRegisterForm, RegenerateTokenForm, RegisterForm,
 };
 use crate::dev::*;
 use actix_identity::Identity;
+use actix_web::http::header;
 use actix_web::{post, web, HttpResponse};
 use serde::Serialize;
 
@@ -24,6 +25,16 @@ pub async fn pre_register(form: web::Json<PreRegisterForm>, state: web::Data<App
     let form = pre_register_user(&*form, state.pool.clone())?;
     state.mail.do_send(form);
     Ok(HttpResponse::Ok().finish())
+}
+
+#[post("/regenerate-token")]
+pub async fn regenerate_token(
+    form: web::Path<RegenerateTokenForm>,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let form = regenerate_user_token(&*form, state.pool.clone())?;
+    state.mail.do_send(form);
+    Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
 }
 
 #[post("/register")]

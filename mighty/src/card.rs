@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 #[cfg(feature = "client")]
 use wasm_bindgen::prelude::*;
 
@@ -14,6 +15,18 @@ pub enum Pattern {
     Heart,
     #[serde(rename = "c")]
     Clover,
+}
+
+impl TryFrom<Card> for Pattern {
+    type Error = &'static str;
+
+    fn try_from(c: Card) -> Result<Self, Self::Error> {
+        if let Card::Normal(p, _) = c {
+            Ok(p)
+        } else {
+            Err("Joker has no pattern")
+        }
+    }
 }
 
 #[cfg_attr(feature = "client", wasm_bindgen)]
@@ -34,11 +47,28 @@ impl From<Pattern> for Color {
     }
 }
 
+impl From<Rush> for Color {
+    fn from(c: Rush) -> Self {
+        if (Rush::SPADE | Rush::CLOVER).contains(c) {
+            Self::Black
+        } else {
+            Self::Red
+        }
+    }
+}
+
 impl Color {
     pub fn is_color_of(&self, rhs: &Pattern) -> bool {
         match self {
             Color::Black => matches!(rhs, Pattern::Spade | Pattern::Clover),
             Color::Red => matches!(rhs, Pattern::Diamond | Pattern::Heart),
+        }
+    }
+
+    pub fn invert(&self) -> Color {
+        match self {
+            Color::Black => Color::Red,
+            Color::Red => Color::Black,
         }
     }
 }
@@ -83,16 +113,6 @@ impl From<Card> for Rush {
     }
 }
 
-impl From<Rush> for Color {
-    fn from(c: Rush) -> Self {
-        if (Rush::SPADE | Rush::CLOVER).contains(c) {
-            Self::Black
-        } else {
-            Self::Red
-        }
-    }
-}
-
 impl Rush {
     pub fn black() -> Rush {
         Rush::SPADE | Rush::CLOVER
@@ -117,7 +137,7 @@ pub enum Card {
 impl Card {
     pub fn is_score(&self) -> bool {
         match self {
-            Card::Normal(_, n) => *n >= 9 || *n == 0,
+            Card::Normal(_, n) => *n >= 10,
             Card::Joker(_) => false,
         }
     }
@@ -131,6 +151,12 @@ impl Card {
 mod test {
     use super::*;
 
+    #[test]
+    fn pattern_card_from() {
+        assert_eq!(Pattern::try_from(Card::Normal(Pattern::Spade, 14)), Ok(Pattern::Spade));
+        assert!(Pattern::try_from(Card::Joker(Color::Black)).is_err());
+        assert!(Pattern::try_from(Card::Joker(Color::Red)).is_err());
+    }
     #[test]
     fn color_type_from() {
         assert_eq!(Color::from(Pattern::Spade), Color::Black);
@@ -183,15 +209,16 @@ mod test {
 
     #[test]
     fn card_is_score() {
-        assert_eq!(Card::Normal(Pattern::Spade, 9).is_score(), true);
-        assert_eq!(Card::Normal(Pattern::Diamond, 8).is_score(), false);
-        assert_eq!(Card::Joker(Color::Red).is_score(), false);
+        assert!(Card::Normal(Pattern::Spade, 10).is_score());
+        assert!(!Card::Normal(Pattern::Spade, 9).is_score());
+        assert!(!Card::Normal(Pattern::Diamond, 8).is_score());
+        assert!(!Card::Joker(Color::Red).is_score());
     }
 
     #[test]
     fn card_is_joker() {
-        assert_eq!(Card::Joker(Color::Red).is_joker(), true);
-        assert_eq!(Card::Joker(Color::Black).is_joker(), true);
-        assert_eq!(Card::Normal(Pattern::Spade, 5).is_joker(), false);
+        assert!(Card::Joker(Color::Red).is_joker());
+        assert!(Card::Joker(Color::Black).is_joker());
+        assert!(!Card::Normal(Pattern::Spade, 5).is_joker());
     }
 }

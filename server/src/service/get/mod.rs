@@ -3,7 +3,7 @@ pub mod ws;
 
 use crate::actor::mail::SendVerification;
 use crate::app_state::AppState;
-use crate::db::user::{get_user_info, regenerate_user_token, GetInfoForm, RegenerateTokenForm};
+use crate::db::user::{get_user_info, GetInfoForm};
 use crate::dev::*;
 use crate::service::p404;
 use actix_identity::Identity;
@@ -64,20 +64,46 @@ pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
 #[get("/logout")]
 pub async fn logout(id: Identity) -> impl Responder {
     id.forget();
-    HttpResponse::Ok()
+    HttpResponse::Ok().finish()
 }
 
-#[get("/mail/{token}")]
-pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
+#[get("/pre-register")]
+pub async fn pre_register(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if id.identity().is_some() {
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
+    } else {
+        let body = state.render("pre-register.hbs", &json!({})).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    }
+}
+
+#[get("/pre-register-complete")]
+pub async fn pre_register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if id.identity().is_some() {
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
+    } else {
+        let body = state.render("pre-register-complete.hbs", &json!({})).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    }
+}
+
+#[get("/register/{token}")]
+pub async fn register(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
     let form: SendVerification = jsonwebtoken::decode(
         &token,
         &DecodingKey::from_secret(state.secret.as_ref()),
-        &Validation::new(Algorithm::ES256),
+        &Validation::new(Algorithm::HS256),
     )?
     .claims;
     let body = state
         .render(
-            "mail.hbs",
+            "register.hbs",
             &json!({ "token": form.token, "email": form.email, "user_id": form.user_id }),
         )
         .unwrap();
@@ -85,6 +111,19 @@ pub async fn mail(state: web::Data<AppState>, web::Path(token): web::Path<String
         .set(header::CacheControl(vec![header::CacheDirective::Private]))
         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
         .body(body))
+}
+
+#[get("/register-complete")]
+pub async fn register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if id.identity().is_some() {
+        HttpResponse::Found().header(header::LOCATION, "/").finish()
+    } else {
+        let body = state.render("register-complete.hbs", &json!({})).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    }
 }
 
 #[get("/observe/{room_id}")]
@@ -106,6 +145,21 @@ pub async fn observe(
         .body(body)
 }
 
+#[get("/list")]
+pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
+    if let Some(id) = id.identity() {
+        let body = state.render("list.hbs", &json!({ "id": id })).unwrap();
+        HttpResponse::Ok()
+            .set(header::CacheControl(vec![header::CacheDirective::Private]))
+            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .body(body)
+    } else {
+        HttpResponse::Found()
+            .header(header::LOCATION, "/login?back=%2Flist".to_owned())
+            .finish()
+    }
+}
+
 // #[get("/ranking")]
 // pub async fn ranking(state: web::Data<AppState>) -> impl Responder {
 //     let body = state.render("ranking.hbs", &json!({})).unwrap();
@@ -114,29 +168,6 @@ pub async fn observe(
 //         .set(header::ContentType(mime::TEXT_HTML_UTF_8))
 //         .body(body)
 // }
-
-#[get("/regenerate-token")]
-pub async fn regenerate_token(
-    form: web::Path<RegenerateTokenForm>,
-    state: web::Data<AppState>,
-) -> Result<HttpResponse, Error> {
-    let form = regenerate_user_token(&*form, state.pool.clone())?;
-    state.mail.do_send(form);
-    Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
-}
-
-#[get("/register")]
-pub async fn register(id: Identity, state: web::Data<AppState>) -> impl Responder {
-    if id.identity().is_some() {
-        HttpResponse::Found().header(header::LOCATION, "/").finish()
-    } else {
-        let body = state.render("register.hbs", &json!({})).unwrap();
-        HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
-            .body(body)
-    }
-}
 
 #[get("/res/{file:.*}")]
 pub async fn resource(state: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {

@@ -49,7 +49,7 @@ pub struct AppState {
 
 impl AppState {
     #[cfg(not(feature = "watch-file"))]
-    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail, secret: String) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Addr<Mail>, secret: String) -> web::Data<AppState> {
         let manager = PostgresConnectionManager::new(config, NoTls);
         let pool = Pool::new(manager).unwrap();
         db::init(pool.clone()).expect("db init failed");
@@ -59,13 +59,13 @@ impl AppState {
             resources: get_resources(&path),
             hub: Hub::new(pool.clone()).start(),
             pool,
-            mail: mail.start(),
+            mail,
             secret,
         })
     }
 
     #[cfg(feature = "watch-file")]
-    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Mail, secret: String) -> web::Data<AppState> {
+    pub fn new<P: AsRef<Path>>(path: P, config: PgConfig, mail: Addr<Mail>, secret: String) -> web::Data<AppState> {
         let path = path.as_ref();
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx).unwrap();
@@ -82,7 +82,7 @@ impl AppState {
             resources: Mutex::new(get_resources(&path)),
             hub: Hub::new(pool.clone()).start(),
             pool,
-            mail: mail.start(),
+            mail,
             secret,
         });
         let state_clone = state.clone();

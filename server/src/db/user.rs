@@ -16,8 +16,8 @@ pub fn pre_register_user(form: &PreRegisterForm, pool: Pool) -> Result<SendVerif
     is_user_id_valid(&form.user_id)?;
     is_email_valid(&form.email)?;
     let mut client = pool.get()?;
-    let stmt =
-        client.prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")?;
+    let stmt = client
+        .prepare("SELECT FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1 LIMIT 1;")?;
     let res = client.query(&stmt, &[&form.user_id])?;
     ensure!(res.is_empty(), StatusCode::UNAUTHORIZED, "username already in use");
 
@@ -29,12 +29,14 @@ pub fn pre_register_user(form: &PreRegisterForm, pool: Pool) -> Result<SendVerif
         email: form.email.clone(),
         user_id: form.user_id.clone(),
         token,
+        exp: (SystemTime::UNIX_EPOCH.elapsed().unwrap() + TOKEN_VALID_DURATION).as_secs() as usize,
     })
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct RegenerateTokenForm {
     pub user_id: String,
+    pub token: String,
     pub email: String,
 }
 
@@ -43,13 +45,15 @@ pub fn regenerate_user_token(form: &RegenerateTokenForm, pool: Pool) -> Result<S
     is_email_valid(&form.email)?;
     let token = hex::encode(rand::thread_rng().sample_iter(Standard).take(4).collect::<Vec<u8>>());
     let mut client = pool.get()?;
-    let stmt = client.prepare("UPDATE pre_users SET token=$1, gen_time=NOW() WHERE id=$2 AND email=$3;")?;
-    let res = client.query(&stmt, &[&token, &form.user_id, &form.email])?;
+    let stmt =
+        client.prepare("UPDATE pre_users SET token=$1, gen_time=NOW() WHERE id=$2 AND email=$3 AND token=$4;")?;
+    let res = client.query(&stmt, &[&token, &form.user_id, &form.email, &form.token])?;
     ensure!(!res.is_empty(), StatusCode::UNAUTHORIZED, "login failed");
     Ok(SendVerification {
         email: form.email.clone(),
         user_id: form.user_id.clone(),
         token,
+        exp: (SystemTime::UNIX_EPOCH.elapsed().unwrap() + TOKEN_VALID_DURATION).as_secs() as usize,
     })
 }
 
@@ -66,7 +70,7 @@ pub fn register_user(form: &RegisterForm, pool: Pool) -> Result<()> {
     is_user_name_valid(&form.name)?;
     is_password_valid(&form.password)?;
     let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 gen_time, email FROM pre_users WHERE id=$1 AND token=$2;")?;
+    let stmt = client.prepare("SELECT gen_time, email FROM pre_users WHERE id=$1 AND token=$2 LIMIT 1;")?;
     let res = client.query(&stmt, &[&form.user_id, &form.token])?;
     let row = res
         .first()
@@ -159,8 +163,8 @@ pub struct CheckIdForm {
 pub fn check_user_id(form: &CheckIdForm, pool: Pool) -> Result<bool> {
     is_user_id_valid(&form.user_id)?;
     let mut client = pool.get()?;
-    let stmt =
-        client.prepare("SELECT 1 FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users) a WHERE id=$1;")?;
+    let stmt = client
+        .prepare("SELECT id FROM ( SELECT id FROM pre_users UNION ALL SELECT id FROM users ) a WHERE id=$1 LIMIT 1;")?;
     let res = client.query(&stmt, &[&form.user_id])?;
     Ok(!res.is_empty())
 }
@@ -173,7 +177,9 @@ pub struct CheckEmailForm {
 pub fn check_user_email(form: &CheckEmailForm, pool: Pool) -> Result<bool> {
     is_email_valid(&form.email)?;
     let mut client = pool.get()?;
-    let stmt = client.prepare("SELECT 1 no FROM users WHERE email=$1;")?;
+    let stmt = client.prepare(
+        "SELECT email FROM ( SELECT email FROM pre_users UNION ALL SELECT email FROM users ) a WHERE email=$1 LIMIT 1;",
+    )?;
     let res = client.query(&stmt, &[&form.email])?;
     Ok(!res.is_empty())
 }
@@ -209,7 +215,7 @@ pub fn get_user_info(form: &GetInfoForm, pool: Pool) -> Result<UserInfo> {
             client.query(&stmt, &[no])?
         }
         GetInfoForm::UserId(id) => {
-            is_user_id_valid(&id)?;
+            is_user_id_valid(id)?;
             let stmt = client.prepare("SELECT 1 no, id, name, email, rating, is_admin FROM users WHERE id=$1;")?;
             client.query(&stmt, &[id])?
         }
@@ -227,9 +233,9 @@ pub fn get_user_info(form: &GetInfoForm, pool: Pool) -> Result<UserInfo> {
 }
 
 pub fn is_user_name_valid(user_name: &str) -> Result<()> {
-    let not_id_regex = Regex::new(r"^[^!@#$%^&*()_+-=:;'\[\]{}\\|<>?,./]{4,63}$").unwrap();
+    let name_regex = Regex::new(r#"^[^!@#$%^&*()_+-=:;'"\[\]{}\\|<>?,./]{2,63}$"#).unwrap();
     ensure!(
-        !not_id_regex.is_match(user_name),
+        name_regex.is_match(user_name),
         StatusCode::UNAUTHORIZED,
         "only english is allowed for user name"
     );
@@ -237,7 +243,7 @@ pub fn is_user_name_valid(user_name: &str) -> Result<()> {
 }
 
 pub fn is_user_id_valid(user_id: &str) -> Result<()> {
-    let id_regex = Regex::new(r"^[a-zA-z0-9._\-]{4,31}$").unwrap();
+    let id_regex = Regex::new(r"^[a-zA-Z0-9._\-]{4,31}$").unwrap();
     ensure!(
         id_regex.is_match(user_id),
         StatusCode::UNAUTHORIZED,

@@ -280,7 +280,7 @@ where
                                 let func = func.inner;
                                 if let Some(msg_list) = unsent_msg.get(&tag) {
                                     for msg in msg_list.iter() {
-                                        let _ = func.call1(&JsValue::null(), &msg);
+                                        let _ = func.call1(&JsValue::null(), msg);
                                     }
                                 }
                                 unsent_msg.remove(&tag);

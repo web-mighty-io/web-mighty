@@ -106,7 +106,7 @@ impl State {
                 .iter()
                 .map(|v| {
                     if v.len() == rule.card_cnt_per_user as usize {
-                        !rule.missed_deal.is_missed_deal(&v)
+                        !rule.missed_deal.is_missed_deal(v)
                     } else {
                         true
                     }
@@ -249,9 +249,9 @@ impl State {
             if cards.contains(&joker) {
                 joker
             } else if let Some(giruda) = self.get_giruda() {
-                State::pattern_winner(giruda, cards).unwrap_or_else(|| self.minor_card_winner(&rule, cards))
+                State::pattern_winner(giruda, cards).unwrap_or_else(|| self.minor_card_winner(rule, cards))
             } else {
-                self.minor_card_winner(&rule, cards)
+                self.minor_card_winner(rule, cards)
             }
         } else if rule.deck.1 == 0b11 {
             if let Some(giruda) = self.get_giruda() {
@@ -265,7 +265,7 @@ impl State {
                 } else if Color::from(self.get_current_pattern()) != Color::from(giruda) && cards.contains(&sub_joker) {
                     sub_joker
                 } else {
-                    self.minor_card_winner(&rule, cards)
+                    self.minor_card_winner(rule, cards)
                 }
             } else {
                 let cur_pat = self.get_current_pattern();
@@ -274,11 +274,11 @@ impl State {
                 if cards.contains(&main_joker) {
                     main_joker
                 } else {
-                    self.minor_card_winner(&rule, cards)
+                    self.minor_card_winner(rule, cards)
                 }
             }
         } else {
-            self.minor_card_winner(&rule, cards)
+            self.minor_card_winner(rule, cards)
         }
     }
 }
@@ -722,7 +722,7 @@ impl State {
                                 card_vec.push(c);
                             }
                         }
-                        let winner_card = self.calculate_winner(&rule, &card_vec);
+                        let winner_card = self.calculate_winner(rule, &card_vec);
                         let winner = placed_cards[start_user..]
                             .iter()
                             .position(|(c, _)| *c == winner_card)

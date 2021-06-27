@@ -1,11 +1,11 @@
 //! Redirects to https when http request is incoming.
 
+use actix_web::body::AnyBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header;
 use actix_web::HttpResponse;
 use futures::future::{ok, Either, Ready};
 use futures::task::{Context, Poll};
-use actix_web::body::AnyBody;
 
 /// Transform of `RedirectHttps`
 ///

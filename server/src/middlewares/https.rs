@@ -5,6 +5,7 @@ use actix_web::http::header;
 use actix_web::HttpResponse;
 use futures::future::{ok, Either, Ready};
 use futures::task::{Context, Poll};
+use actix_web::body::AnyBody;
 
 /// Transform of `RedirectHttps`
 ///
@@ -26,11 +27,10 @@ impl RedirectHttps {
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for RedirectHttps
+impl<S> Transform<S, ServiceRequest> for RedirectHttps
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = actix_web::Error>,
     S::Future: 'static,
-    B: 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -56,11 +56,10 @@ pub struct RedirectHttpsMiddleware<S> {
     redirect: bool,
 }
 
-impl<S, B> Service<ServiceRequest> for RedirectHttpsMiddleware<S>
+impl<S> Service<ServiceRequest> for RedirectHttpsMiddleware<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = actix_web::Error>,
     S::Future: 'static,
-    B: 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -89,9 +88,8 @@ where
 
             Either::Right(ok(req.into_response(
                 HttpResponse::MovedPermanently()
-                    .header(header::LOCATION, url)
-                    .finish()
-                    .into_body(),
+                    .insert_header((header::LOCATION, url))
+                    .finish(),
             )))
         }
     }

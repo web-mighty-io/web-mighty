@@ -50,7 +50,7 @@ pub async fn observe(
     state: web::Data<AppState>,
     req: HttpRequest,
     stream: web::Payload,
-    web::Path(room_id): web::Path<String>,
+    room_id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
     if let Some(id) = id.identity() {
         let user_no = id.parse().unwrap();

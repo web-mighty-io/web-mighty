@@ -1,5 +1,6 @@
 //! Redirects to https when http request is incoming.
 
+use actix_web::body::AnyBody;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header;
 use actix_web::HttpResponse;
@@ -26,13 +27,11 @@ impl RedirectHttps {
     }
 }
 
-impl<S, B> Transform<S> for RedirectHttps
+impl<S> Transform<S, ServiceRequest> for RedirectHttps
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = actix_web::Error>,
     S::Future: 'static,
-    B: 'static,
 {
-    type Request = S::Request;
     type Response = S::Response;
     type Error = S::Error;
     type Transform = RedirectHttpsMiddleware<S>;
@@ -57,22 +56,20 @@ pub struct RedirectHttpsMiddleware<S> {
     redirect: bool,
 }
 
-impl<S, B> Service for RedirectHttpsMiddleware<S>
+impl<S> Service<ServiceRequest> for RedirectHttpsMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<AnyBody>, Error = actix_web::Error>,
     S::Future: 'static,
-    B: 'static,
 {
-    type Request = S::Request;
     type Response = S::Response;
     type Error = S::Error;
     type Future = Either<S::Future, Ready<Result<Self::Response, Self::Error>>>;
 
-    fn poll_ready(&mut self, ctx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&self, ctx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(ctx)
     }
 
-    fn call(&mut self, req: Self::Request) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         if req.connection_info().scheme() == "https" || !self.redirect {
             Either::Left(self.service.call(req))
         } else {
@@ -91,9 +88,8 @@ where
 
             Either::Right(ok(req.into_response(
                 HttpResponse::MovedPermanently()
-                    .header(header::LOCATION, url)
-                    .finish()
-                    .into_body(),
+                    .insert_header((header::LOCATION, url))
+                    .finish(),
             )))
         }
     }

@@ -34,7 +34,7 @@ pub async fn regenerate_token(
 ) -> Result<HttpResponse, Error> {
     let form = regenerate_user_token(&*form, state.pool.clone())?;
     state.mail.do_send(form);
-    Ok(HttpResponse::Found().header(header::LOCATION, "/").finish())
+    Ok(HttpResponse::Found().insert_header((header::LOCATION, "/")).finish())
 }
 
 #[post("/register")]

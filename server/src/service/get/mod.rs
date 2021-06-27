@@ -20,8 +20,8 @@ pub async fn admin(id: Identity, state: web::Data<AppState>) -> Result<HttpRespo
         if info.is_admin {
             let body = state.render("admin.hbs", &json!({ "id": id })).unwrap();
             Ok(HttpResponse::Ok()
-                .set(header::CacheControl(vec![header::CacheDirective::Private]))
-                .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+                .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+                .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
                 .body(body))
         } else {
             Ok(p404(state).await)
@@ -36,14 +36,14 @@ pub async fn index(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
         let body = state.render("main.hbs", &json!({ "id": id })).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     } else {
         let body = state.render("index.hbs", &json!({})).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     }
 }
@@ -51,12 +51,12 @@ pub async fn index(id: Identity, state: web::Data<AppState>) -> impl Responder {
 #[get("/login")]
 pub async fn login(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(header::LOCATION, "/").finish()
+        HttpResponse::Found().insert_header((header::LOCATION, "/")).finish()
     } else {
         let body = state.render("login.hbs", &json!({})).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     }
 }
@@ -70,12 +70,12 @@ pub async fn logout(id: Identity) -> impl Responder {
 #[get("/pre-register")]
 pub async fn pre_register(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(header::LOCATION, "/").finish()
+        HttpResponse::Found().insert_header((header::LOCATION, "/")).finish()
     } else {
         let body = state.render("pre-register.hbs", &json!({})).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     }
 }
@@ -83,18 +83,18 @@ pub async fn pre_register(id: Identity, state: web::Data<AppState>) -> impl Resp
 #[get("/pre-register-complete")]
 pub async fn pre_register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(header::LOCATION, "/").finish()
+        HttpResponse::Found().insert_header((header::LOCATION, "/")).finish()
     } else {
         let body = state.render("pre-register-complete.hbs", &json!({})).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     }
 }
 
 #[get("/register/{token}")]
-pub async fn register(state: web::Data<AppState>, web::Path(token): web::Path<String>) -> Result<HttpResponse, Error> {
+pub async fn register(state: web::Data<AppState>, token: web::Path<String>) -> Result<HttpResponse, Error> {
     let form: SendVerification = jsonwebtoken::decode(
         &token,
         &DecodingKey::from_secret(state.secret.as_ref()),
@@ -108,40 +108,36 @@ pub async fn register(state: web::Data<AppState>, web::Path(token): web::Path<St
         )
         .unwrap();
     Ok(HttpResponse::Ok()
-        .set(header::CacheControl(vec![header::CacheDirective::Private]))
-        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+        .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
         .body(body))
 }
 
 #[get("/register-complete")]
 pub async fn register_complete(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if id.identity().is_some() {
-        HttpResponse::Found().header(header::LOCATION, "/").finish()
+        HttpResponse::Found().insert_header((header::LOCATION, "/")).finish()
     } else {
         let body = state.render("register-complete.hbs", &json!({})).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     }
 }
 
 #[get("/observe/{room_id}")]
-pub async fn observe(
-    id: Identity,
-    state: web::Data<AppState>,
-    web::Path(room_id): web::Path<String>,
-) -> impl Responder {
+pub async fn observe(id: Identity, state: web::Data<AppState>, room_id: web::Path<String>) -> impl Responder {
     let mut val = Map::new();
     if let Some(id) = id.identity() {
         val.insert("id".to_owned(), json!(id));
     }
-    val.insert("room_id".to_owned(), json!(room_id));
+    val.insert("room_id".to_owned(), json!(room_id.into_inner()));
 
     let body = state.render("observe.hbs", &val).unwrap();
     HttpResponse::Ok()
-        .set(header::CacheControl(vec![header::CacheDirective::Private]))
-        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+        .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
         .body(body)
 }
 
@@ -150,12 +146,12 @@ pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
     if let Some(id) = id.identity() {
         let body = state.render("list.hbs", &json!({ "id": id })).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     } else {
         HttpResponse::Found()
-            .header(header::LOCATION, "/login?back=%2Flist".to_owned())
+            .insert_header((header::LOCATION, "/login?back=%2Flist"))
             .finish()
     }
 }
@@ -170,13 +166,13 @@ pub async fn list(id: Identity, state: web::Data<AppState>) -> impl Responder {
 // }
 
 #[get("/res/{file:.*}")]
-pub async fn resource(state: web::Data<AppState>, web::Path(file): web::Path<String>) -> impl Responder {
+pub async fn resource(state: web::Data<AppState>, file: web::Path<String>) -> impl Responder {
     let resources = state.get_resources();
-    if let Some(body) = resources.get(&file) {
+    if let Some(body) = resources.get(file.as_ref()) {
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Public]))
-            .set(header::ContentType(
-                mime_guess::from_path(&file).first_or(mime::TEXT_PLAIN_UTF_8),
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Public]))
+            .insert_header(header::ContentType(
+                mime_guess::from_path(file.as_ref()).first_or(mime::TEXT_PLAIN_UTF_8),
             ))
             .body(body.clone())
     } else {
@@ -185,16 +181,16 @@ pub async fn resource(state: web::Data<AppState>, web::Path(file): web::Path<Str
 }
 
 #[get("/room/{room_id}")]
-pub async fn room(id: Identity, state: web::Data<AppState>, web::Path(room_id): web::Path<String>) -> impl Responder {
+pub async fn room(id: Identity, state: web::Data<AppState>, room_id: web::Path<String>) -> impl Responder {
     if let Some(id) = id.identity() {
         let body = state.render("game.hbs", &json!({ "id": id })).unwrap();
         HttpResponse::Ok()
-            .set(header::CacheControl(vec![header::CacheDirective::Private]))
-            .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+            .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+            .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
             .body(body)
     } else {
         HttpResponse::Found()
-            .header(header::LOCATION, format!("/login?back=%2Froom%2F{}", room_id))
+            .insert_header((header::LOCATION, format!("/login?back=%2Froom%2F{}", room_id)))
             .finish()
     }
 }

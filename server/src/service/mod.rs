@@ -42,7 +42,7 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
 pub async fn p404(state: web::Data<AppState>) -> HttpResponse {
     let body = state.render("404.hbs", &json!({})).unwrap();
     HttpResponse::Ok()
-        .set(header::CacheControl(vec![header::CacheDirective::Private]))
-        .set(header::ContentType(mime::TEXT_HTML_UTF_8))
+        .insert_header(header::CacheControl(vec![header::CacheDirective::Private]))
+        .insert_header(header::ContentType(mime::TEXT_HTML_UTF_8))
         .body(body)
 }

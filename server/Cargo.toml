@@ -38,7 +38,7 @@ rand = "0.8"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
-sha2 = "0.9"
+sha2 = "0.10"
 slog = "2.5"
 slog-term = "2.6"
 slog-async = "2.5"

@@ -14,7 +14,7 @@ mighty = { path = "../mighty", features = ["server"] }
 types = { path = "../types", features = ["server"] }
 
 actix = "0.12"
-actix-identity = "0.4.0-beta.2"
+actix-identity = "0.5.1"
 actix-web = { version = "4.0.0-beta.8", features = ["openssl"] }
 actix-web-actors = "4.0.0-beta.6"
 anyhow = "1.0"
